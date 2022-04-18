@@ -1,0 +1,65 @@
+/*
+Copyright (c) 2022 Vít Labuda. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+following conditions are met:
+ 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+    disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+    following disclaimer in the documentation and/or other materials provided with the distribution.
+ 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+    products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#ifndef _T64I_CONF_FILE_H
+#define _T64I_CONF_FILE_H
+
+#include"t64_tundra.h"
+
+
+#define T64C_CONF_FILE__OPTION_KEY_PROGRAM_TRANSLATOR_THREADS "program.translator_threads"
+#define T64C_CONF_FILE__OPTION_KEY_PROGRAM_CHROOT_DIR "program.chroot_dir"
+#define T64C_CONF_FILE__OPTION_KEY_PROGRAM_PRIVILEGE_DROP_USER "program.privilege_drop_user"
+#define T64C_CONF_FILE__OPTION_KEY_PROGRAM_PRIVILEGE_DROP_GROUP "program.privilege_drop_group"
+
+#define T64C_CONF_FILE__OPTION_KEY_IO_MODE "io.mode"
+#define T64C_CONF_FILE__OPTION_KEY_IO_TUN_DEVICE_PATH "io.tun.device_path"
+#define T64C_CONF_FILE__OPTION_KEY_IO_TUN_INTERFACE_NAME "io.tun.interface_name"
+#define T64C_CONF_FILE__OPTION_KEY_IO_TUN_OWNER_USER "io.tun.owner_user"
+#define T64C_CONF_FILE__OPTION_KEY_IO_TUN_OWNER_GROUP "io.tun.owner_group"
+
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_PREFIX "translator.prefix"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4 "translator.ipv4"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6 "translator.ipv6"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_ALLOW_TRANSLATION_OF_PRIVATE_IPS "translator.allow_translation_of_private_ips"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4_OUTBOUND_MTU "translator.ipv4.outbound_mtu"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6_OUTBOUND_MTU "translator.ipv6.outbound_mtu"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_6TO4_COPY_DSCP_AND_ECN "translator.6to4.copy_dscp_and_ecn"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_4TO6_COPY_DSCP_AND_ECN "translator.4to6.copy_dscp_and_ecn"
+
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_IPV4_HEADER "translator.checksum.check_ipv4_header"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_ICMPV4 "translator.checksum.check_icmpv4"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_ICMPV6 "translator.checksum.check_icmpv6"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_TCP "translator.checksum.check_tcp"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_UDP "translator.checksum.check_udp"
+
+#define T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV4 "router.ipv4"
+#define T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV6 "router.ipv6"
+
+#define T64C_CONF_FILE__IO_MODE_INHERITED_FDS "inherited-fds"
+#define T64C_CONF_FILE__IO_MODE_TUN "tun"
+
+
+extern t64ts_tundra__conf_file *t64fa_conf_file__read_and_parse_configuration_file(const char *filepath);
+extern void t64f_conf_file__free_parsed_configuration_file(t64ts_tundra__conf_file *file_configuration);
+
+
+#endif // _T64I_CONF_FILE_H
