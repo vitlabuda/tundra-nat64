@@ -126,31 +126,35 @@ uint16_t t64f_utils_ip__calculate_rfc1071_checksum(const t64ts_tundra__packet *p
     // Checksum calculation pseudo-header
     if(include_pseudo_header) {
         if(packet->packet_ipv6hdr->version == 6) { // IPv6:
-            struct __attribute__((__packed__, aligned(2))) {
+            // If the 'volatile' modifier is not present there and the program is compiled using gcc with optimization turned on, the checksum computation does not work!
+            volatile struct __attribute__((__packed__, aligned(2))) {
                 uint8_t source_address[16];
                 uint8_t destination_address[16];
                 uint32_t length;
                 uint8_t zeroes[3];
                 uint8_t protocol;
             } ipv6_pseudo_header;
+            T64M_UTILS__MEMORY_CLEAR((void *) &ipv6_pseudo_header, 1, sizeof(ipv6_pseudo_header));
 
-            memcpy(ipv6_pseudo_header.source_address, packet->packet_ipv6hdr->saddr.s6_addr, 16);
-            memcpy(ipv6_pseudo_header.destination_address, packet->packet_ipv6hdr->daddr.s6_addr, 16);
+            memcpy((void *) ipv6_pseudo_header.source_address, packet->packet_ipv6hdr->saddr.s6_addr, 16);
+            memcpy((void *) ipv6_pseudo_header.destination_address, packet->packet_ipv6hdr->daddr.s6_addr, 16);
             ipv6_pseudo_header.length = htonl((uint32_t) packet->payload_size);
-            memset(ipv6_pseudo_header.zeroes, 0, 3);
+            memset((void *) ipv6_pseudo_header.zeroes, 0, 3);
             ipv6_pseudo_header.protocol = *(packet->ipv6_carried_protocol_field);
 
-            const uint16_t *ipv6_pseudo_header_16bit_words = (const uint16_t *) &ipv6_pseudo_header;
+            uint16_t *ipv6_pseudo_header_16bit_words = (uint16_t *) &ipv6_pseudo_header;
             for(size_t i = 0; i < 20; i++) // The pseudo-header contains 20 16-bit words
                 checksum += ntohs(ipv6_pseudo_header_16bit_words[i]);
         } else { // IPv4:
-            struct __attribute__((__packed__, aligned(2))) {
+            // If the 'volatile' modifier is not present there and the program is compiled using gcc with optimization turned on, the checksum computation does not work!
+            volatile struct __attribute__((__packed__, aligned(2))) {
                 uint32_t source_address;
                 uint32_t destination_address;
                 uint8_t zeroes;
                 uint8_t protocol;
                 uint16_t length;
             } ipv4_pseudo_header;
+            T64M_UTILS__MEMORY_CLEAR((void *) &ipv4_pseudo_header, 1, sizeof(ipv4_pseudo_header));
 
             ipv4_pseudo_header.source_address = packet->packet_ipv4hdr->saddr;
             ipv4_pseudo_header.destination_address = packet->packet_ipv4hdr->daddr;
@@ -158,7 +162,7 @@ uint16_t t64f_utils_ip__calculate_rfc1071_checksum(const t64ts_tundra__packet *p
             ipv4_pseudo_header.protocol = packet->packet_ipv4hdr->protocol;
             ipv4_pseudo_header.length = htons((uint16_t) packet->payload_size);
 
-            const uint16_t *ipv4_pseudo_header_16bit_words = (const uint16_t *) &ipv4_pseudo_header;
+            uint16_t *ipv4_pseudo_header_16bit_words = (uint16_t *) &ipv4_pseudo_header;
             for(size_t i = 0; i < 6; i++) // The pseudo-header contains 6 16-bit words
                 checksum += ntohs(ipv4_pseudo_header_16bit_words[i]);
         }

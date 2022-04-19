@@ -91,13 +91,13 @@ typedef struct __attribute__((__packed__)) {
 } t64ts_tundra__ipv6_fragment_header;
 
 typedef struct {
-    union {
+    union __attribute__((__packed__)) {
         // This pointer (it is a union) does not change after it is allocated, and it must be freed!
         uint8_t *packet_raw;
         struct iphdr *packet_ipv4hdr;
         struct ipv6hdr *packet_ipv6hdr;
     };
-    union {
+    union __attribute__((__packed__)) {
         // This pointer (it is a union) changes for every individual packet, and it points to the same dynamically-allocated memory block as 'packet_raw'!
         uint8_t *payload_raw;
         struct icmphdr *payload_icmpv4hdr;
