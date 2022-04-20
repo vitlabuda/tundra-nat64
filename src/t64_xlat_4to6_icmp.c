@@ -294,7 +294,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_carried_ip_head
      *  more embedded headers."
      */
     if(
-        t64f_utils_ip__does_ip_protocol_number_represent_ipv6_extension_header(in_ipv4_carried_packet.packet_ipv4hdr->protocol) ||
+        t64f_utils_ip__is_ip_protocol_number_forbidden(in_ipv4_carried_packet.packet_ipv4hdr->protocol) ||
         (in_ipv4_carried_packet.packet_ipv4hdr->protocol == 1) ||
         (in_ipv4_carried_packet.packet_ipv4hdr->protocol == 58)
     ) return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
@@ -331,20 +331,18 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_carried_ip_head
 }
 
 static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_carried_ipv4_address_to_ipv6_address(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4_address, uint8_t *out_ipv6_address) {
-    // t64f_utils_ip__is_ipv4_embedded_ipv6_address_translatable() considers router_ipv4 and translator_ipv4 not
-    //  translatable; however, translating translator_ipv4 makes sense in this case.
+    if(T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(in_ipv4_address, context->configuration->router_ipv4))
+        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // Packets from/to the router are not translated
+
     if(T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(in_ipv4_address, context->configuration->translator_ipv4)) {
         memcpy(out_ipv6_address, context->configuration->translator_ipv6, 16);
         return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
     }
 
-    if(t64f_utils_ip__is_ipv4_embedded_ipv6_address_translatable(context, in_ipv4_address)) {
-        memcpy(out_ipv6_address, context->configuration->translator_prefix, 12);
-        memcpy(out_ipv6_address + 12, in_ipv4_address, 4);
-        return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
-    }
-
-    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    // For the purposes of debugging, illegal addresses (such as 127.0.0.1) inside ICMP packets are translated normally.
+    memcpy(out_ipv6_address, context->configuration->translator_prefix, 12);
+    memcpy(out_ipv6_address + 12, in_ipv4_address, 4);
+    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
 }
 
 // Returns 255 if 'in_pointer' is invalid and the translation process shall be stopped!

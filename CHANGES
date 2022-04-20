@@ -3,3 +3,7 @@
 
 [1.0.1 @ 2022-04-19]
 - GCC fixes
+
+[1.0.2 @ 2022-04-20]
+- The translator now drops IGMP packets and allows ESP packets to pass through (as per RFC 7915)
+- When translating IP packets "in error" embedded in ICMPv4/v6 messages, illegal IP addresses inside them are now allowed (for debugging purposes)

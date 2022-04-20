@@ -88,19 +88,22 @@ bool t64f_utils_ip__is_ipv4_embedded_ipv6_address_translatable(const t64ts_tundr
     return true;
 }
 
-bool t64f_utils_ip__does_ip_protocol_number_represent_ipv6_extension_header(const uint8_t ip_protocol_number) {
+bool t64f_utils_ip__is_ip_protocol_number_forbidden(const uint8_t ip_protocol_number) {
     // https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
     return (bool) (
         (ip_protocol_number == 0) || // IPv6 Hop-by-Hop Option
+        (ip_protocol_number == 2) || // IGMP (Internet Group Management Protocol)
         (ip_protocol_number == 43) || // Routing Header for IPv6
         (ip_protocol_number == 44) || // Fragment Header for IPv6
-        (ip_protocol_number == 50) || // Encapsulating Security Payload
         (ip_protocol_number == 51) || // Authentication Header
         (ip_protocol_number == 60) || // Destination Options for IPv6
         (ip_protocol_number == 135) || // Mobility Header
         (ip_protocol_number == 139) || // Host Identity Protocol
         (ip_protocol_number == 140) // Shim6 Protocol
     );
+
+    // ESP (50) is allowed
+    //  (ip_protocol_number == 50) || // Encapsulating Security Payload
 }
 
 // The IPv4 packet must be valid - this function does not perform any "unnecessary" checks!

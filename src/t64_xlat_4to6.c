@@ -93,7 +93,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6__evaluate_in_packet(t64ts_tundr
 
     // Protocol
     if(
-        t64f_utils_ip__does_ip_protocol_number_represent_ipv6_extension_header(context->in_packet.packet_ipv4hdr->protocol) ||
+        t64f_utils_ip__is_ip_protocol_number_forbidden(context->in_packet.packet_ipv4hdr->protocol) ||
         (context->in_packet.packet_ipv4hdr->protocol == 58) // ICMP for IPv6
     ) return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 

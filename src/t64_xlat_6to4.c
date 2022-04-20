@@ -156,7 +156,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__evaluate_in_packet(t64ts_tundr
             return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
         if(
-            t64f_utils_ip__does_ip_protocol_number_represent_ipv6_extension_header(*protocol_field) ||
+            t64f_utils_ip__is_ip_protocol_number_forbidden(*protocol_field) ||
             (*protocol_field == 1) // Internet Control Message Protocol (ICMPv4)
         ) return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 

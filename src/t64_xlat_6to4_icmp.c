@@ -277,7 +277,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
      *  more embedded headers."
      */
     if(
-        t64f_utils_ip__does_ip_protocol_number_represent_ipv6_extension_header(in_ipv6_carried_packet.packet_ipv6hdr->nexthdr) ||
+        t64f_utils_ip__is_ip_protocol_number_forbidden(in_ipv6_carried_packet.packet_ipv6hdr->nexthdr) ||
         (in_ipv6_carried_packet.packet_ipv6hdr->nexthdr == 1) ||
         (in_ipv6_carried_packet.packet_ipv6hdr->nexthdr == 58)
     ) return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
@@ -322,7 +322,8 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ipv6_ad
         return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
     }
 
-    if(T64M_UTILS__MEMORY_EQUAL(in_ipv6_address, context->configuration->translator_prefix, 12) && t64f_utils_ip__is_ipv4_embedded_ipv6_address_translatable(context, in_ipv6_address + 12)) {
+    if(T64M_UTILS__MEMORY_EQUAL(in_ipv6_address, context->configuration->translator_prefix, 12)) {
+        // For the purposes of debugging, illegal addresses (such as 127.0.0.1) inside ICMP packets are translated normally.
         memcpy(out_ipv4_address, in_ipv6_address + 12, 4);
         return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
     }
