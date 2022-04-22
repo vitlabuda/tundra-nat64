@@ -30,6 +30,15 @@ static t64te_tundra__xlat_status _t64f_router_ipv4__generate_header_of_ipv4_pack
 static void _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in_out_packet(t64ts_tundra__xlat_thread_context *context);
 
 
+/*
+ * When this function is called, in_packet's IPv4 header must be fully validated and all the packet's properties (i.e.
+ *  'packet_size', 'payload_raw' and 'payload_size') must be set correctly. The packet's payload does not have to be
+ *  validated. In other words, this function can be called at any point after the '_t64f_xlat_4to6__evaluate_in_packet()'
+ *  function succeeds.
+ * This function overwrites all the contents of out_packet - it generates the ICMPv4 packet there and sends it out.
+ *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
+ *  immediately!
+ */
 void t64f_router_ipv4__generate_and_send_icmpv4_time_exceeded_message_back_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
     if(_t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(context, 1) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
         return;
@@ -46,6 +55,15 @@ void t64f_router_ipv4__generate_and_send_icmpv4_time_exceeded_message_back_to_in
     t64f_xlat__possibly_fragment_and_send_ipv4_out_packet(context);
 }
 
+/*
+ * When this function is called, in_packet's IPv4 header must be fully validated and all the packet's properties (i.e.
+ *  'packet_size', 'payload_raw' and 'payload_size') must be set correctly. The packet's payload does not have to be
+ *  validated. In other words, this function can be called at any point after the '_t64f_xlat_4to6__evaluate_in_packet()'
+ *  function succeeds.
+ * This function overwrites all the contents of out_packet - it generates the ICMPv4 packet there and sends it out.
+ *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
+ *  immediately!
+ */
 void t64f_router_ipv4__generate_and_send_icmpv4_fragmentation_needed_message_back_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context, uint16_t mtu) {
     if(_t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(context, 1) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
         return;

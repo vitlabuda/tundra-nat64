@@ -66,9 +66,6 @@ static void _t64f_xlat__prepare_packet_struct_for_new_packet(t64ts_tundra__packe
     packet_struct->ipv6_carried_protocol_field = NULL;
 }
 
-// Return value:
-// - true -> a packet can be read from context->packet_read_fd
-// - false -> the thread should terminate gracefully (not crash)
 static t64te_tundra__xlat_status _t64f_xlat__wait_for_input(t64ts_tundra__xlat_thread_context *context) {
     struct pollfd poll_fds[2];
     T64M_UTILS__MEMORY_CLEAR(poll_fds, 2, sizeof(struct pollfd));
@@ -123,10 +120,11 @@ static void _t64f_xlat__translate_packet(t64ts_tundra__xlat_thread_context *cont
 
 /*
  * If 'context->out_packet' fits into the configured outbound MTU, it is sent out.
- * Otherwise, the packet is fragmented and the generated fragments are sent out instead.
- * 'context->out_packet' needs to be a fully valid IPv4 packet, except its 'total length' and 'header checksum' fields
- *  which should be zero (they are set automatically), and it must not contain any IPv4 options (its 'ihl' field must be
- *  equal to 5; this is not a problem, since the translator does not generate packets with IPv4 options).
+ * Otherwise, the packet is fragmented and the generated fragments are sent out consecutively instead.
+ * 'context->out_packet' needs to be a fully valid IPv4 packet (both its header and payload must be valid), except its
+ *  header's 'total length' and 'header checksum' fields which should be zero (they are set when the packet is sent out),
+ *  and it must not contain any IPv4 options (its 'ihl' field must be equal to 5; this is not a problem, since the
+ *  translator does not generate packets with IPv4 options).
  */
 void t64f_xlat__possibly_fragment_and_send_ipv4_out_packet(t64ts_tundra__xlat_thread_context *context) {
     if(!T64M_UTILS_IP__IPV4_PACKET_NEEDS_FRAGMENTATION(context, &context->out_packet)) {
@@ -242,11 +240,12 @@ void t64f_xlat__finalize_and_send_specified_ipv4_packet(t64ts_tundra__xlat_threa
 
 /*
  * If 'context->out_packet' fits into the configured outbound MTU, it is sent out.
- * Otherwise, the packet is fragmented and the generated fragments are sent out instead.
- * 'context->out_packet' needs to be a fully valid IPv6 packet, except its 'payload length' field which should be zero
- *  (it is set automatically), and it must contain no extension headers other than a single (optional) fragmentation
- *  header (referenced by 'context->out_packet.ipv6_fragment_header'; this is not a problem, as the translator does not
- *  generate packets with other extension headers).
+ * Otherwise, the packet is fragmented and the generated fragments are sent out consecutively instead.
+ * 'context->out_packet' needs to be a fully valid IPv6 packet (both its header(s) and payload must be valid), except
+ *  its base header's 'payload length' field which should be zero (it is set automatically when the packet is sent out),
+ *  and it must contain no extension headers other than a single (optional) fragmentation header (referenced by
+ *  'out_packet.ipv6_fragment_header'; this is not a problem, as the translator does not generate packets with other
+ *  extension headers).
  */
 void t64f_xlat__possibly_fragment_and_send_ipv6_out_packet(t64ts_tundra__xlat_thread_context *context) {
     if(!T64M_UTILS_IP__IPV6_PACKET_NEEDS_FRAGMENTATION(context, &context->out_packet)) {

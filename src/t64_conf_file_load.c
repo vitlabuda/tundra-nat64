@@ -70,7 +70,7 @@ static t64ts_tundra__conf_file_entry** _t64fa_conf_file_load__read_open_config_f
             t64f_log__crash(false, "Line %d of the configuration file is too long!", line_number);
 
         char *key_ptr = _t64f_conf_file_load__strip_whitespace_from_string(line_buffer);
-        if(T64M_UTILS__STRING_EMPTY(key_ptr) || *key_ptr == '#')
+        if(T64M_UTILS__STRING_EMPTY(key_ptr) || *key_ptr == '#' || *key_ptr == ';')
             continue;
         if(T64M_UTILS__STRINGS_EQUAL(key_ptr, _T64C_CONF_FILE_LOAD__STOP_PARSING_CONFIG_SYMBOL))
             break;

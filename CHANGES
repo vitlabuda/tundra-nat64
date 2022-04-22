@@ -7,3 +7,9 @@
 [1.0.2 @ 2022-04-20]
 - The translator now drops IGMP packets and allows ESP packets to pass through (as per RFC 7915)
 - When translating IP packets "in error" embedded in ICMPv4/v6 messages, illegal IP addresses inside them are now allowed (for debugging purposes)
+
+[1.0.3 @ 2022-04-22]
+- Improved the translation algorithms of ICMP "Packet Too Big" messages
+- Added an algorithm to estimate a likely MTU ("plateau MTU"; as per RFC 1191) when translating ICMP "Packet Too Big" messages
+- Added code comments which describe the state the translator's packet buffers need to be in when a function accessing them is called
+- Other minor improvements

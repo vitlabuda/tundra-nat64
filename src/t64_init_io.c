@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_log.h"
+#include"t64_conf_cmdline.h"
 
 
 // Creates the interface if it doesn't exist
@@ -62,16 +63,16 @@ void t64f_init_io__change_ownership_of_persistent_tun_interface(const t64ts_tund
 
 const char *t64f_init_io__get_fd_pair_from_inherited_fds_string(int *read_fd, int *write_fd, const char *next_fds_string_ptr) {
     if(next_fds_string_ptr == NULL)
-        t64f_log__crash(false, "The value of the '-f' or '--inherited-fds' command-line option does not contain enough file descriptors for all translator threads!");
+        t64f_log__crash(false, "The value of the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option does not contain enough file descriptors for all translator threads!");
 
     if(sscanf(next_fds_string_ptr, "%d,%d", read_fd, write_fd) != 2)
-        t64f_log__crash(false, "The value of the '-f' or '--inherited-fds' command-line option is formatted incorrectly: '%s'", next_fds_string_ptr);
+        t64f_log__crash(false, "The value of the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option is formatted incorrectly: '%s'", next_fds_string_ptr);
 
     if(fcntl(*read_fd, F_GETFD) < 0)
-        t64f_log__crash(true, "The read file descriptor %d obtained from the '-f' or '--inherited-fds' command-line option is invalid!", *read_fd);
+        t64f_log__crash(true, "The read file descriptor %d obtained from the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option is invalid!", *read_fd);
 
     if(fcntl(*write_fd, F_GETFD) < 0)
-        t64f_log__crash(true, "The write file descriptor %d obtained from the '-f' or '--inherited-fds' command-line option is invalid!", *write_fd);
+        t64f_log__crash(true, "The write file descriptor %d obtained from the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option is invalid!", *write_fd);
 
     const char *separator_ptr = strchr(next_fds_string_ptr, ';');
     if(separator_ptr == NULL)

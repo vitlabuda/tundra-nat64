@@ -32,11 +32,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static t64te_tundra__xlat_status _t64f_xlat_6to4__evaluate_in_packet(t64ts_tundra__xlat_thread_context *context);
 static t64te_tundra__xlat_status _t64f_xlat_6to4__translate_in_packet_headers_to_out_packet_headers(t64ts_tundra__xlat_thread_context *context);
 static t64te_tundra__xlat_status _t64f_xlat_6to4__translate_in_packet_payload_to_out_packet_payload(t64ts_tundra__xlat_thread_context *context);
+static void _t64f_xlat_6to4__appropriately_send_out_out_packet(t64ts_tundra__xlat_thread_context *context);
 
 
 void t64f_xlat_6to4__handle_packet(t64ts_tundra__xlat_thread_context *context) {
-    // 'context->in_packet.packet_raw' contains an unvalidated IPv6 (version = 6) packet and 'context->in_packet.packet_size' contains its size.
-    // All the other characteristics of the packet, such as 'context->in_packet.payload_raw' and 'context->in_packet.payload_size', are undefined at this point.
+    /*
+     * REQUIRED-STATE-OF-PACKET-BUFFERS:
+     *
+     * in_packet->packet_raw (content) -- An unvalidated IPv6 (!) packet
+     * in_packet->packet_size -- The unvalidated IPv6 packet's size
+     * in_packet->payload_raw -- Undefined
+     * in_packet->payload_size -- Undefined
+     * in_packet->ipv6_fragment_header -- Undefined
+     * in_packet->ipv6_carried_protocol_field -- Undefined
+     *
+     * out_packet->packet_raw (content) -- Undefined
+     * out_packet->packet_size -- Undefined
+     * out_packet->payload_raw -- Undefined
+     * out_packet->payload_size -- Undefined
+     * out_packet->ipv6_fragment_header -- Undefined
+     * out_packet->ipv6_carried_protocol_field -- Undefined
+     */
+
     if(_t64f_xlat_6to4__evaluate_in_packet(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
         return;
 
@@ -48,38 +65,29 @@ void t64f_xlat_6to4__handle_packet(t64ts_tundra__xlat_thread_context *context) {
     if(_t64f_xlat_6to4__translate_in_packet_payload_to_out_packet_payload(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
         return;
 
-    // The IPv4 'out_packet' is now finished.
-    {
-        const uint16_t more_fragments = T64M_UTILS_IP__GET_IPV4_MORE_FRAGMENTS_BIT(context->out_packet.packet_ipv4hdr);
-        const uint16_t fragment_offset = T64M_UTILS_IP__GET_IPV4_FRAGMENT_OFFSET(context->out_packet.packet_ipv4hdr);
-
-        if(context->out_packet.packet_size <= 1260 || T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(context->out_packet.packet_ipv4hdr)) {
-            context->out_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(0, more_fragments, fragment_offset);
-
-            t64f_xlat__possibly_fragment_and_send_ipv4_out_packet(context);
-        } else {
-            context->out_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(1, more_fragments, fragment_offset);
-
-            if(T64M_UTILS_IP__IPV4_PACKET_NEEDS_FRAGMENTATION(context, &context->out_packet))
-                // Why (IPv4 MTU + 20)? "Worst case scenario" example: The IPv4 MTU is 1500 bytes; the IPv6 host sends
-                //  a 1520-byte (1500 + 20) IPv6 packet; its 40-byte IPv6 header is stripped, resulting in 1480 bytes
-                //  of data; a 20-byte IPv4 header is prepended to the data, resulting in a 1500-byte IPv4 packet (the
-                //  biggest packet that fits into the IPv4 MTU).
-                // In addition, if the MTU that would be sent in the ICMPv6 error message would be lower than 1280 bytes
-                //  (the minimum IPv6 MTU), is it clamped to 1280 bytes; therefore, the origin host need not handle
-                //  IPv6 links with MTUs lower than 1280 bytes (such links shall not exist according to standards).
-                //  If the IPv6 host would then send a 1280-byte IPv6 packet, it would pass through the translator, as
-                //  the resulting IPv4 packet would have been 1260 bytes in size and therefore could be fragmented.
-                //  This means that 1280-byte IPv6 packets are always able to pass through the translator (= the
-                //  translator is standards-compliant, as IPv6 nodes must be able to handle 1280-byte IPv6 packets).
-                t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_in_ipv6_packet_source_host(context, T64MM_UTILS__MAXIMUM(1280, ((uint16_t) context->configuration->translator_ipv4_outbound_mtu) + 20));
-            else
-                t64f_xlat__finalize_and_send_specified_ipv4_packet(context, &context->out_packet);
-        }
-    }
+    // The IPv4 'out_packet' is now complete.
+    _t64f_xlat_6to4__appropriately_send_out_out_packet(context);
 }
 
 static t64te_tundra__xlat_status _t64f_xlat_6to4__evaluate_in_packet(t64ts_tundra__xlat_thread_context *context) {
+    /*
+     * REQUIRED-STATE-OF-PACKET-BUFFERS:
+     *
+     * in_packet->packet_raw (content) -- An unvalidated IPv6 (!) packet
+     * in_packet->packet_size -- The unvalidated IPv6 packet's size
+     * in_packet->payload_raw -- Undefined
+     * in_packet->payload_size -- Undefined
+     * in_packet->ipv6_fragment_header -- Undefined
+     * in_packet->ipv6_carried_protocol_field -- Undefined
+     *
+     * out_packet->packet_raw (content) -- Undefined
+     * out_packet->packet_size -- Undefined
+     * out_packet->payload_raw -- Undefined
+     * out_packet->payload_size -- Undefined
+     * out_packet->ipv6_fragment_header -- Undefined
+     * out_packet->ipv6_carried_protocol_field -- Undefined
+     */
+
     if(context->in_packet.packet_size < 40)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // The smallest possible IPv6 packet is 40 bytes in size.
 
@@ -170,6 +178,24 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__evaluate_in_packet(t64ts_tundr
 }
 
 static t64te_tundra__xlat_status _t64f_xlat_6to4__translate_in_packet_headers_to_out_packet_headers(t64ts_tundra__xlat_thread_context *context) {
+    /*
+     * REQUIRED-STATE-OF-PACKET-BUFFERS:
+     *
+     * in_packet->packet_raw (content) -- An IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
+     * in_packet->packet_size -- The IPv6 packet's size (at least 40 bytes)
+     * in_packet->payload_raw -- The packet's unvalidated payload (the pointer points to the beginning of the transport protocol header)
+     * in_packet->payload_size -- The size of the packet's unvalidated payload (zero if the packet does not carry any payload)
+     * in_packet->ipv6_fragment_header -- A pointer to the fragmentation header if the packet contains it; NULL otherwise
+     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet
+     *
+     * out_packet->packet_raw (content) -- Undefined
+     * out_packet->packet_size -- Undefined
+     * out_packet->payload_raw -- Undefined
+     * out_packet->payload_size -- Undefined
+     * out_packet->ipv6_fragment_header -- Undefined
+     * out_packet->ipv6_carried_protocol_field -- Undefined
+     */
+
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes free; 20 bytes needed (for IPv4 header)
 
     // Version
@@ -228,9 +254,23 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__translate_in_packet_headers_to
 }
 
 static t64te_tundra__xlat_status _t64f_xlat_6to4__translate_in_packet_payload_to_out_packet_payload(t64ts_tundra__xlat_thread_context *context) {
-    // When this function is called, 'in_packet' contains a valid IPv6 header and 'out_packet' contains a valid IPv4
-    //  header translated from the header of 'in_packet'. 'out_packet->packet_size' is set to the size of the packet's
-    //  header and 'out_packet->payload_size' is zero.
+    /*
+     * REQUIRED-STATE-OF-PACKET-BUFFERS:
+     *
+     * in_packet->packet_raw (content) -- An IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
+     * in_packet->packet_size -- The IPv6 packet's size (at least 40 bytes)
+     * in_packet->payload_raw -- The packet's unvalidated payload (the pointer points to the beginning of the transport protocol header)
+     * in_packet->payload_size -- The size of the packet's unvalidated payload (zero if the packet does not carry any payload)
+     * in_packet->ipv6_fragment_header -- A pointer to the fragmentation header if the packet contains it; NULL otherwise
+     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet
+     *
+     * out_packet->packet_raw (content) -- An IPv4 header (whose 'tot_len' and 'check' fields are zero - they are set just before the packet is sent out)
+     * out_packet->packet_size -- The size of the IPv4 header (always 20 bytes)
+     * out_packet->payload_raw -- A pointer to the first byte after the packet's header (the translated payload shall be placed here)
+     * out_packet->payload_size -- Zero
+     * out_packet->ipv6_fragment_header -- Undefined (as the packet is IPv4)
+     * out_packet->ipv6_carried_protocol_field -- Undefined (as the packet is IPv4)
+     */
 
     // Translation from ICMPv6 to ICMPv4 requires a special workflow
     if(context->out_packet.packet_ipv4hdr->protocol == 58) {
@@ -267,4 +307,51 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__translate_in_packet_payload_to
     }
 
     return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+}
+
+static void _t64f_xlat_6to4__appropriately_send_out_out_packet(t64ts_tundra__xlat_thread_context *context) {
+    /*
+     * REQUIRED-STATE-OF-PACKET-BUFFERS:
+     *
+     * in_packet->packet_raw (content) -- An IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
+     * in_packet->packet_size -- The IPv6 packet's size (at least 40 bytes)
+     * in_packet->payload_raw -- The packet's unvalidated payload (the pointer points to the beginning of the transport protocol header)
+     * in_packet->payload_size -- The size of the packet's unvalidated payload (zero if the packet does not carry any payload)
+     * in_packet->ipv6_fragment_header -- A pointer to the fragmentation header if the packet contains it; NULL otherwise
+     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet
+     *
+     * out_packet->packet_raw (content) -- An IPv4 packet (whose header fields 'tot_len' and 'check' fields are zero - they are set just before the packet is sent out)
+     * out_packet->packet_size -- The size of the IPv4 packet (header + payload)
+     * out_packet->payload_raw -- A pointer to the first byte after the packet's header where the translated payload is located
+     * out_packet->payload_size -- The size of the packet's payload
+     * out_packet->ipv6_fragment_header -- Undefined (as the packet is IPv4)
+     * out_packet->ipv6_carried_protocol_field -- Undefined (as the packet is IPv4)
+     */
+
+    const uint16_t more_fragments = T64M_UTILS_IP__GET_IPV4_MORE_FRAGMENTS_BIT(context->out_packet.packet_ipv4hdr);
+    const uint16_t fragment_offset = T64M_UTILS_IP__GET_IPV4_FRAGMENT_OFFSET(context->out_packet.packet_ipv4hdr);
+
+    if(context->out_packet.packet_size <= 1260 || T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(context->out_packet.packet_ipv4hdr)) {
+        context->out_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(0, more_fragments, fragment_offset);
+
+        t64f_xlat__possibly_fragment_and_send_ipv4_out_packet(context);
+    } else {
+        context->out_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(1, more_fragments, fragment_offset);
+
+        if(T64M_UTILS_IP__IPV4_PACKET_NEEDS_FRAGMENTATION(context, &context->out_packet))
+            // Why (IPv4 MTU + 20)? "Worst case scenario" example: The IPv4 MTU is 1500 bytes; the IPv6 host sends
+            //  a 1520-byte (1500 + 20) IPv6 packet; its 40-byte IPv6 header is stripped, resulting in 1480 bytes
+            //  of data; a 20-byte IPv4 header is prepended to the data, resulting in a 1500-byte IPv4 packet (the
+            //  biggest packet that fits into the IPv4 MTU).
+            // In addition, if the MTU that would be sent in the ICMPv6 error message would be lower than 1280 bytes
+            //  (the minimum IPv6 MTU), is it clamped to 1280 bytes; therefore, the origin host need not handle
+            //  IPv6 links with MTUs lower than 1280 bytes (such links shall not exist according to standards).
+            //  If the IPv6 host would then send a 1280-byte IPv6 packet, it would pass through the translator, as
+            //  the resulting IPv4 packet would have been 1260 bytes in size and therefore could be fragmented.
+            //  This means that 1280-byte IPv6 packets are always able to pass through the translator (= the
+            //  translator is standards-compliant, as IPv6 nodes must be able to handle 1280-byte IPv6 packets).
+            t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_in_ipv6_packet_source_host(context, T64MM_UTILS__MAXIMUM(1280, ((uint16_t) context->configuration->translator_ipv4_outbound_mtu) + 20));
+        else
+            t64f_xlat__finalize_and_send_specified_ipv4_packet(context, &context->out_packet);
+    }
 }

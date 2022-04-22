@@ -27,6 +27,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_init_io.h"
 #include"t64_signal.h"
 #include"t64_xlat.h"
+#include"t64_conf_file.h"
+#include"t64_conf_cmdline.h"
 
 
 static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration, int termination_pipe_read_fd);
@@ -70,7 +72,7 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
     t64ts_tundra__xlat_thread_context *thread_contexts = t64fa_utils__allocate_memory(file_configuration->program_translator_threads, sizeof(t64ts_tundra__xlat_thread_context));
 
     if(file_configuration->io_mode == T64TE_TUNDRA__IO_MODE_INHERITED_FDS && cmdline_configuration->inherited_fds == NULL)
-        t64f_log__crash(false, "Even though the program is the 'inherited-fds' I/O mode, the '-f' or '--inherited-fds' command-line option is missing!");
+        t64f_log__crash(false, "Even though the program is in the '"T64C_CONF_FILE__IO_MODE_INHERITED_FDS"' I/O mode, the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option is missing!");
     const char *next_fds_string_ptr = cmdline_configuration->inherited_fds;
 
     for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {

@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_log.h"
+#include"t64_conf_file.h"
 
 
 #define _T64C_CONF_CMDLINE__HELP_FORMAT_STRING "\
@@ -42,7 +43,7 @@ Options:\n\
     Specifies the file from which the program's configuration will be loaded.\n\
     Default: "T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH"\n\
   -f, --"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...\n\
-    Specifies the file descriptors to be used in the 'inherited-fds' I/O mode. Ignored otherwise.\n\
+    Specifies the file descriptors to be used in the '"T64C_CONF_FILE__IO_MODE_INHERITED_FDS"' I/O mode. Ignored otherwise.\n\
 \n\
 Modes of operation:\n\
   "T64C_CONF_CMDLINE__OPMODE_TRANSLATE"\n\
@@ -50,10 +51,10 @@ Modes of operation:\n\
     This is the default mode of operation.\n\
   "T64C_CONF_CMDLINE__OPMODE_MKTUN"\n\
     Creates a persistent TUN device according to the configuration file, then exits.\n\
-    Applicable only in the 'tun' I/O mode.\n\
+    Applicable only in the '"T64C_CONF_FILE__IO_MODE_TUN"' I/O mode.\n\
   "T64C_CONF_CMDLINE__OPMODE_RMTUN"\n\
     Destroys a previously created persistent TUN device according to the configuration file, then exits.\n\
-    Applicable only in the 'tun' I/O mode.\n\
+    Applicable only in the '"T64C_CONF_FILE__IO_MODE_TUN"' I/O mode.\n\
   "T64C_CONF_CMDLINE__OPMODE_VALIDATE_CONFIG"\n\
     Tries to configure the program and prints an informational message if it succeeds, then exits.\n\
   "T64C_CONF_CMDLINE__OPMODE_PRINT_CONFIG"\n\
@@ -119,7 +120,7 @@ static void _t64f_conf_cmdline__parse_cmdline_options(t64ts_tundra__conf_cmdline
             {T64C_CONF_CMDLINE__LONGOPT_LICENSE,        no_argument,        NULL, 'l'},
             {T64C_CONF_CMDLINE__LONGOPT_CONFIG_FILE,    required_argument,  NULL, 'c'},
             {T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS,  required_argument,  NULL, 'f'},
-            {NULL,                                       no_argument,        NULL, 0},
+            {NULL,                                      no_argument,        NULL, 0},
     };
 
     int getopt_option;

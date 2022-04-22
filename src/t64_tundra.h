@@ -37,6 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Macro name flags:
 // M = a macro argument is used more than once (M = multi-use)
 
+// Variable name flags (only used with global variables):
+// g = global variable
+// c = constant global variable
+
 #define _GNU_SOURCE
 
 #include<stddef.h>

@@ -106,12 +106,13 @@ bool t64f_utils_ip__is_ip_protocol_number_forbidden(const uint8_t ip_protocol_nu
     //  (ip_protocol_number == 50) || // Encapsulating Security Payload
 }
 
-// The IPv4 packet must be valid - this function does not perform any "unnecessary" checks!
-uint16_t t64f_utils_ip__calculate_ipv4_header_checksum(const struct iphdr *ipv4_packet) {
-    const uint16_t *header_16bit_words = (const uint16_t *) ipv4_packet;
-    const size_t header_16bit_word_count = (ipv4_packet->ihl * 2);
+/*
+ * The input IPv4 header must be fully complete and valid. This function does not perform boundary (or any other) checks!
+ */
+uint16_t t64f_utils_ip__calculate_ipv4_header_checksum(const struct iphdr *ipv4_header) {
+    const uint16_t *header_16bit_words = (const uint16_t *) ipv4_header;
+    const size_t header_16bit_word_count = (ipv4_header->ihl * 2);
 
-    // IDEA: Optimize this using loop unrolling / Duff's device, if the performance of this turns out to be an issue.
     uint64_t header_checksum = 0;
     for(size_t i = 0; i < header_16bit_word_count; i++)
         header_checksum += ntohs(header_16bit_words[i]);
@@ -122,7 +123,11 @@ uint16_t t64f_utils_ip__calculate_ipv4_header_checksum(const struct iphdr *ipv4_
     return htons(~((uint16_t) header_checksum));
 }
 
-// The IPv4/IPv6 packet must be valid - this function does not perform any "unnecessary" checks!
+/*
+ * The header of the input IPv4/IPv6 packet must be fully complete and valid, 'payload_raw' must point to the beginning
+ *  of the packet's payload and 'payload_size' must contain the size of the payload in bytes (it CAN be set to zero, if
+ *  the packet does not carry any payload).
+ */
 uint16_t t64f_utils_ip__calculate_rfc1071_checksum(const t64ts_tundra__packet *packet, const bool include_pseudo_header, const bool return_0xffff_checksum_if_it_is_zero) {
     uint64_t checksum = 0;
 
@@ -176,7 +181,6 @@ uint16_t t64f_utils_ip__calculate_rfc1071_checksum(const t64ts_tundra__packet *p
         const uint8_t *current_byte = packet->payload_raw;
         size_t remaining_bytes = packet->payload_size;
 
-        // IDEA: Optimize this using loop unrolling / Duff's device, if the performance of this turns out to be an issue.
         while(remaining_bytes > 1) { // At least 2 bytes are left
             // This is a hack which overcomes the 2-byte alignment requirement for 16-bit values.
             uint16_t temp;

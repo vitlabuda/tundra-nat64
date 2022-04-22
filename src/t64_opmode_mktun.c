@@ -24,11 +24,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_log.h"
 #include"t64_init_io.h"
+#include"t64_conf_file.h"
 
 
 void t64f_opmode_mktun__run(const t64ts_tundra__conf_file *file_configuration) {
     if(file_configuration->io_mode != T64TE_TUNDRA__IO_MODE_TUN)
-        t64f_log__crash(false, "The I/O mode is not 'tun'; therefore, persistent TUN interfaces cannot be created!");
+        t64f_log__crash(false, "The I/O mode is not '"T64C_CONF_FILE__IO_MODE_TUN"'; therefore, persistent TUN interfaces cannot be created!");
 
     {
         int tun_fd = t64f_init_io__open_tun_interface(file_configuration);

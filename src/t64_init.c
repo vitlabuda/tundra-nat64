@@ -66,7 +66,6 @@ static void _t64f_init__check_compile_time_config(void) {
         (T64C_TUNDRA__MINIMUM_MTU_IPV6 < 1280) || (T64C_TUNDRA__MINIMUM_MTU_IPV6 > (T64C_TUNDRA__MAX_PACKET_SIZE - 20)) ||
         (T64C_TUNDRA__MAXIMUM_MTU_IPV4 < 68) || (T64C_TUNDRA__MAXIMUM_MTU_IPV4 > (T64C_TUNDRA__MAX_PACKET_SIZE - 20)) ||
         (T64C_TUNDRA__MAXIMUM_MTU_IPV6 < 1280) || (T64C_TUNDRA__MAXIMUM_MTU_IPV6 > (T64C_TUNDRA__MAX_PACKET_SIZE - 20)) ||
-        (T64C_TUNDRA__RFC1191_IPV4_PLATEAU_MTU < 68) || (T64C_TUNDRA__RFC1191_IPV4_PLATEAU_MTU > 65535) ||
         (T64C_TUNDRA__GENERATED_PACKET_TTL < 1) || (T64C_TUNDRA__GENERATED_PACKET_TTL > 255) ||
         (sizeof(struct iphdr) != 20) || (sizeof(struct ipv6hdr) != 40) || (sizeof(t64ts_tundra__ipv6_fragment_header) != 8)
     ) exit(T64C_TUNDRA__EXIT_CODE_INVALID_COMPILE_TIME_CONFIG);
