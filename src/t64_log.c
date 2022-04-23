@@ -23,14 +23,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_log.h"
 
 
-#define _T64C_LOG__STRERROR_BUFFER_SIZE 256
-
-
 static pthread_mutex_t _t64g_log__log_output_mutex;
 
 
 static void _t64f_log__print_log_message(const size_t thread_id, const bool print_errno, const char *level, const char *format, va_list argument_list);
-static void _t64f_log__print_log_message_while_locked(const size_t thread_id, const bool print_errno, const char *category_banner, const char *format, va_list argument_list);
 
 
 void t64f_log__initialize(void) {
@@ -95,23 +91,17 @@ static void _t64f_log__print_log_message(const size_t thread_id, const bool prin
     if(pthread_mutex_lock(&_t64g_log__log_output_mutex) != 0)
         exit(T64C_TUNDRA__EXIT_CODE_MUTEX_FAILURE);
 
-    _t64f_log__print_log_message_while_locked(thread_id, print_errno, category_banner, format, argument_list);
-
-    if(pthread_mutex_unlock(&_t64g_log__log_output_mutex) != 0)
-        exit(T64C_TUNDRA__EXIT_CODE_MUTEX_FAILURE);
-}
-
-static void _t64f_log__print_log_message_while_locked(const size_t thread_id, const bool print_errno, const char *category_banner, const char *format, va_list argument_list) {
     fprintf(stderr, "[T%zu :: %s] ", thread_id, category_banner);
     vfprintf(stderr, format, argument_list);
     if(print_errno) {
-        char strerror_buffer[_T64C_LOG__STRERROR_BUFFER_SIZE] = {'\0'};
-        fprintf(stderr, " [Errno %d: %s]", errno, strerror_r(errno, strerror_buffer, _T64C_LOG__STRERROR_BUFFER_SIZE));
+        // strerror_r() is problematic as it has two versions - GNU and XSI, and the former is not available everywhere (namely, OpenWRT does not seem to support it).
+        // However, since this code always runs in locked context and this is the only place in this program where it is used, the thread-unsafe strerror() function can safely be used.
+        fprintf(stderr, " [Errno %d: %s]", errno, strerror(errno));
     }
     fprintf(stderr, "\n");
 
     fflush(stderr);
+
+    if(pthread_mutex_unlock(&_t64g_log__log_output_mutex) != 0)
+        exit(T64C_TUNDRA__EXIT_CODE_MUTEX_FAILURE);
 }
-
-
-#undef _T64C_LOG__STRERROR_BUFFER_SIZE

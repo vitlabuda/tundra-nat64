@@ -16,3 +16,6 @@
 
 [1.0.4 @ 2022-04-23]
 - Slightly optimized the RFC 1071 checksum calculation algorithm
+
+[1.0.5 @ 2022-04-23]
+- The problematic strerror_r() function is no longer used by the program's logging subsystem
