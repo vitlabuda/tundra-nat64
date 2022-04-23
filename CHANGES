@@ -13,3 +13,6 @@
 - Added an algorithm to estimate a likely MTU ("plateau MTU"; as per RFC 1191) when translating ICMP "Packet Too Big" messages
 - Added code comments which describe the state the translator's packet buffers need to be in when a function accessing them is called
 - Other minor improvements
+
+[1.0.4 @ 2022-04-23]
+- Slightly optimized the RFC 1071 checksum calculation algorithm

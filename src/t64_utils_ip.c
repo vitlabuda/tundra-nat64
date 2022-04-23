@@ -115,12 +115,12 @@ uint16_t t64f_utils_ip__calculate_ipv4_header_checksum(const struct iphdr *ipv4_
 
     uint64_t header_checksum = 0;
     for(size_t i = 0; i < header_16bit_word_count; i++)
-        header_checksum += ntohs(header_16bit_words[i]);
+        header_checksum += header_16bit_words[i];
 
     while(header_checksum > 0xffff)
         header_checksum = ((header_checksum & 0xffff) + (header_checksum >> 16));
 
-    return htons(~((uint16_t) header_checksum));
+    return ~((uint16_t) header_checksum);
 }
 
 /*
@@ -152,7 +152,7 @@ uint16_t t64f_utils_ip__calculate_rfc1071_checksum(const t64ts_tundra__packet *p
 
             uint16_t *ipv6_pseudo_header_16bit_words = (uint16_t *) &ipv6_pseudo_header;
             for(size_t i = 0; i < 20; i++) // The pseudo-header contains 20 16-bit words
-                checksum += ntohs(ipv6_pseudo_header_16bit_words[i]);
+                checksum += ipv6_pseudo_header_16bit_words[i];
         } else { // IPv4:
             // If the 'volatile' modifier is not present there and the program is compiled using gcc with optimization turned on, the checksum computation does not work!
             volatile struct __attribute__((__packed__, aligned(2))) {
@@ -172,7 +172,7 @@ uint16_t t64f_utils_ip__calculate_rfc1071_checksum(const t64ts_tundra__packet *p
 
             uint16_t *ipv4_pseudo_header_16bit_words = (uint16_t *) &ipv4_pseudo_header;
             for(size_t i = 0; i < 6; i++) // The pseudo-header contains 6 16-bit words
-                checksum += ntohs(ipv4_pseudo_header_16bit_words[i]);
+                checksum += ipv4_pseudo_header_16bit_words[i];
         }
     }
 
@@ -181,26 +181,23 @@ uint16_t t64f_utils_ip__calculate_rfc1071_checksum(const t64ts_tundra__packet *p
         const uint8_t *current_byte = packet->payload_raw;
         size_t remaining_bytes = packet->payload_size;
 
+        // BOTTLENECK: This loop is, by far, what slows the translation process the most - finding a way to optimize the checksum calculation process would help a lot
         while(remaining_bytes > 1) { // At least 2 bytes are left
-            // This is a hack which overcomes the 2-byte alignment requirement for 16-bit values.
-            uint16_t temp;
-            memcpy(&temp, current_byte, 2);
-
-            checksum += ntohs(temp);
+            checksum += *((uint16_t *) current_byte); // BOTTLENECK: According to callgrind, the program spends ~61% of its total execution time on this very line of code!
             current_byte += 2;
             remaining_bytes -= 2;
         }
 
         if(remaining_bytes > 0) { // In case 'remaining_bytes' is an odd number, there will be one unprocessed byte left at the end
             const uint16_t temp = (uint16_t) (*current_byte);
-            checksum += ((uint16_t) (temp << 8));
+            checksum += htons((uint16_t) (temp << 8)); // The checksum is calculated with all bytes being in network order (= big endian)
         }
     }
 
     while(checksum > 0xffff)
         checksum = ((checksum & 0xffff) + (checksum >> 16));
 
-    const uint16_t final_checksum = htons(~((uint16_t) checksum));
+    const uint16_t final_checksum = ~((uint16_t) checksum);
     return ((return_0xffff_checksum_if_it_is_zero && final_checksum == 0) ? 0xffff : final_checksum);
 }
 
