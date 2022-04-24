@@ -64,9 +64,10 @@ io.tun.owner_group =
 # - When Tundra receives an IPv4 packet whose source IPv4 can be embedded into 'translator.prefix' and whose
 #   destination IPv4 is 'translator.ipv4', it is translated into an IPv6 packet whose source IPv6 consists of
 #   'translator.prefix' and the IPv4 packet's source IPv4 and whose destination IPv6 is 'translator.ipv6'.
-# Tundra itself cannot act as a NAT64 translator for more than one host. However, you can use Tundra in cooperation with
-# Linux's in-kernel NAT66, which can masquerade a whole network requesting NAT64 service behind 'translator.ipv6',
-# for example:
+# Tundra itself cannot act as a NAT64 translator for more than one host, as it lacks an internal dynamic address pool
+# from which it would assign addresses to hosts needing NAT64 service - it only uses the single IPv4 and IPv6 address
+# configurable below. However, you can use Tundra in cooperation with Linux's in-kernel NAT66, which can masquerade a
+# whole network requesting NAT64 service behind 'translator.ipv6', for example:
 #  ip6tables -t nat -A POSTROUTING -d 64:ff9b::/96 -o tundra -j SNAT --to-source=fd00:6464::2
 #
 # The length of 'translator.prefix' is fixed to be 96 bits (/96), which is probably the only prefix length used in
