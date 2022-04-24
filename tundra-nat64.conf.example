@@ -1,38 +1,106 @@
-# 0 -> the number of cores your device has
-program.translator_threads = 8
-# Empty -> do not chroot
-program.chroot_dir = /root/tundra-chroot
-# Empty -> do not drop user
-program.privilege_drop_user = tundra
-# Empty -> do not drop group
-program.privilege_drop_group = tundra
+# ----- Tundra-NAT64 example configuration file -----
 
 
 
-# Either 'inherited-fds' or 'tun'
+# The number of threads used to translate packets.
+# If set to 0, the number of CPUs (cores, SMT threads, ...) your device has is used.
+program.translator_threads = 0
+
+# The directory Tundra will chroot() into after it initializes.
+# If left empty, no chroot() is performed.
+program.chroot_dir =
+
+# The name of a user/group to which Tundra will drop its privileges after it initializes.
+# If left empty, no privilege drop is performed.
+program.privilege_drop_user =
+program.privilege_drop_group =
+
+
+
+# There are two I/O modes: 'inherited-fds' and 'tun'.
+#
+# In the 'tun' I/O mode, Tundra initializes a TUN network interface according to the io.tun.* configuration options
+# specified below, and uses it to receive and send packets.
+# NOTE: If Tundra is configured to have more than one translator thread, the TUN interface is initialized as multi-queue
+# (using the IFF_MULTI_QUEUE flag), so that it can be used from all the translator threads. Each thread is assigned a
+# single queue (file descriptor), and since it is completely up to the kernel to which queue incoming packets are
+# placed, it is possible that even if some threads are fully busy, other threads might not be getting any packets at
+# the same time.
+#
+# In the 'inherited-fds' I/O mode, Tundra inherits file descriptors from the program that executed it - their numbers
+# are passed to Tundra using the '-f' or '--inherited-fds' command-line option:
+#  -f, --inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...
+# Each translator thread is assigned a pair of file descriptors that it will then use to receive (THREAD*_IN) and send
+# (THREAD*_OUT) packets (therefore, you must pass as many file descriptor pairs to the program as there are translator
+# threads). Keep in mind that the program is primarily designed to work with TUN interface's file descriptors;
+# therefore, the inherited ones must behave similarly, namely:
+#  - each read() call on THREAD*_IN file descriptor must return a single whole packet
+#  - each write() call on THREAD*_OUT file descriptor must accept a single whole packet up to MTU bytes in size
+# This means that only file descriptors which preserve message boundaries and have sufficient read/write buffers may be
+# used. Specifically, datagram (!) sockets created using socketpair(AF_UNIX, SOCK_DGRAM) whose buffers' sizes have been
+# properly adjusted using setsockopt(SO_RCVBUF) and setsockopt(SO_SNDBUF) meet these requirements (whereas, for example,
+# pipes do not, since they do not preserve message boundaries).
 io.mode = tun
-# Empty -> '/dev/net/tun'
+
+# The path of the character device through which is the TUN/TAP driver exposed.
+# If left empty, the well-known path of /dev/net/tun is used.
 io.tun.device_path =
-# Most not be empty
+
+# The name of the TUN network interface Tundra will use to receive and send packets. Must not be left empty.
 io.tun.interface_name = tundra
-# Empty -> do not set owner user
-io.tun.owner_user = tundra
-# Empty -> do not set owner group
-io.tun.owner_group = tundra
+
+# The name of a user/group who will own persistent TUN interfaces created by Tundra.
+# If left empty, TUN interfaces created by Tundra will not have their ownership set.
+io.tun.owner_user =
+io.tun.owner_group =
 
 
 
-translator.prefix = 64:ff9b::
+# These options specify the IP addresses the translator will use when translating packets from one protocol to another.
+# The stateless NAT64 translator uses the IP addresses the following way:
+# - When Tundra receives an IPv6 packet whose source IPv6 is 'translator.ipv6' and whose destination IPv6 is a valid
+#   IPv4 address embedded into 'translator.prefix', it is translated into an IPv4 packet whose source IPv4 is
+#   'translator.ipv4' and whose destination IPv4 is extracted from the IPv6 packet's IPv4-embedded destination IPv6.
+# - When Tundra receives an IPv4 packet whose source IPv4 can be embedded into 'translator.prefix' and whose
+#   destination IPv4 is 'translator.ipv4', it is translated into an IPv6 packet whose source IPv6 consists of
+#   'translator.prefix' and the IPv4 packet's source IPv4 and whose destination IPv6 is 'translator.ipv6'.
+# Tundra itself cannot act as a NAT64 translator for more than one host. However, you can use Tundra in cooperation with
+# Linux's in-kernel NAT66, which can masquerade a whole network requesting NAT64 service behind 'translator.ipv6',
+# for example:
+#  ip6tables -t nat -A POSTROUTING -d 64:ff9b::/96 -o tundra -j SNAT --to-source=fd00:6464::2
+#
+# The length of 'translator.prefix' is fixed to be 96 bits (/96), which is probably the only prefix length used in
+# production NAT64 deployments. The length shall not be specified in the option's value. Tundra does not support other
+# prefix lengths.
+#
+# RFC 6052 states that the well-known prefix (64:ff9b::/96) must not be used to represent non-global IPv4 addresses.
+# For this reason, Tundra offers the 'translator.allow_translation_of_private_ips' option which should be set to 'no'
+# if you are using the well-known prefix (which will cause all packets containing problematic addresses to be silently
+# dropped). Keep in mind that the option only affects IPv4 addresses embedded into the prefix - 'translator.ipv4' and
+# 'router.ipv4' can be private even if the option is set to 'no'.
 translator.ipv4 = 192.168.64.2
 translator.ipv6 = fd00:6464::2
-translator.allow_translation_of_private_ips = yes
+translator.prefix = 64:ff9b::
+translator.allow_translation_of_private_ips = no
 
+# These options specify the maximum size (in bytes) a single IPv4/IPv6 packet can have when it is sent out by the
+# translator.
+# For IPv4, the lowest MTU you can specify is 68 bytes; for IPv6, it is 1280 bytes.
 translator.ipv4.outbound_mtu = 1500
 translator.ipv6.outbound_mtu = 1500
 
+# IPv4 packets contain the ToS field and IPv6 packets contain the Traffic Class field, both of which nowadays normally
+# consist of the DSCP (Differentiated Services Code Point) and ECN (Explicit Congestion Notification) fields. However,
+# in some legacy networks, the IPv4 ToS field might be used with old semantics which are not compatible with IPv6. To
+# prevent problems in such networks, Tundra can be instructed not to copy the fields over and zero them out instead
+# using these options.
+# In the vast majority of cases, however, this is not a problem, and so you can leave these options enabled.
 translator.6to4.copy_dscp_and_ecn = yes
 translator.4to6.copy_dscp_and_ecn = yes
 
+# Controls whether checksums of incoming packets are checked before they are recalculated. Since checksum validation
+# is relatively slow, it can be turned off in environments where it is not necessary with the benefit of the translator
+# then being faster.
 translator.checksum.check_ipv4_header = yes
 translator.checksum.check_icmpv4 = yes
 translator.checksum.check_icmpv6 = yes
@@ -41,5 +109,7 @@ translator.checksum.check_udp = yes
 
 
 
+# In certain cases, the translator needs to behave as a router and therefore be able to send ICMP messages.
+# These options specify the source IP addresses of ICMP packets originating from the translator.
 router.ipv4 = 192.168.64.1
 router.ipv6 = fd00:6464::1
