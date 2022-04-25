@@ -19,3 +19,7 @@
 
 [1.0.5 @ 2022-04-23]
 - The problematic strerror_r() function is no longer used by the program's logging subsystem
+
+[1.0.6 @ 2022-04-25]
+- Slightly optimized the RFC 1071 checksum calculation algorithm
+- TUN interfaces are no longer initialized as multi-queue if Tundra is configured to have only one translator thread, which significantly reduces memory usage

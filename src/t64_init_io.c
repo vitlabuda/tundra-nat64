@@ -30,9 +30,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Creates the interface if it doesn't exist
 // Can be used more than once (the TUN interface is multi-queue)
 int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configuration) {
+    int flags = IFF_TUN | IFF_NO_PI;
+    if(file_configuration->program_translator_threads != 1)
+        flags |= IFF_MULTI_QUEUE;
+
     struct ifreq tun_interface_request;
     T64M_UTILS__MEMORY_CLEAR(&tun_interface_request, 1, sizeof(struct ifreq));
-    tun_interface_request.ifr_flags = IFF_TUN | IFF_NO_PI | IFF_MULTI_QUEUE;
+    tun_interface_request.ifr_flags = flags;
     t64f_utils__secure_strncpy(tun_interface_request.ifr_name, file_configuration->io_tun_interface_name, IFNAMSIZ);
 
     int tun_fd = open(file_configuration->io_tun_device_path, O_RDWR);

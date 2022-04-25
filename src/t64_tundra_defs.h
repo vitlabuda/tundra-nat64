@@ -23,14 +23,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _T64I_TUNDRA_DEFS_H
 
 
-#define T64C_TUNDRA__VERSION "1.0.5"
+#define T64C_TUNDRA__VERSION "1.0.6"
 #define T64C_TUNDRA__PROGRAM_INFO_STRING "Tundra-NAT64 / v"T64C_TUNDRA__VERSION" / Copyright (c) 2022 Vit Labuda"
 
 #define T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH "/etc/tundra-nat64/tundra-nat64.conf"
 #define T64C_TUNDRA__DEFAULT_TUN_DEVICE_PATH "/dev/net/tun"
 
 #define T64C_TUNDRA__WORKING_DIRECTORY "/" // The program does not access the filesystem after changing the working directory!
-#define T64C_TUNDRA__MAX_TRANSLATOR_THREADS ((size_t) 256)
+#define T64C_TUNDRA__MAX_TRANSLATOR_THREADS ((size_t) 256) // Multi-queue TUN interfaces can have up to 256 queues (= file descriptors)
 #define T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL ((unsigned int) 1) // In seconds
 
 #define T64C_TUNDRA__MAX_PACKET_SIZE ((size_t) 65535)

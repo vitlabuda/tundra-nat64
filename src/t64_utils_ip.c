@@ -113,7 +113,7 @@ uint16_t t64f_utils_ip__calculate_ipv4_header_checksum(const struct iphdr *ipv4_
     const uint16_t *header_16bit_words = (const uint16_t *) ipv4_header;
     const size_t header_16bit_word_count = (ipv4_header->ihl * 2);
 
-    uint64_t header_checksum = 0;
+    uint32_t header_checksum = 0; // 32-bit integer is enough and is faster (especially on 32-bit machines)
     for(size_t i = 0; i < header_16bit_word_count; i++)
         header_checksum += header_16bit_words[i];
 
@@ -129,7 +129,7 @@ uint16_t t64f_utils_ip__calculate_ipv4_header_checksum(const struct iphdr *ipv4_
  *  the packet does not carry any payload).
  */
 uint16_t t64f_utils_ip__calculate_rfc1071_checksum(const t64ts_tundra__packet *packet, const bool include_pseudo_header, const bool return_0xffff_checksum_if_it_is_zero) {
-    uint64_t checksum = 0;
+    uint32_t checksum = 0; // 32-bit integer is enough and is faster (especially on 32-bit machines)
 
     // Checksum calculation pseudo-header
     if(include_pseudo_header) {
@@ -183,7 +183,7 @@ uint16_t t64f_utils_ip__calculate_rfc1071_checksum(const t64ts_tundra__packet *p
 
         // BOTTLENECK: This loop is, by far, what slows the translation process the most - finding a way to optimize the checksum calculation process would help a lot
         while(remaining_bytes > 1) { // At least 2 bytes are left
-            checksum += *((uint16_t *) current_byte); // BOTTLENECK: According to callgrind, the program spends ~61% of its total execution time on this very line of code!
+            checksum += *((uint16_t *) current_byte); // BOTTLENECK: According to callgrind, the program spends ~43% of its total execution time on this very line of code!
             current_byte += 2;
             remaining_bytes -= 2;
         }
