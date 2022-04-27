@@ -23,6 +23,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_router_ipv4.h"
 
 #include"t64_utils_ip.h"
+#include"t64_checksum.h"
 #include"t64_xlat.h"
 
 
@@ -50,7 +51,7 @@ void t64f_router_ipv4__generate_and_send_icmpv4_time_exceeded_message_back_to_in
     _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in_out_packet(context);
 
     context->out_packet.payload_icmpv4hdr->checksum = 0;
-    context->out_packet.payload_icmpv4hdr->checksum = t64f_utils_ip__calculate_rfc1071_checksum(&context->out_packet, false, false);
+    context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, false);
 
     t64f_xlat__possibly_fragment_and_send_ipv4_out_packet(context);
 }
@@ -77,7 +78,7 @@ void t64f_router_ipv4__generate_and_send_icmpv4_fragmentation_needed_message_bac
     _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in_out_packet(context);
 
     context->out_packet.payload_icmpv4hdr->checksum = 0;
-    context->out_packet.payload_icmpv4hdr->checksum = t64f_utils_ip__calculate_rfc1071_checksum(&context->out_packet, false, false);
+    context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, false);
 
     t64f_xlat__possibly_fragment_and_send_ipv4_out_packet(context);
 }

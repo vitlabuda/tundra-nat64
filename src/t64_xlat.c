@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
+#include"t64_checksum.h"
 #include"t64_log.h"
 #include"t64_xlat_4to6.h"
 #include"t64_xlat_6to4.h"
@@ -233,7 +234,7 @@ void t64f_xlat__finalize_and_send_specified_ipv4_packet(t64ts_tundra__xlat_threa
 
     ipv4_packet->packet_ipv4hdr->tot_len = htons((uint16_t) ipv4_packet->packet_size);
     ipv4_packet->packet_ipv4hdr->check = 0; // "For purposes of computing the checksum, the value of the checksum field is zero."
-    ipv4_packet->packet_ipv4hdr->check = t64f_utils_ip__calculate_ipv4_header_checksum(ipv4_packet->packet_ipv4hdr);
+    ipv4_packet->packet_ipv4hdr->check = t64f_checksum__calculate_ipv4_header_checksum(ipv4_packet->packet_ipv4hdr);
 
     _t64f_xlat__send_packet(context, ipv4_packet);
 }

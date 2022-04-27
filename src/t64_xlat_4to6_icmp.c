@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
+#include"t64_checksum.h"
 
 
 // The array must be zero-terminated, and the integers must be in descending order!
@@ -68,7 +69,7 @@ t64te_tundra__xlat_status t64f_xlat_4to6_icmp__translate_icmpv4_to_icmpv6(t64ts_
     if(context->in_packet.payload_size < 8)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
-    if(context->configuration->translator_checksum_check_icmpv4 && t64f_utils_ip__calculate_rfc1071_checksum(&context->in_packet, false, false) != 0)
+    if(t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->in_packet, false) != 0)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 40 bytes IPv6 header = at least 1480 bytes free; 8 bytes needed (for ICMPv6 header)
@@ -111,7 +112,7 @@ t64te_tundra__xlat_status t64f_xlat_4to6_icmp__translate_icmpv4_to_icmpv6(t64ts_
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // Just to make sure...
 
     context->out_packet.payload_icmpv6hdr->icmp6_cksum = 0;
-    context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_utils_ip__calculate_rfc1071_checksum(&context->out_packet, true, false);
+    context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, true);
 
     return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
 }

@@ -23,3 +23,7 @@
 [1.0.6 @ 2022-04-25]
 - Slightly optimized the RFC 1071 checksum calculation algorithm
 - TUN interfaces are no longer initialized as multi-queue if Tundra is configured to have only one translator thread, which significantly reduces memory usage
+
+[1.1.0 @ 2022-04-27]
+- Reworked the checksum calculation subsystem
+- Checksums of TCP and UDP packets are now incrementally updated -> speed improvement

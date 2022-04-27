@@ -141,11 +141,6 @@ static void _t64f_opmode_print_config__print_file_config(const t64ts_tundra__con
     printf("* %s = %zu\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6_OUTBOUND_MTU, file_configuration->translator_ipv6_outbound_mtu);
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_6TO4_COPY_DSCP_AND_ECN, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_6to4_copy_dscp_and_ecn));
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_4TO6_COPY_DSCP_AND_ECN, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_4to6_copy_dscp_and_ecn));
-    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_IPV4_HEADER, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_checksum_check_ipv4_header));
-    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_ICMPV4, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_checksum_check_icmpv4));
-    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_ICMPV6, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_checksum_check_icmpv6));
-    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_TCP, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_checksum_check_tcp));
-    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_UDP, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_checksum_check_udp));
 
     printf("\n");
 

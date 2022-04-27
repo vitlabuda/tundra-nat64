@@ -19,32 +19,15 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _T64I_TUNDRA_DEFS_H
-#define _T64I_TUNDRA_DEFS_H
+#ifndef _T64I_CHECKSUM_H
+#define _T64I_CHECKSUM_H
+
+#include"t64_tundra.h"
 
 
-#define T64C_TUNDRA__VERSION "1.1.0"
-#define T64C_TUNDRA__PROGRAM_INFO_STRING "Tundra-NAT64 / v"T64C_TUNDRA__VERSION" / Copyright (c) 2022 Vit Labuda"
-
-#define T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH "/etc/tundra-nat64/tundra-nat64.conf"
-#define T64C_TUNDRA__DEFAULT_TUN_DEVICE_PATH "/dev/net/tun"
-
-#define T64C_TUNDRA__WORKING_DIRECTORY "/" // The program does not access the filesystem after changing the working directory!
-#define T64C_TUNDRA__MAX_TRANSLATOR_THREADS ((size_t) 256) // Multi-queue TUN interfaces can have up to 256 queues (= file descriptors)
-#define T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL ((unsigned int) 1) // In seconds
-
-#define T64C_TUNDRA__MAX_PACKET_SIZE ((size_t) 65535)
-#define T64C_TUNDRA__MINIMUM_MTU_IPV4 ((size_t) 68)
-#define T64C_TUNDRA__MINIMUM_MTU_IPV6 ((size_t) 1280)
-#define T64C_TUNDRA__MAXIMUM_MTU_IPV4 ((size_t) 65515)
-#define T64C_TUNDRA__MAXIMUM_MTU_IPV6 ((size_t) 65515)
-
-#define T64C_TUNDRA__GENERATED_PACKET_TTL ((uint8_t) 255)
-
-#define T64C_TUNDRA__EXIT_CODE_SUCCESS ((int) 0)
-#define T64C_TUNDRA__EXIT_CODE_CRASH ((int) 1)
-#define T64C_TUNDRA__EXIT_CODE_MUTEX_FAILURE ((int) 2)
-#define T64C_TUNDRA__EXIT_CODE_INVALID_COMPILE_TIME_CONFIG ((int) 3)
+extern uint16_t t64f_checksum__calculate_ipv4_header_checksum(const struct iphdr *ipv4_header);
+extern uint16_t t64f_checksum__calculate_rfc1071_checksum_of_packet(const t64ts_tundra__packet *packet, const bool include_pseudo_header);
+extern uint16_t t64f_checksum__quickly_recalculate_rfc1071_checksum(const uint16_t old_checksum, const t64ts_tundra__packet *packet_with_old_pseudo_header, const t64ts_tundra__packet *packet_with_new_pseudo_header);
 
 
-#endif // _T64I_TUNDRA_DEFS_H
+#endif // _T64I_CHECKSUM_H

@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
+#include"t64_checksum.h"
 #include"t64_xlat.h"
 #include"t64_xlat_4to6_icmp.h"
 #include"t64_router_ipv4.h"
@@ -167,7 +168,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6__evaluate_in_packet(t64ts_tundr
     }
 
     // Header checksum
-    if(context->configuration->translator_checksum_check_ipv4_header && t64f_utils_ip__calculate_ipv4_header_checksum(context->in_packet.packet_ipv4hdr) != 0)
+    if(t64f_checksum__calculate_ipv4_header_checksum(context->in_packet.packet_ipv4hdr) != 0)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     context->in_packet.payload_raw = (context->in_packet.packet_raw + header_length);
@@ -299,17 +300,16 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6__translate_in_packet_payload_to
     // However, some transport protocols contain checksums whose correct value changes when performing NAT64 translation
     if(!T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(context->in_packet.packet_ipv4hdr)) {
         if(*context->out_packet.ipv6_carried_protocol_field == 6 && context->out_packet.payload_size >= 20) { // TCP
-            if(context->configuration->translator_checksum_check_tcp && t64f_utils_ip__calculate_rfc1071_checksum(&context->in_packet, true, false) != 0)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            context->out_packet.payload_tcphdr->check = t64f_checksum__quickly_recalculate_rfc1071_checksum(context->out_packet.payload_tcphdr->check, &context->in_packet, &context->out_packet);
 
-            context->out_packet.payload_tcphdr->check = 0;
-            context->out_packet.payload_tcphdr->check = t64f_utils_ip__calculate_rfc1071_checksum(&context->out_packet, true, false);
         } else if(*context->out_packet.ipv6_carried_protocol_field == 17 && context->out_packet.payload_size >= 8) { // UDP
-            if(context->configuration->translator_checksum_check_udp && context->in_packet.payload_size >= 8 && context->in_packet.payload_udphdr->check != 0 && t64f_utils_ip__calculate_rfc1071_checksum(&context->in_packet, true, false) != 0)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            const uint16_t new_checksum = (
+                (context->out_packet.payload_udphdr->check == 0) ?
+                t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, true) :
+                t64f_checksum__quickly_recalculate_rfc1071_checksum(context->out_packet.payload_udphdr->check, &context->in_packet, &context->out_packet)
+            );
 
-            context->out_packet.payload_udphdr->check = 0;
-            context->out_packet.payload_udphdr->check = t64f_utils_ip__calculate_rfc1071_checksum(&context->out_packet, true, true);
+            context->out_packet.payload_udphdr->check = ((new_checksum == 0) ? 0xffff : new_checksum);
         }
     }
 

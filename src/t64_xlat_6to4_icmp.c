@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
+#include"t64_checksum.h"
 
 
 static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(t64ts_tundra__xlat_thread_context *context);
@@ -61,7 +62,7 @@ t64te_tundra__xlat_status t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_
     if(context->in_packet.payload_size < 8)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
-    if(context->configuration->translator_checksum_check_icmpv6 && t64f_utils_ip__calculate_rfc1071_checksum(&context->in_packet, true, false) != 0)
+    if(t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->in_packet, true) != 0)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header = at least 1500 bytes free; 8 bytes needed (for ICMP header)
@@ -103,7 +104,7 @@ t64te_tundra__xlat_status t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // Just to make sure...
 
     context->out_packet.payload_icmpv4hdr->checksum = 0;
-    context->out_packet.payload_icmpv4hdr->checksum = t64f_utils_ip__calculate_rfc1071_checksum(&context->out_packet, false, false);
+    context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, false);
 
     return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
 }
@@ -421,7 +422,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     out_ipv4_carried_packet.packet_ipv4hdr->check = 0; // The IPv4 header is now finished, so the checksum can be calculated...
-    out_ipv4_carried_packet.packet_ipv4hdr->check = t64f_utils_ip__calculate_ipv4_header_checksum(out_ipv4_carried_packet.packet_ipv4hdr);
+    out_ipv4_carried_packet.packet_ipv4hdr->check = t64f_checksum__calculate_ipv4_header_checksum(out_ipv4_carried_packet.packet_ipv4hdr);
 
     // Part of data
     size_t data_bytes_to_copy = (in_ipv6_carried_packet.packet_size - 40);

@@ -99,15 +99,6 @@ translator.ipv6.outbound_mtu = 1500
 translator.6to4.copy_dscp_and_ecn = yes
 translator.4to6.copy_dscp_and_ecn = yes
 
-# Controls whether checksums of incoming packets are checked before they are recalculated. Since checksum validation
-# is relatively slow, it can be turned off in environments where it is not necessary with the benefit of the translator
-# then being faster.
-translator.checksum.check_ipv4_header = yes
-translator.checksum.check_icmpv4 = yes
-translator.checksum.check_icmpv6 = yes
-translator.checksum.check_tcp = yes
-translator.checksum.check_udp = yes
-
 
 
 # In certain cases, the translator needs to behave as a router and therefore be able to send ICMP messages.

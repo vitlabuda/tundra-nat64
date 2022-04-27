@@ -183,22 +183,6 @@ static void _t64f_conf_file__parse_translator_configuration_entries(t64ts_tundra
 
     // --- translator.4to6.copy_dscp_and_ecn ---
     file_configuration->translator_4to6_copy_dscp_and_ecn = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_4TO6_COPY_DSCP_AND_ECN);
-
-
-    // --- translator.checksum.check_ipv4_header ---
-    file_configuration->translator_checksum_check_ipv4_header = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_IPV4_HEADER);
-
-    // --- translator.checksum.check_icmpv4 ---
-    file_configuration->translator_checksum_check_icmpv4 = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_ICMPV4);
-
-    // --- translator.checksum.check_icmpv6 ---
-    file_configuration->translator_checksum_check_icmpv6 = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_ICMPV6);
-
-    // --- translator.checksum.check_tcp ---
-    file_configuration->translator_checksum_check_tcp = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_TCP);
-
-    // --- translator.checksum.check_udp ---
-    file_configuration->translator_checksum_check_udp = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_CHECKSUM_CHECK_UDP);
 }
 
 static void _t64f_conf_file__parse_router_configuration_entries(t64ts_tundra__conf_file_entry **config_file_entries, t64ts_tundra__conf_file *file_configuration) {

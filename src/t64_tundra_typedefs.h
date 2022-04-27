@@ -72,11 +72,6 @@ typedef struct {
     bool translator_allow_translation_of_private_ips;
     bool translator_6to4_copy_dscp_and_ecn;
     bool translator_4to6_copy_dscp_and_ecn;
-    bool translator_checksum_check_ipv4_header;
-    bool translator_checksum_check_icmpv4;
-    bool translator_checksum_check_icmpv6;
-    bool translator_checksum_check_tcp;
-    bool translator_checksum_check_udp;
 } t64ts_tundra__conf_file;
 
 
