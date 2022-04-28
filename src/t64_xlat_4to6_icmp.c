@@ -191,7 +191,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_destination_unr
                     return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 1, 0);
+                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 1, 0);
             }
             break;
 
@@ -202,7 +202,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_destination_unr
                     return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 1, 1);
+                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 1, 1);
             }
             break;
 
@@ -213,7 +213,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_destination_unr
                     return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 1, 4);
+                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 1, 4);
             }
             break;
 
@@ -224,7 +224,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_destination_unr
                     return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 2, 0);
+                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 2, 0);
 
                 {
                     uint16_t mtu;
@@ -255,7 +255,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_destination_unr
                     return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 4, 1);
+                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 4, 1);
 
                 context->out_packet.payload_raw[7] = 6; // Pointer points to the "Next header" field
             }
@@ -302,7 +302,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_time_exceeded_m
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     // Generate outbound ICMPv6 header
-    t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 3, context->in_packet.payload_icmpv4hdr->code);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, context->in_packet.payload_icmpv4hdr->code);
 
     // Build carried IP header & part of data
     if(_t64f_xlat_4to6_icmp__translate_carried_ip_header_and_part_of_data(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
@@ -339,7 +339,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_parameter_probl
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     // Generate outbound ICMPv6 header
-    t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 4, 0);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 4, 0);
 
     {
         const uint8_t out_pointer = _t64f_xlat_4to6_icmp__translate_parameter_problem_pointer_value(context->in_packet.payload_raw[4]);

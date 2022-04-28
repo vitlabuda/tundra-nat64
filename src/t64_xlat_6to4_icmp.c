@@ -198,7 +198,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_destination_unr
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     // Generate outbound ICMPv4 header
-    t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 3, out_icmp_code);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, out_icmp_code);
 
     // Build carried IP header & part of data
     if(_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
@@ -235,7 +235,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_packet_too_big_
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // = MTUs bigger than 65535 bytes cannot be handled when performing IPv6-to-IPv4 translation
 
     // Generate outbound ICMPv4 header
-    t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 3, 4);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 4);
 
     {
         uint16_t mtu;
@@ -290,7 +290,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_time_exceeded_m
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     // Generate outbound ICMPv4 header
-    t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 11, context->in_packet.payload_icmpv6hdr->icmp6_code);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 11, context->in_packet.payload_icmpv6hdr->icmp6_code);
 
     // Build carried IP header & part of data
     if(_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
@@ -327,7 +327,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_parameter_probl
                     return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
                 // Generate outbound ICMPv4 header
-                t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 12, 0);
+                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 12, 0);
 
                 const uint8_t out_pointer = _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer_value(context->in_packet.payload_raw[7]);
                 if(out_pointer == 255)
@@ -338,7 +338,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_parameter_probl
             break;
 
         case 1: // Unrecognized Next Header type encountered
-            t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 3, 2);
+            t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 2);
             break;
 
         default:

@@ -24,7 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils_ip.h"
 #include"t64_checksum.h"
-#include"t64_xlat.h"
+#include"t64_xlat_io.h"
 
 
 static t64te_tundra__xlat_status _t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol);
@@ -46,14 +46,14 @@ void t64f_router_ipv4__generate_and_send_icmpv4_time_exceeded_message_back_to_in
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header = at least 1500 bytes free; 8 bytes needed (for ICMPv4 header)
 
-    t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 11, 0);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 11, 0);
 
     _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in_out_packet(context);
 
     context->out_packet.payload_icmpv4hdr->checksum = 0;
     context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, false);
 
-    t64f_xlat__possibly_fragment_and_send_ipv4_out_packet(context);
+    t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(context);
 }
 
 /*
@@ -71,7 +71,7 @@ void t64f_router_ipv4__generate_and_send_icmpv4_fragmentation_needed_message_bac
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header = at least 1500 bytes free; 8 bytes needed (for ICMPv4 header)
 
-    t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 3, 4);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 4);
     mtu = htons(mtu);
     memcpy(context->out_packet.payload_raw + 6, &mtu, 2);
 
@@ -80,7 +80,7 @@ void t64f_router_ipv4__generate_and_send_icmpv4_fragmentation_needed_message_bac
     context->out_packet.payload_icmpv4hdr->checksum = 0;
     context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, false);
 
-    t64f_xlat__possibly_fragment_and_send_ipv4_out_packet(context);
+    t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(context);
 }
 
 static t64te_tundra__xlat_status _t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol) {

@@ -27,3 +27,6 @@
 [1.1.0 @ 2022-04-27]
 - Reworked the checksum calculation subsystem
 - Checksums of TCP and UDP packets are now incrementally updated -> speed improvement
+
+[1.1.1 @ 2022-04-28]
+- Reorganized some parts of the program's code

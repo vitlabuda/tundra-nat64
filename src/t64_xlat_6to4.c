@@ -25,7 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
 #include"t64_checksum.h"
-#include"t64_xlat.h"
+#include"t64_xlat_io.h"
 #include"t64_xlat_6to4_icmp.h"
 #include"t64_router_ipv6.h"
 
@@ -334,11 +334,11 @@ static void _t64f_xlat_6to4__appropriately_send_out_out_packet(t64ts_tundra__xla
     if(context->out_packet.packet_size <= 1260 || T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(context->out_packet.packet_ipv4hdr)) {
         context->out_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(0, more_fragments, fragment_offset);
 
-        t64f_xlat__possibly_fragment_and_send_ipv4_out_packet(context);
+        t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(context);
     } else {
         context->out_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(1, more_fragments, fragment_offset);
 
-        if(T64M_UTILS_IP__IPV4_PACKET_NEEDS_FRAGMENTATION(context, &context->out_packet))
+        if(T64M_UTILS_IP__IPV4_PACKET_NEEDS_FRAGMENTATION(context, &context->out_packet)) {
             // Why (IPv4 MTU + 20)? "Worst case scenario" example: The IPv4 MTU is 1500 bytes; the IPv6 host sends
             //  a 1520-byte (1500 + 20) IPv6 packet; its 40-byte IPv6 header is stripped, resulting in 1480 bytes
             //  of data; a 20-byte IPv4 header is prepended to the data, resulting in a 1500-byte IPv4 packet (the
@@ -351,7 +351,8 @@ static void _t64f_xlat_6to4__appropriately_send_out_out_packet(t64ts_tundra__xla
             //  This means that 1280-byte IPv6 packets are always able to pass through the translator (= the
             //  translator is standards-compliant, as IPv6 nodes must be able to handle 1280-byte IPv6 packets).
             t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_in_ipv6_packet_source_host(context, T64MM_UTILS__MAXIMUM(1280, ((uint16_t) context->configuration->translator_ipv4_outbound_mtu) + 20));
-        else
-            t64f_xlat__finalize_and_send_specified_ipv4_packet(context, &context->out_packet);
+        } else {
+            t64f_xlat_io__send_specified_ipv4_packet(context, &context->out_packet);
+        }
     }
 }

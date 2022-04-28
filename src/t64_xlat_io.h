@@ -19,13 +19,17 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _T64I_XLAT_H
-#define _T64I_XLAT_H
+#ifndef _T64I_XLAT_IO_H
+#define _T64I_XLAT_IO_H
 
 #include"t64_tundra.h"
 
 
-extern void *t64f_xlat__thread_run(void *arg);
+extern void t64f_xlat_io__receive_packet_into_in_packet(t64ts_tundra__xlat_thread_context *context);
+extern void t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(t64ts_tundra__xlat_thread_context *context);
+extern void t64f_xlat_io__send_specified_ipv4_packet(t64ts_tundra__xlat_thread_context *context, t64ts_tundra__packet *ipv4_packet);
+extern void t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(t64ts_tundra__xlat_thread_context *context);
+extern void t64f_xlat_io__send_specified_ipv6_packet(t64ts_tundra__xlat_thread_context *context, t64ts_tundra__packet *ipv6_packet);
 
 
-#endif // _T64I_XLAT_H
+#endif // _T64I_XLAT_IO_H

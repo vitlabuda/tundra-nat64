@@ -25,7 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
 #include"t64_checksum.h"
-#include"t64_xlat.h"
+#include"t64_xlat_io.h"
 #include"t64_xlat_4to6_icmp.h"
 #include"t64_router_ipv4.h"
 
@@ -336,16 +336,17 @@ static void _t64f_xlat_4to6__appropriately_send_out_out_packet(t64ts_tundra__xla
      */
 
     if(T64M_UTILS_IP__GET_IPV4_DONT_FRAGMENT_BIT(context->in_packet.packet_ipv4hdr)) {
-        if(T64M_UTILS_IP__IPV6_PACKET_NEEDS_FRAGMENTATION(context, &context->out_packet))
+        if(T64M_UTILS_IP__IPV6_PACKET_NEEDS_FRAGMENTATION(context, &context->out_packet)) {
             // Why (IPv6 MTU - 28)? "Worst case scenario" example: The IPv6 MTU is 1280 bytes; the IPv4 host sends a
             //  1252-byte (1280 - 28) fragmented IPv4 packet whose header has 20 bytes; during translation, the IPv4
             //  header is stripped, resulting in 1232 bytes of data; the 40-byte IPv6 header and 8-byte fragmentation
             //  extension header is prepended to the data, resulting in a 1280-byte IPv6 packet (the biggest packet that
             //  fits into the IPv6 MTU)
             t64f_router_ipv4__generate_and_send_icmpv4_fragmentation_needed_message_back_to_in_ipv4_packet_source_host(context, ((uint16_t) context->configuration->translator_ipv6_outbound_mtu) - 28);
-        else
-            t64f_xlat__finalize_and_send_specified_ipv6_packet(context, &context->out_packet);
+        } else {
+            t64f_xlat_io__send_specified_ipv6_packet(context, &context->out_packet);
+        }
     } else {
-        t64f_xlat__possibly_fragment_and_send_ipv6_out_packet(context);
+        t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(context);
     }
 }

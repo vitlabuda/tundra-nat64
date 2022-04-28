@@ -24,7 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils_ip.h"
 #include"t64_checksum.h"
-#include"t64_xlat.h"
+#include"t64_xlat_io.h"
 
 
 static t64te_tundra__xlat_status _t64f_router_ipv6__generate_header_of_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol);
@@ -46,14 +46,14 @@ void t64f_router_ipv6__generate_and_send_icmpv6_time_exceeded_message_back_to_in
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 40 bytes IPv6 header = at least 1480 bytes free; 8 bytes needed (for ICMPv6 header)
 
-    t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 3, 0);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 0);
 
     _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(context);
 
     context->out_packet.payload_icmpv6hdr->icmp6_cksum = 0;
     context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, true);
 
-    t64f_xlat__possibly_fragment_and_send_ipv6_out_packet(context);
+    t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(context);
 }
 
 /*
@@ -71,7 +71,7 @@ void t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_i
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 40 bytes IPv6 header = at least 1480 bytes free; 8 bytes needed (for ICMPv6 header)
 
-    t64f_utils_ip__generate_basic_icmpv4_or_icmpv6_header_to_empty_out_packet_payload(context, 2, 0);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 2, 0);
     mtu = htons(mtu);
     memcpy(context->out_packet.payload_raw + 6, &mtu, 2);
 
@@ -80,7 +80,7 @@ void t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_i
     context->out_packet.payload_icmpv6hdr->icmp6_cksum = 0;
     context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, true);
 
-    t64f_xlat__possibly_fragment_and_send_ipv6_out_packet(context);
+    t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(context);
 }
 
 static t64te_tundra__xlat_status _t64f_router_ipv6__generate_header_of_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol) {
