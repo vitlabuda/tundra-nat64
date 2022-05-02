@@ -26,7 +26,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 static uint32_t _t64f_checksum__sum_16bit_words(const uint8_t *bytes, size_t length);
-static uint32_t _t64f_checksum__sum_pseudo_header(const t64ts_tundra__packet *packet);
 static uint32_t _t64f_checksum__sum_ipv4_pseudo_header(const t64ts_tundra__packet *ipv4_packet);
 static uint32_t _t64f_checksum__sum_ipv6_pseudo_header(const t64ts_tundra__packet *ipv6_packet);
 static uint16_t _t64f_checksum__pack_into_16bits(uint32_t packed_32bit_number);
@@ -36,23 +35,38 @@ uint16_t t64f_checksum__calculate_ipv4_header_checksum(const struct iphdr *ipv4_
     return ~_t64f_checksum__pack_into_16bits(_t64f_checksum__sum_16bit_words((const uint8_t *) ipv4_header, ipv4_header->ihl * 4));
 }
 
-uint16_t t64f_checksum__calculate_rfc1071_checksum_of_packet(const t64ts_tundra__packet *packet, const bool include_pseudo_header) {
+uint16_t t64f_checksum__calculate_rfc1071_checksum(const t64ts_tundra__packet *packet, const bool include_pseudo_header) {
     uint32_t sum = 0;
 
-    if(include_pseudo_header)
-        sum += _t64f_checksum__sum_pseudo_header(packet);
+    if(include_pseudo_header) {
+        if(packet->packet_ipv4hdr->version == 4)
+            sum += _t64f_checksum__sum_ipv4_pseudo_header(packet);
+        else if(packet->packet_ipv4hdr->version == 6)
+            sum += _t64f_checksum__sum_ipv6_pseudo_header(packet);
+    }
 
     sum += _t64f_checksum__sum_16bit_words(packet->payload_raw, packet->payload_size);
 
     return ~_t64f_checksum__pack_into_16bits(sum);
 }
 
-uint16_t t64f_checksum__quickly_recalculate_rfc1071_checksum(const uint16_t old_checksum, const t64ts_tundra__packet *packet_with_old_pseudo_header, const t64ts_tundra__packet *packet_with_new_pseudo_header) {
-    const uint16_t old_pseudo_header_sum = _t64f_checksum__pack_into_16bits(_t64f_checksum__sum_pseudo_header(packet_with_old_pseudo_header));
-    const uint16_t new_pseudo_header_sum = _t64f_checksum__pack_into_16bits(_t64f_checksum__sum_pseudo_header(packet_with_new_pseudo_header));
+// For TCP & UDP packets whose payloads do not change when translated
+uint16_t t64f_checksum__incrementally_recalculate_rfc1071_checksum(const uint16_t old_checksum, const t64ts_tundra__packet *old_packet, const t64ts_tundra__packet *new_packet) {
+    // It is not necessary to replace the whole pseudo-header (only the IP addresses need to be replaced), since the
+    //  Length, Zeroes and Protocol fields produce the same sum in both pseudo-header versions despite them
+    //  being ordered (addition is commutative) and sized (in the IPv6 pseudo-header, the first 16 bits of the Length
+    //  and Zeroes field are always zero [in practice]; therefore, they do not affect the sum [x + 0 = x]) differently
+    uint32_t old_ips_sum = 0, new_ips_sum = 0;
+    if(old_packet->packet_ipv4hdr->version == 6 && new_packet->packet_ipv4hdr->version == 4) { // 6to4
+        old_ips_sum = _t64f_checksum__sum_16bit_words((uint8_t *) old_packet->packet_ipv6hdr->saddr.s6_addr, 16) + _t64f_checksum__sum_16bit_words((uint8_t *) old_packet->packet_ipv6hdr->daddr.s6_addr, 16);
+        new_ips_sum = _t64f_checksum__sum_16bit_words((uint8_t *) &new_packet->packet_ipv4hdr->saddr, 4) + _t64f_checksum__sum_16bit_words((uint8_t *) &new_packet->packet_ipv4hdr->daddr, 4);
+    } else if(old_packet->packet_ipv4hdr->version == 4 && new_packet->packet_ipv4hdr->version == 6) { // 4to6
+        old_ips_sum = _t64f_checksum__sum_16bit_words((uint8_t *) &old_packet->packet_ipv4hdr->saddr, 4) + _t64f_checksum__sum_16bit_words((uint8_t *) &old_packet->packet_ipv4hdr->daddr, 4);
+        new_ips_sum = _t64f_checksum__sum_16bit_words((uint8_t *) new_packet->packet_ipv6hdr->saddr.s6_addr, 16) + _t64f_checksum__sum_16bit_words((uint8_t *) new_packet->packet_ipv6hdr->daddr.s6_addr, 16);
+    }
 
-    // new_checksum = ~(~old_checksum - old_pseudo_header + new_pseudo_header)
-    return ~_t64f_checksum__pack_into_16bits(_t64f_checksum__pack_into_16bits(~old_checksum - old_pseudo_header_sum) + new_pseudo_header_sum);
+    // new_checksum = ~(~old_checksum - old_ips_sum + new_ips_sum)
+    return ~_t64f_checksum__pack_into_16bits(_t64f_checksum__pack_into_16bits(~old_checksum - _t64f_checksum__pack_into_16bits(old_ips_sum)) + _t64f_checksum__pack_into_16bits(new_ips_sum));
 }
 
 static uint32_t _t64f_checksum__sum_16bit_words(const uint8_t *bytes, size_t length_in_bytes) {
@@ -70,16 +84,6 @@ static uint32_t _t64f_checksum__sum_16bit_words(const uint8_t *bytes, size_t len
     }
 
     return sum;
-}
-
-static uint32_t _t64f_checksum__sum_pseudo_header(const t64ts_tundra__packet *packet) {
-    if(packet->packet_ipv4hdr->version == 4)
-        return _t64f_checksum__sum_ipv4_pseudo_header(packet);
-
-    if(packet->packet_ipv4hdr->version == 6)
-        return _t64f_checksum__sum_ipv6_pseudo_header(packet);
-
-    return 0; // This should never happen!
 }
 
 static uint32_t _t64f_checksum__sum_ipv4_pseudo_header(const t64ts_tundra__packet *ipv4_packet) {

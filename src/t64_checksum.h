@@ -26,8 +26,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 extern uint16_t t64f_checksum__calculate_ipv4_header_checksum(const struct iphdr *ipv4_header);
-extern uint16_t t64f_checksum__calculate_rfc1071_checksum_of_packet(const t64ts_tundra__packet *packet, const bool include_pseudo_header);
-extern uint16_t t64f_checksum__quickly_recalculate_rfc1071_checksum(const uint16_t old_checksum, const t64ts_tundra__packet *packet_with_old_pseudo_header, const t64ts_tundra__packet *packet_with_new_pseudo_header);
+extern uint16_t t64f_checksum__calculate_rfc1071_checksum(const t64ts_tundra__packet *packet, const bool include_pseudo_header);
+extern uint16_t t64f_checksum__incrementally_recalculate_rfc1071_checksum(const uint16_t old_checksum, const t64ts_tundra__packet *old_packet, const t64ts_tundra__packet *new_packet);
 
 
 #endif // _T64I_CHECKSUM_H

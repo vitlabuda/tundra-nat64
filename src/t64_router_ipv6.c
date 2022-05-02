@@ -51,7 +51,7 @@ void t64f_router_ipv6__generate_and_send_icmpv6_time_exceeded_message_back_to_in
     _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(context);
 
     context->out_packet.payload_icmpv6hdr->icmp6_cksum = 0;
-    context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, true);
+    context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum(&context->out_packet, true);
 
     t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(context);
 }
@@ -78,7 +78,7 @@ void t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_i
     _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(context);
 
     context->out_packet.payload_icmpv6hdr->icmp6_cksum = 0;
-    context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, true);
+    context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum(&context->out_packet, true);
 
     t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(context);
 }

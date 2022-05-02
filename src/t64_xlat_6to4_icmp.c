@@ -62,7 +62,7 @@ t64te_tundra__xlat_status t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_
     if(context->in_packet.payload_size < 8)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
-    if(t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->in_packet, true) != 0)
+    if(t64f_checksum__calculate_rfc1071_checksum(&context->in_packet, true) != 0)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header = at least 1500 bytes free; 8 bytes needed (for ICMP header)
@@ -104,7 +104,7 @@ t64te_tundra__xlat_status t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // Just to make sure...
 
     context->out_packet.payload_icmpv4hdr->checksum = 0;
-    context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, false);
+    context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum(&context->out_packet, false);
 
     return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
 }

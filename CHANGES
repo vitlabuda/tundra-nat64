@@ -30,3 +30,6 @@
 
 [1.1.1 @ 2022-04-28]
 - Reorganized some parts of the program's code
+
+[1.1.2 @ 2022-05-02]
+- TCP/UDP checksums within fragmented TCP/UDP packets are now incrementally recalculated, allowing them to pass through the translator without being "damaged" by it

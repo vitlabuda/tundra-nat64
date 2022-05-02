@@ -291,17 +291,15 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__translate_in_packet_payload_to
     context->out_packet.payload_size = context->in_packet.payload_size;
 
     // However, some transport protocols contain checksums whose correct value changes when performing NAT64 translation
-    if(!T64M_UTILS_IP__IS_IPV6_PACKET_FRAGMENTED(&context->in_packet)) {
+    if(T64M_UTILS_IP__GET_IPV4_FRAGMENT_OFFSET(context->out_packet.packet_ipv4hdr) == 0) {
         if(context->out_packet.packet_ipv4hdr->protocol == 6 && context->out_packet.payload_size >= 20) { // TCP
-            context->out_packet.payload_tcphdr->check = t64f_checksum__quickly_recalculate_rfc1071_checksum(context->out_packet.payload_tcphdr->check, &context->in_packet, &context->out_packet);
+            context->out_packet.payload_tcphdr->check = t64f_checksum__incrementally_recalculate_rfc1071_checksum(context->out_packet.payload_tcphdr->check, &context->in_packet, &context->out_packet);
 
         } else if(context->out_packet.packet_ipv4hdr->protocol == 17 && context->out_packet.payload_size >= 8) { // UDP
-            const uint16_t new_checksum = (
-                    (context->out_packet.payload_udphdr->check == 0) ?
-                    t64f_checksum__calculate_rfc1071_checksum_of_packet(&context->out_packet, true) :
-                    t64f_checksum__quickly_recalculate_rfc1071_checksum(context->out_packet.payload_udphdr->check, &context->in_packet, &context->out_packet)
-            );
+            if(context->out_packet.payload_udphdr->check == 0)
+                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
+            const uint16_t new_checksum = t64f_checksum__incrementally_recalculate_rfc1071_checksum(context->out_packet.payload_udphdr->check, &context->in_packet, &context->out_packet);
             context->out_packet.payload_udphdr->check = ((new_checksum == 0) ? 0xffff : new_checksum);
         }
     }
