@@ -41,7 +41,8 @@ Options:\n\
     Prints license and exits.\n\
   -c, --"T64C_CONF_CMDLINE__LONGOPT_CONFIG_FILE"=CONFIG_FILE_PATH\n\
     Specifies the file from which the program's configuration will be loaded.\n\
-    Default: "T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH"\n\
+    DEFAULT: "T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH"\n\
+    NOTE: To load the configuration from standard input, specify '/dev/stdin' as the config file path.\n\
   -f, --"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...\n\
     Specifies the file descriptors to be used in the '"T64C_CONF_FILE__IO_MODE_INHERITED_FDS"' I/O mode. Ignored otherwise.\n\
 \n\

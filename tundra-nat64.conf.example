@@ -1,9 +1,16 @@
 # ----- Tundra-NAT64 example configuration file -----
 
+# Tundra can be instructed to stop reading the configuration file (before the end of the file) using a line containing
+# only the string "!STOP" (without the quotation marks, case-sensitive). If such line is encountered, the program stops
+# reading the config file immediately and the open file is closed. This can be useful for example when the program's
+# config is read from a named pipe, standard input etc.
+
 
 
 # The number of threads used to translate packets.
 # If set to 0, the number of CPUs (cores, SMT threads, ...) your device has is used.
+# NOTE: See the documentation of the 'io.mode' configuration option below to find out how the translator behaves when
+# more than one translator thread is configured.
 program.translator_threads = 0
 
 # The directory Tundra will chroot() into after it initializes.

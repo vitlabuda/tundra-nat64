@@ -33,3 +33,7 @@
 
 [1.1.2 @ 2022-05-02]
 - TCP/UDP checksums within fragmented TCP/UDP packets are now incrementally recalculated, allowing them to pass through the translator without being "damaged" by it
+
+[1.1.3 @ 2022-05-09]
+- Added a note to Tundra's '--help' that the program's configuration may be loaded from standard input
+- The program does not check if lines in the configuration file are too long anymore, as the check made it impossible to load config files not ending with a new-line character

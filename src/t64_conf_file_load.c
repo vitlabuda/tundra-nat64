@@ -66,9 +66,6 @@ static t64ts_tundra__conf_file_entry** _t64fa_conf_file_load__read_open_config_f
 
     char line_buffer[_T64C_CONF_FILE_LOAD__LINE_BUFFER_SIZE];
     for(int line_number = 1; fgets(line_buffer, _T64C_CONF_FILE_LOAD__LINE_BUFFER_SIZE, conf_file_stream) != NULL; line_number++) {
-        if(T64M_UTILS__STRING_EMPTY(line_buffer) || line_buffer[strlen(line_buffer) - 1] != '\n')
-            t64f_log__crash(false, "Line %d of the configuration file is too long!", line_number);
-
         char *key_ptr = _t64f_conf_file_load__strip_whitespace_from_string(line_buffer);
         if(T64M_UTILS__STRING_EMPTY(key_ptr) || *key_ptr == '#' || *key_ptr == ';')
             continue;

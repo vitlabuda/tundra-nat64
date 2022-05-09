@@ -49,7 +49,7 @@ packets.
 Since Tundra has no dependencies other than Linux's standard C library and `libpthread`, it can be compiled by a single 
 command and without the use of a build system: 
 ```shell
-gcc -Wall -pthread -std=c11 -O3 -o tundra-nat64 src/t64_*.c
+gcc -Wall -pthread -std=c11 -O3 -flto -o tundra-nat64 src/t64_*.c
 ```
 Both `gcc` and `clang` may be used to compile the program.
 
@@ -75,7 +75,8 @@ Options:
     Prints license and exits.
   -c, --config-file=CONFIG_FILE_PATH
     Specifies the file from which the program's configuration will be loaded.
-    Default: /etc/tundra-nat64/tundra-nat64.conf
+    DEFAULT: /etc/tundra-nat64/tundra-nat64.conf
+    NOTE: To load the configuration from standard input, specify '/dev/stdin' as the config file path.
   -f, --inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...
     Specifies the file descriptors to be used in the 'inherited-fds' I/O mode. Ignored otherwise.
 
