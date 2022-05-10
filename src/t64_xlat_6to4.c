@@ -104,16 +104,39 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__evaluate_in_packet(t64ts_tundr
     if(context->in_packet.packet_ipv6hdr->hop_limit < 1)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // The packet should have already been dropped!
 
-    // Source address
-    if(!T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(context->in_packet.packet_ipv6hdr->saddr.s6_addr, context->configuration->translator_ipv6))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    // Source & destination address
+    switch(context->configuration->translator_mode) {
+        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
+            {
+                // Source address
+                if(!T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(context->in_packet.packet_ipv6hdr->saddr.s6_addr, context->configuration->translator_ipv6))
+                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
-    // Destination address
-    if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.packet_ipv6hdr->daddr.s6_addr, context->configuration->translator_prefix, 12))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                // Destination address
+                if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.packet_ipv6hdr->daddr.s6_addr, context->configuration->translator_prefix, 12))
+                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                if(!t64f_utils_ip__is_ipv4_embedded_ipv6_address_translatable(context, ((uint8_t *) context->in_packet.packet_ipv6hdr->daddr.s6_addr) + 12))
+                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            }
+            break;
 
-    if(!t64f_utils_ip__is_ipv4_embedded_ipv6_address_translatable(context, ((uint8_t *) context->in_packet.packet_ipv6hdr->daddr.s6_addr) + 12))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
+            {
+                // Source address
+                if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.packet_ipv6hdr->saddr.s6_addr, context->configuration->translator_prefix, 12))
+                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                if(!t64f_utils_ip__is_ipv4_embedded_ipv6_address_translatable(context, ((uint8_t *) context->in_packet.packet_ipv6hdr->saddr.s6_addr) + 12))
+                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+
+                // Destination address
+                if(!T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(context->in_packet.packet_ipv6hdr->daddr.s6_addr, context->configuration->translator_ipv6))
+                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            }
+            break;
+
+        default:
+            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // This should never happen!
+    }
 
     // Next header & Fragmentation (walks through all IPv6 extension headers)
     {
@@ -154,7 +177,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__evaluate_in_packet(t64ts_tundr
             }
 
             // current_header_ptr[1] is guaranteed to be zero in case of a fragment header (checked above)
-            const size_t current_header_size = (8 + (((size_t) (current_header_ptr[1])) * 8));
+            const ssize_t current_header_size = (8 + (((ssize_t) (current_header_ptr[1])) * 8));
 
             protocol_field = current_header_ptr; // The first field of every IPv6 extension header is "next header"
             current_header_ptr += current_header_size; // Move to a next header or the payload
@@ -241,11 +264,31 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__translate_in_packet_headers_to
     // Header checksum
     context->out_packet.packet_ipv4hdr->check = 0; // This is set to a correct value when the packet is sent (at this moment, it is not known what the final state of the packet's header will be)
 
-    // Source address
-    memcpy((uint8_t *) &context->out_packet.packet_ipv4hdr->saddr, context->configuration->translator_ipv4, 4);
+    // Source & destination address
+    switch(context->configuration->translator_mode) {
+        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
+            {
+                // Source address
+                memcpy((uint8_t *) &context->out_packet.packet_ipv4hdr->saddr, context->configuration->translator_ipv4, 4);
 
-    // Destination address
-    memcpy((uint8_t *) &context->out_packet.packet_ipv4hdr->daddr, ((uint8_t *) context->in_packet.packet_ipv6hdr->daddr.s6_addr) + 12, 4);
+                // Destination address
+                memcpy((uint8_t *) &context->out_packet.packet_ipv4hdr->daddr, ((uint8_t *) context->in_packet.packet_ipv6hdr->daddr.s6_addr) + 12, 4);
+            }
+            break;
+
+        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
+            {
+                // Source address
+                memcpy((uint8_t *) &context->out_packet.packet_ipv4hdr->saddr, ((uint8_t *) context->in_packet.packet_ipv6hdr->saddr.s6_addr) + 12, 4);
+
+                // Destination address
+                memcpy((uint8_t *) &context->out_packet.packet_ipv4hdr->daddr, context->configuration->translator_ipv4, 4);
+            }
+            break;
+
+        default:
+            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // This should never happen!
+    }
 
     context->out_packet.packet_size = 20;
     context->out_packet.payload_raw = (context->out_packet.packet_raw + 20);

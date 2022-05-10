@@ -24,6 +24,7 @@ program.privilege_drop_group =
 
 
 
+# Specifies the "means" by which the translator will receive and send packets.
 # There are two I/O modes: 'inherited-fds' and 'tun'.
 #
 # In the 'tun' I/O mode, Tundra initializes a TUN network interface according to the io.tun.* configuration options
@@ -63,19 +64,26 @@ io.tun.owner_group =
 
 
 
+# Specifies how the translator will translate IP addresses when translating packets from one protocol to another.
+# There are two translator modes: 'nat64' and 'clat'.
+#
+# In the 'nat64' translator mode, packets' IP addresses are (statelessly) translated the following way:
+# * IPv6-Packet(src='translator.ipv6', dst='translator.prefix' + any-valid-IPv4-address) --> IPv4-Packet(src='translator.ipv4', dst=the-valid-IPv4-address)
+# * IPv4-Packet(src=any-valid-IPv4-address, dst='translator.ipv4') --> IPv6-Packet(src='translator.prefix' + the-valid-IPv4-address, dst='translator.ipv6')
+#
+# In the 'clat' translator mode, packets' IP addresses are (statelessly) translated the following way:
+# * IPv4-Packet(src='translator.ipv4', dst=any-valid-IPv4-address) --> IPv6-Packet(src='translator.ipv6', dst='translator.prefix' + the-valid-IPv4-address)
+# * IPv6-Packet(src='translator.prefix' + any-valid-IPv4-address, dst='translator.ipv6') --> IPv4-Packet(src=the-valid-IPv4-address, dst='translator.ipv4')
+#
+# Tundra itself cannot act as a NAT64/CLAT translator for more than one host, as it lacks an internal dynamic address
+# pool from which it would assign addresses to hosts needing its service - it only uses the single IPv4 and IPv6
+# address configurable below. However, you can use Tundra in cooperation with Linux's in-kernel NAT66/NAT44, which can
+# masquerade a whole network requesting NAT64/CLAT service behind 'translator.ipv6'/'translator.ipv4', for example:
+#  ip6tables -t nat -A POSTROUTING -d 64:ff9b::/96 -o tundra -j SNAT --to-source=fd00:6464::2  # For NAT64
+#  iptables -t nat -A POSTROUTING -o tundra -j SNAT --to-source=192.168.64.2  # For CLAT
+translator.mode = nat64
+
 # These options specify the IP addresses the translator will use when translating packets from one protocol to another.
-# The stateless NAT64 translator uses the IP addresses the following way:
-# - When Tundra receives an IPv6 packet whose source IPv6 is 'translator.ipv6' and whose destination IPv6 is a valid
-#   IPv4 address embedded into 'translator.prefix', it is translated into an IPv4 packet whose source IPv4 is
-#   'translator.ipv4' and whose destination IPv4 is extracted from the IPv6 packet's IPv4-embedded destination IPv6.
-# - When Tundra receives an IPv4 packet whose source IPv4 can be embedded into 'translator.prefix' and whose
-#   destination IPv4 is 'translator.ipv4', it is translated into an IPv6 packet whose source IPv6 consists of
-#   'translator.prefix' and the IPv4 packet's source IPv4 and whose destination IPv6 is 'translator.ipv6'.
-# Tundra itself cannot act as a NAT64 translator for more than one host, as it lacks an internal dynamic address pool
-# from which it would assign addresses to hosts needing NAT64 service - it only uses the single IPv4 and IPv6 address
-# configurable below. However, you can use Tundra in cooperation with Linux's in-kernel NAT66, which can masquerade a
-# whole network requesting NAT64 service behind 'translator.ipv6', for example:
-#  ip6tables -t nat -A POSTROUTING -d 64:ff9b::/96 -o tundra -j SNAT --to-source=fd00:6464::2
 #
 # The length of 'translator.prefix' is fixed to be 96 bits (/96), which is probably the only prefix length used in
 # production NAT64 deployments. The length shall not be specified in the option's value. Tundra does not support other

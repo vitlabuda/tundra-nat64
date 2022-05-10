@@ -173,13 +173,20 @@ static void _t64f_opmode_translate__start_xlat_threads(const t64ts_tundra__conf_
 }
 
 static void _t64f_opmode_translate__print_information_about_translation_start(const t64ts_tundra__conf_file *file_configuration) {
+    const char *translator_mode_string;
+    switch(file_configuration->translator_mode) {
+        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64: translator_mode_string = "NAT64"; break;
+        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:  translator_mode_string = "CLAT";  break;
+        default: t64f_log__crash_invalid_internal_state("Invalid translator mode");
+    }
+
     switch(file_configuration->io_mode) {
         case T64TE_TUNDRA__IO_MODE_INHERITED_FDS:
-            t64f_log__info("%zu threads are now translating packets on command-line-provided file descriptors...", file_configuration->program_translator_threads);
+            t64f_log__info("%zu threads are now performing %s translation of packets on command-line-provided file descriptors...", file_configuration->program_translator_threads, translator_mode_string);
             break;
 
         case T64TE_TUNDRA__IO_MODE_TUN:
-            t64f_log__info("%zu threads are now translating packets on TUN interface '%s'...", file_configuration->program_translator_threads, file_configuration->io_tun_interface_name);
+            t64f_log__info("%zu threads are now performing %s translation of packets on TUN interface '%s'...", file_configuration->program_translator_threads, translator_mode_string, file_configuration->io_tun_interface_name);
             break;
 
         default:

@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T64C_CONF_FILE__OPTION_KEY_IO_TUN_OWNER_USER "io.tun.owner_user"
 #define T64C_CONF_FILE__OPTION_KEY_IO_TUN_OWNER_GROUP "io.tun.owner_group"
 
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_MODE "translator.mode"
 #define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_PREFIX "translator.prefix"
 #define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4 "translator.ipv4"
 #define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6 "translator.ipv6"
@@ -50,6 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define T64C_CONF_FILE__IO_MODE_INHERITED_FDS "inherited-fds"
 #define T64C_CONF_FILE__IO_MODE_TUN "tun"
+
+#define T64C_CONF_FILE__TRANSLATOR_MODE_NAT64 "nat64"
+#define T64C_CONF_FILE__TRANSLATOR_MODE_CLAT "clat"
 
 
 extern t64ts_tundra__conf_file *t64fa_conf_file__read_and_parse_configuration_file(const char *filepath);

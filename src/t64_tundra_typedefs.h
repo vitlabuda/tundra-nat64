@@ -36,6 +36,11 @@ typedef enum {
     T64TE_TUNDRA__IO_MODE_TUN
 } t64te_tundra__io_mode;
 
+typedef enum {
+    T64TE_TUNDRA__TRANSLATOR_MODE_NAT64,
+    T64TE_TUNDRA__TRANSLATOR_MODE_CLAT
+} t64te_tundra__translator_mode;
+
 typedef struct {
     char *config_file_path; // Cannot be NULL - contains either command-line-provided filepath, or T64C_TUNDRA_DEFAULT_CONFIG_FILE_PATH
     char *inherited_fds; // Is NULL, when no inherited-fds are specified via command-line options
@@ -65,6 +70,7 @@ typedef struct {
     gid_t program_privilege_drop_group_gid; // Must not be accessed if program_privilege_drop_group_perform == false
     gid_t io_tun_owner_group_gid; // Must not be accessed if io_mode != TUN or if io_tun_owner_group_set == false
     t64te_tundra__io_mode io_mode;
+    t64te_tundra__translator_mode translator_mode;
     bool program_privilege_drop_user_perform;
     bool program_privilege_drop_group_perform;
     bool io_tun_owner_user_set; // Must not be accessed if io_mode != TUN

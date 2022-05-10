@@ -37,6 +37,7 @@ static void _t64f_conf_file__check_parsed_configuration(const t64ts_tundra__conf
 static uid_t _t64f_conf_file__get_uid_by_username(const char *username);
 static gid_t _t64f_conf_file__get_gid_by_groupname(const char *groupname);
 static t64te_tundra__io_mode _t64f_conf_file__determine_io_mode_from_string(const char *io_mode_string);
+static t64te_tundra__translator_mode _t64f_conf_file__determine_translator_mode_from_string(const char *translator_mode_string);
 
 
 t64ts_tundra__conf_file *t64fa_conf_file__read_and_parse_configuration_file(const char *filepath) {
@@ -156,6 +157,11 @@ static void _t64fa_conf_file__parse_io_tun_configuration_entries(t64ts_tundra__c
 }
 
 static void _t64f_conf_file__parse_translator_configuration_entries(t64ts_tundra__conf_file_entry **config_file_entries, t64ts_tundra__conf_file *file_configuration) {
+    // --- translator.mode ---
+    file_configuration->translator_mode = _t64f_conf_file__determine_translator_mode_from_string(
+        t64f_conf_file_load__find_string(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_MODE, T64C_CONF_FILE_LOAD__FIND_STRING_NO_MAX_CHARACTERS, false)
+    );
+
     // --- translator.prefix ---
     t64f_conf_file_load__find_ipv6_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_PREFIX, file_configuration->translator_prefix);
     if(!T64M_UTILS__MEMORY_EQUAL((file_configuration->translator_prefix + 12), "\x00\x00\x00\x00", 4))
@@ -225,6 +231,16 @@ static t64te_tundra__io_mode _t64f_conf_file__determine_io_mode_from_string(cons
         return T64TE_TUNDRA__IO_MODE_TUN;
 
     t64f_log__crash(false, "Invalid I/O mode string: '%s'", io_mode_string);
+}
+
+static t64te_tundra__translator_mode _t64f_conf_file__determine_translator_mode_from_string(const char *translator_mode_string) {
+    if(T64M_UTILS__STRINGS_EQUAL(translator_mode_string, T64C_CONF_FILE__TRANSLATOR_MODE_NAT64))
+        return T64TE_TUNDRA__TRANSLATOR_MODE_NAT64;
+
+    if(T64M_UTILS__STRINGS_EQUAL(translator_mode_string, T64C_CONF_FILE__TRANSLATOR_MODE_CLAT))
+        return T64TE_TUNDRA__TRANSLATOR_MODE_CLAT;
+
+    t64f_log__crash(false, "Invalid translator mode string: '%s'", translator_mode_string);
 }
 
 void t64f_conf_file__free_parsed_configuration_file(t64ts_tundra__conf_file *file_configuration) {

@@ -20,28 +20,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
 # Tundra-NAT64
-**Tundra-NAT64** is an open-source **stateless NAT64 implementation for Linux** which operates entirely in user-space, 
+**Tundra-NAT64** is an open-source **stateless NAT64 and CLAT implementation for Linux** which operates entirely in user-space, 
 can run in **multiple threads** (and thus make use of today's modern multicore CPUs) and uses either the TUN driver or 
 inherited file descriptors to receive and send packets. It is written in pure C and translates packets from IPv6 to 
 IPv4 and vice versa according to [RFC 7915](https://datatracker.ietf.org/doc/html/rfc7915) *(SIIT – Stateless IP/ICMP 
 Translation Algorithm)*.
 
-The stateless NAT64 translator offered by Tundra focuses on being minimal – features which are not necessary for 
-SOHO-grade NAT64 service are often omitted, and so are features which can be substituted by something else. One of the
+The stateless NAT64/CLAT translator offered by Tundra focuses on being minimal – features which are not necessary for 
+SOHO-grade NAT64/CLAT service are often omitted, and so are features which can be substituted by something else. One of the
 consequences of this design approach is that the program does not allocate any extra memory after it initializes.
 
-Probably the most significant trait of this program, which makes it different from other NAT64 implementations, is that 
-Tundra itself cannot act as a NAT64 translator for more than one host, as it lacks an internal dynamic address pool from 
-which it would assign IP addresses to hosts needing NAT64 service (or something similar) – it uses a fixed single IP 
-address specified in a configuration file instead (see the [example config file](tundra-nat64.conf.example) for details). 
-However, it can be used in cooperation with **Linux's in-kernel NAT66** translator and therefore translate traffic from 
-any number of hosts/networks, as is shown in the [deployment example](#deployment-example) below.
+Probably the most significant trait of this program, which makes it different from other NAT64/CLAT implementations, is 
+that Tundra itself cannot act as a NAT64/CLAT translator for more than one host, as it lacks an internal dynamic address 
+pool from which it would assign IP addresses to hosts needing its service (or something similar) – it uses a fixed 
+single IP address specified in a configuration file instead (see the [example config file](tundra-nat64.conf.example) 
+for details). However, it can be used in cooperation with **Linux's in-kernel NAT66/NAT44** translator and therefore 
+translate traffic from any number of hosts/networks, as is described in the 
+[example config file](tundra-nat64.conf.example) and shown (for NAT64) in the [deployment example](#deployment-example) 
+below.
 
-Tundra is similar to [TAYGA](http://www.litech.org/tayga/) (another stateless out-of-kernel NAT64 implementation), but
-there are some differences. Tundra is multi-threaded, it can receive and send packets from inherited file descriptors
-and lacks the aforementioned dynamic address pool. TAYGA also inspired this program's name - both "taiga" and "tundra"
-are subarctic biomes and the word "tundra" starts with "tun", the name of the driver which Tundra uses to exchange 
-packets.
+Tundra is similar to [TAYGA](http://www.litech.org/tayga/) (another stateless out-of-kernel NAT64 implementation, which 
+can act as a CLAT translator in cooperation with [clatd](https://github.com/toreanderson/clatd)), but there are some 
+differences. Tundra is multi-threaded, it can receive and send packets from inherited file descriptors and lacks the 
+aforementioned dynamic address pool. TAYGA also inspired this program's name - both "taiga" and "tundra" are subarctic 
+biomes and the word "tundra" starts with "tun", the name of the driver which Tundra uses to exchange packets.
 
 
 
@@ -97,7 +99,7 @@ Modes of operation:
 ```
 
 ### Deployment example
-The following example shows how Tundra could be deployed as NAT64 translator for an IPv6-only network with the use 
+The following example shows how Tundra could be deployed as **NAT64 translator** for an IPv6-only network with the use 
 of the [example configuration file](tundra-nat64.conf.example) on a router which has access to both IPv4 and IPv6:
 ```shell
 TUNDRA_CONFIG_FILE="./tundra-nat64.conf.example"
@@ -125,7 +127,7 @@ iptables -t nat -D POSTROUTING -o $WAN_INTERFACE_NAME -j MASQUERADE
 ./tundra-nat64 --config-file=$TUNDRA_CONFIG_FILE rmtun
 ```
 
-### DNS64
+#### DNS64
 To make hosts on IPv6-only networks use the NAT64 translator to access IPv4-only services, you will need to provide them
 with a **DNS64** recursive resolver. You can either deploy your own one (all major recursive DNS servers, such as 
 [Unbound](https://github.com/NLnetLabs/unbound/blob/master/doc/README.DNS64) or 

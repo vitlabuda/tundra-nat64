@@ -46,6 +46,7 @@ static char *_t64f_opmode_print_config__get_printable_representation_of_ipv4_add
 static char *_t64f_opmode_print_config__get_printable_representation_of_ipv6_address(const uint8_t *ipv6_address, char *out_string_buf);
 static const char *_t64f_opmode_print_config__get_string_representation_of_operation_mode(const t64te_tundra__operation_mode mode_of_operation);
 static const char *_t64f_opmode_print_config__get_string_representation_of_io_mode(const t64te_tundra__io_mode io_mode);
+static const char *_t64f_opmode_print_config__get_string_representation_of_translator_mode(const t64te_tundra__translator_mode translator_mode);
 
 
 void t64f_opmode_print_config__run(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration) {
@@ -133,6 +134,7 @@ static void _t64f_opmode_print_config__print_file_config(const t64ts_tundra__con
     printf("\n");
 
     // translator.*
+    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_MODE, _t64f_opmode_print_config__get_string_representation_of_translator_mode(file_configuration->translator_mode));
     printf("* %s = %s/96\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_PREFIX, _t64f_opmode_print_config__get_printable_representation_of_ipv6_address(file_configuration->translator_prefix, string_ip_address_buf));
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4, _t64f_opmode_print_config__get_printable_representation_of_ipv4_address(file_configuration->translator_ipv4, string_ip_address_buf));
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6, _t64f_opmode_print_config__get_printable_representation_of_ipv6_address(file_configuration->translator_ipv6, string_ip_address_buf));
@@ -217,6 +219,19 @@ static const char *_t64f_opmode_print_config__get_string_representation_of_io_mo
 
         default:
             t64f_log__crash_invalid_internal_state("Invalid I/O mode");
+    }
+}
+
+static const char *_t64f_opmode_print_config__get_string_representation_of_translator_mode(const t64te_tundra__translator_mode translator_mode) {
+    switch(translator_mode) {
+        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
+            return T64C_CONF_FILE__TRANSLATOR_MODE_NAT64;
+
+        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
+            return T64C_CONF_FILE__TRANSLATOR_MODE_CLAT;
+
+        default:
+            t64f_log__crash_invalid_internal_state("Invalid translator mode");
     }
 }
 
