@@ -48,7 +48,7 @@ Options:\n\
 \n\
 Modes of operation:\n\
   "T64C_CONF_CMDLINE__OPMODE_TRANSLATE"\n\
-    The program will act as a stateless NAT64 translator.\n\
+    The program will act as a stateless NAT64/CLAT translator.\n\
     This is the default mode of operation.\n\
   "T64C_CONF_CMDLINE__OPMODE_MKTUN"\n\
     Creates a persistent TUN device according to the configuration file, then exits.\n\

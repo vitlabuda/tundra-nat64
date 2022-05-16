@@ -47,3 +47,6 @@
 - Fragmented IPv4/v6 packets "in error" contained within ICMPv4/v6 error messages can now be translated
 - IPv4/v6 packets "in error" contained within ICMPv4/v6 error messages whose payload is an (partial) ICMPv4/v6 Echo Request/Echo Reply message can now be translated
 - Other minor improvements
+
+[2.1.1 @ 2022-05-16]
+- Replaced "NAT64" with "NAT64/CLAT" in Tundra's '--help'

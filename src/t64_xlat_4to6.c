@@ -339,7 +339,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6__translate_in_packet_payload_to
     context->out_packet.packet_size += context->in_packet.payload_size;
     context->out_packet.payload_size = context->in_packet.payload_size;
 
-    // However, some transport protocols contain checksums whose correct value changes when performing NAT64 translation
+    // However, some transport protocols contain checksums whose correct value changes when performing NAT64/CLAT translation
     if(T64M_UTILS_IP__GET_IPV4_FRAGMENT_OFFSET(context->in_packet.packet_ipv4hdr) == 0) {
         if(*context->out_packet.ipv6_carried_protocol_field == 6 && context->out_packet.payload_size >= 20) { // TCP
             context->out_packet.payload_tcphdr->check = t64f_checksum__incrementally_recalculate_rfc1071_checksum(context->out_packet.payload_tcphdr->check, &context->in_packet, &context->out_packet);

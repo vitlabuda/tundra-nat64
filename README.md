@@ -84,7 +84,7 @@ Options:
 
 Modes of operation:
   translate
-    The program will act as a stateless NAT64 translator.
+    The program will act as a stateless NAT64/CLAT translator.
     This is the default mode of operation.
   mktun
     Creates a persistent TUN device according to the configuration file, then exits.
