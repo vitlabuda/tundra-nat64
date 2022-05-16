@@ -112,7 +112,7 @@ static void _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in
     size_t copy_size = context->in_packet.payload_size;
     if(copy_size > 8)
         copy_size = 8;
-    copy_size += (context->in_packet.packet_ipv4hdr->ihl * 4);
+    copy_size += (context->in_packet.packet_ipv4hdr->ihl * 4); // t64f_utils__secure_memcpy_with_size_clamping() cannot be used due to this
 
     memcpy(context->out_packet.payload_raw + 8, context->in_packet.packet_raw, copy_size);
     context->out_packet.packet_size += copy_size;

@@ -41,7 +41,8 @@ extern void *t64fa_utils__reallocate_memory(void *old_memory, const size_t n, co
 extern char *t64fa_utils__duplicate_string(const char *string);
 extern void t64f_utils__free_memory(void *memory);
 extern void t64f_utils__secure_strncpy(char *destination, const char *source, const size_t buffer_size);
-extern bool t64f_utils__secure_memcpy(void *destination, const void *source, const size_t size, const size_t max_size);
+extern bool t64f_utils__secure_memcpy(void *destination, const void *source, const size_t copied_size, const size_t max_size);
+extern size_t t64f_utils__secure_memcpy_with_size_clamping(void *destination, const void *source, size_t copied_size, const size_t max_size);
 
 
 #endif // _T64I_UTILS_H

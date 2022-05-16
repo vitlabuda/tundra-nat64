@@ -388,52 +388,120 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
     if(in_ipv6_carried_packet.packet_size < 40)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header - 8 bytes ICMP header = at least 1492 bytes free; up to 28 bytes needed (for 20-byte IPv4 header + up to 8 bytes of payload)
+    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header - 8 bytes ICMP header = at least 1492 bytes free; up to 40 bytes needed (for 20-byte IPv4 header + up to 20 bytes of payload)
 
-    // IP header
+    // IP header - validation, evaluation and initialization
     if(in_ipv6_carried_packet.packet_ipv6hdr->version != 6)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
-    /*
-     * https://datatracker.ietf.org/doc/html/rfc7915#page-23 states:
-     * "The translation of the inner IP header can be done by invoking the
-     *  function that translated the outer IP headers.  This process MUST
-     *  stop at the first embedded header and drop the packet if it contains
-     *  more embedded headers."
-     */
-    if(
-        t64f_utils_ip__is_ip_protocol_number_forbidden(in_ipv6_carried_packet.packet_ipv6hdr->nexthdr) ||
-        (in_ipv6_carried_packet.packet_ipv6hdr->nexthdr == 1) || // ICMP packets (likely) contain another IP packet which would need to be translated
-        (in_ipv6_carried_packet.packet_ipv6hdr->nexthdr == 58)
-    ) return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    {
+        t64ts_tundra__ipv6_fragment_header *fragment_header = NULL;
+        uint8_t *protocol_field = &in_ipv6_carried_packet.packet_ipv6hdr->nexthdr;
+        uint8_t *current_header_ptr = (in_ipv6_carried_packet.packet_raw + 40);
+        ssize_t remaining_packet_size = (((ssize_t) in_ipv6_carried_packet.packet_size) - 40);
 
+        while(
+            (fragment_header == NULL) &&
+            (*protocol_field == 0 || *protocol_field == 43 || *protocol_field == 44 || *protocol_field == 60)
+        ) {
+            if(remaining_packet_size < 8)
+                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+
+            if(*protocol_field == 44)
+                fragment_header = (t64ts_tundra__ipv6_fragment_header *) current_header_ptr;
+
+            const ssize_t current_header_size = (8 + (((ssize_t) (current_header_ptr[1])) * 8));
+
+            protocol_field = current_header_ptr;
+            current_header_ptr += current_header_size;
+            remaining_packet_size -= current_header_size;
+        }
+
+        if(remaining_packet_size < 0)
+            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+
+        in_ipv6_carried_packet.payload_raw = current_header_ptr;
+        in_ipv6_carried_packet.payload_size = (size_t) remaining_packet_size;
+        in_ipv6_carried_packet.ipv6_fragment_header = fragment_header;
+        in_ipv6_carried_packet.ipv6_carried_protocol_field = protocol_field;
+    }
+
+    // IP header - translation
     out_ipv4_carried_packet.packet_ipv4hdr->version = 4;
     out_ipv4_carried_packet.packet_ipv4hdr->ihl = 5;
     out_ipv4_carried_packet.packet_ipv4hdr->tos = (uint8_t) ((in_ipv6_carried_packet.packet_ipv6hdr->priority << 4) | (in_ipv6_carried_packet.packet_ipv6hdr->flow_lbl[0] >> 4));
     out_ipv4_carried_packet.packet_ipv4hdr->tot_len = htons(ntohs(in_ipv6_carried_packet.packet_ipv6hdr->payload_len) + 20);
-    out_ipv4_carried_packet.packet_ipv4hdr->id = 0;
-    out_ipv4_carried_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(dont_fragment, 0, 0);
+    if(T64M_UTILS_IP__IS_IPV6_PACKET_FRAGMENTED(&in_ipv6_carried_packet)) {
+        out_ipv4_carried_packet.packet_ipv4hdr->id = in_ipv6_carried_packet.ipv6_fragment_header->identification[1];
+        out_ipv4_carried_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(
+            dont_fragment,
+            T64M_UTILS_IP__GET_IPV6_FRAGMENT_MORE_FRAGMENTS_BIT(in_ipv6_carried_packet.ipv6_fragment_header),
+            T64M_UTILS_IP__GET_IPV6_FRAGMENT_OFFSET(in_ipv6_carried_packet.ipv6_fragment_header)
+        );
+    } else {
+        out_ipv4_carried_packet.packet_ipv4hdr->id = 0;
+        out_ipv4_carried_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(dont_fragment, 0, 0);
+    }
     out_ipv4_carried_packet.packet_ipv4hdr->ttl = in_ipv6_carried_packet.packet_ipv6hdr->hop_limit;
-    out_ipv4_carried_packet.packet_ipv4hdr->protocol = in_ipv6_carried_packet.packet_ipv6hdr->nexthdr;
+    out_ipv4_carried_packet.packet_ipv4hdr->protocol = *in_ipv6_carried_packet.ipv6_carried_protocol_field;
 
     if(_t64f_xlat_6to4_icmp__translate_carried_ipv6_address_to_ipv4_address(context, (uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
     if(_t64f_xlat_6to4_icmp__translate_carried_ipv6_address_to_ipv4_address(context, (uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
-    out_ipv4_carried_packet.packet_ipv4hdr->check = 0; // The IPv4 header is now finished, so the checksum can be calculated...
-    out_ipv4_carried_packet.packet_ipv4hdr->check = t64f_checksum__calculate_ipv4_header_checksum(out_ipv4_carried_packet.packet_ipv4hdr);
-
-    // Part of data
-    size_t data_bytes_to_copy = (in_ipv6_carried_packet.packet_size - 40);
-    if(data_bytes_to_copy > 8)
-        data_bytes_to_copy = 8;
-
-    memcpy(out_ipv4_carried_packet.packet_raw + 20, in_ipv6_carried_packet.packet_raw + 40, data_bytes_to_copy);
-    out_ipv4_carried_packet.packet_size += data_bytes_to_copy;
+    out_ipv4_carried_packet.payload_raw = (out_ipv4_carried_packet.packet_raw + out_ipv4_carried_packet.packet_size);
+    out_ipv4_carried_packet.payload_size = 0;
 
     context->out_packet.packet_size += out_ipv4_carried_packet.packet_size;
     context->out_packet.payload_size += out_ipv4_carried_packet.packet_size;
+
+    // Part of data - copy
+    {
+        const size_t copied_bytes = t64f_utils__secure_memcpy_with_size_clamping(
+            out_ipv4_carried_packet.payload_raw,
+            in_ipv6_carried_packet.payload_raw,
+            in_ipv6_carried_packet.payload_size,
+            (68 - context->out_packet.packet_size) // 68 bytes - 20 bytes IPv4 header - 8 bytes ICMPv4 header - 20 bytes IPv4 header "in error" = 20 bytes
+        );
+        out_ipv4_carried_packet.packet_size += copied_bytes;
+        out_ipv4_carried_packet.payload_size = copied_bytes;
+        context->out_packet.packet_size += copied_bytes;
+        context->out_packet.payload_size += copied_bytes;
+    }
+
+    // Part of data - ICMP
+    if(out_ipv4_carried_packet.packet_ipv4hdr->protocol == 58) { // ICMPv6
+        // https://www.rfc-editor.org/rfc/rfc7915.html#page-4 -> "Fragmented ICMP/ICMPv6 packets will not be translated by IP/ICMP translators."
+        /*
+         * https://datatracker.ietf.org/doc/html/rfc7915#page-14 states:
+         * "The translation of the inner IP header can be done by invoking the
+         *  function that translated the outer IP headers.  This process MUST
+         *  stop at the first embedded header and drop the packet if it contains
+         *  more embedded headers."
+         */
+        // Echo Request and Echo Reply are the only translatable ICMP types that do not carry a packet "in error".
+        if(
+            (!T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(out_ipv4_carried_packet.packet_ipv4hdr)) &&
+            (out_ipv4_carried_packet.payload_size >= 8) &&
+            (out_ipv4_carried_packet.payload_icmpv6hdr->icmp6_type == 128 || out_ipv4_carried_packet.payload_icmpv6hdr->icmp6_type == 129) &&
+            (out_ipv4_carried_packet.payload_icmpv6hdr->icmp6_code == 0)
+        ) {
+            out_ipv4_carried_packet.packet_ipv4hdr->protocol = 1; // ICMPv4
+
+            if(out_ipv4_carried_packet.payload_icmpv4hdr->type == 128) // Echo Request
+                out_ipv4_carried_packet.payload_icmpv4hdr->type = 8;
+            else if(out_ipv4_carried_packet.payload_icmpv4hdr->type == 129) // Echo Reply
+                out_ipv4_carried_packet.payload_icmpv4hdr->type = 0;
+
+        } else {
+            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        }
+    }
+
+    // IP header - checksum
+    out_ipv4_carried_packet.packet_ipv4hdr->check = 0; // The IPv4 header is now finished, so the checksum can be calculated...
+    out_ipv4_carried_packet.packet_ipv4hdr->check = t64f_checksum__calculate_ipv4_header_checksum(out_ipv4_carried_packet.packet_ipv4hdr);
 
     return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
 }

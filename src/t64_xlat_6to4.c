@@ -144,11 +144,10 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__evaluate_in_packet(t64ts_tundr
         uint8_t *protocol_field = &context->in_packet.packet_ipv6hdr->nexthdr;
         uint8_t *current_header_ptr = (context->in_packet.packet_raw + 40);
         ssize_t remaining_packet_size = (((ssize_t) context->in_packet.packet_size) - 40);
-        bool continue_walking_through_extension_headers = true;
 
         while(
-            (continue_walking_through_extension_headers) &&
-            ((*protocol_field == 0) || (*protocol_field == 43) || (*protocol_field == 44) || (*protocol_field == 60))
+            (fragment_header == NULL) &&
+            (*protocol_field == 0 || *protocol_field == 43 || *protocol_field == 44 || *protocol_field == 60)
         ) {
             if(remaining_packet_size < 8)
                 return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
@@ -165,15 +164,10 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__evaluate_in_packet(t64ts_tundr
                 if(current_header_ptr[3] != 0)
                     return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
-            } else if(*protocol_field == 44) { // Fragment Header for IPv6
-                if(fragment_header != NULL)
-                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // A packet shall not have more than one fragmentation header
-
+            } else if(*protocol_field == 44) { // Fragment Header
                 fragment_header = (t64ts_tundra__ipv6_fragment_header *) current_header_ptr;
                 if(fragment_header->reserved != 0 || T64M_UTILS_IP__GET_IPV6_FRAGMENT_RESERVED_BITS(fragment_header) != 0)
                     return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
-
-                continue_walking_through_extension_headers = false; // Extension headers are not present in later fragments
             }
 
             // current_header_ptr[1] is guaranteed to be zero in case of a fragment header (checked above)

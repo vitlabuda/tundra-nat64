@@ -288,17 +288,16 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6__translate_in_packet_headers_to
         ipv6_fragment_header->identification[1] = context->in_packet.packet_ipv4hdr->id;
 
         context->out_packet.packet_size = 48;
-        context->out_packet.payload_raw = (context->out_packet.packet_raw + 48);
         context->out_packet.ipv6_fragment_header = ipv6_fragment_header;
         context->out_packet.ipv6_carried_protocol_field = &ipv6_fragment_header->next_header;
     } else {
         context->out_packet.packet_ipv6hdr->nexthdr = context->in_packet.packet_ipv4hdr->protocol;
 
         context->out_packet.packet_size = 40;
-        context->out_packet.payload_raw = (context->out_packet.packet_raw + 40);
         context->out_packet.ipv6_fragment_header = NULL;
         context->out_packet.ipv6_carried_protocol_field = &context->out_packet.packet_ipv6hdr->nexthdr;
     }
+    context->out_packet.payload_raw = (context->out_packet.packet_raw + context->out_packet.packet_size);
     context->out_packet.payload_size = 0;
 
     return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;

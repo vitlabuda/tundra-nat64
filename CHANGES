@@ -41,3 +41,9 @@
 [2.0.0 @ 2022-05-10]
 - Tundra can now act as a CLAT translator
 - Changed size_t to ssize_t in relevant places
+
+[2.1.0 @ 2022-05-16]
+- Redesigned the routines which handle the translation of IPv4/v6 packets "in error" contained within ICMPv4/v6 error messages
+- Fragmented IPv4/v6 packets "in error" contained within ICMPv4/v6 error messages can now be translated
+- IPv4/v6 packets "in error" contained within ICMPv4/v6 error messages whose payload is an (partial) ICMPv4/v6 Echo Request/Echo Reply message can now be translated
+- Other minor improvements

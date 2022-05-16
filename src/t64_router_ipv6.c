@@ -22,6 +22,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_tundra.h"
 #include"t64_router_ipv6.h"
 
+#include"t64_utils.h"
 #include"t64_utils_ip.h"
 #include"t64_checksum.h"
 #include"t64_xlat_io.h"
@@ -109,12 +110,12 @@ static t64te_tundra__xlat_status _t64f_router_ipv6__generate_header_of_ipv6_pack
 static void _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(t64ts_tundra__xlat_thread_context *context) {
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 40 bytes IPv6 header - 8 bytes ICMPv6 header = at least 1472 bytes free; up to 1232 bytes needed
 
-    const size_t max_copy_size = (1280 - context->out_packet.packet_size);
-    size_t copy_size = context->in_packet.packet_size;
-    if(copy_size > max_copy_size)
-        copy_size = max_copy_size;
-
-    memcpy(context->out_packet.payload_raw + 8, context->in_packet.packet_raw, copy_size);
-    context->out_packet.packet_size += copy_size;
-    context->out_packet.payload_size += copy_size;
+    const size_t copied_bytes = t64f_utils__secure_memcpy_with_size_clamping(
+        context->out_packet.payload_raw + 8,
+        context->in_packet.packet_raw,
+        context->in_packet.packet_size,
+        (1280 - context->out_packet.packet_size) // 1280 bytes - 40 bytes IPv6 header - 8 bytes ICMPv6 header = 1232 bytes
+    );
+    context->out_packet.packet_size += copied_bytes;
+    context->out_packet.payload_size += copied_bytes;
 }
