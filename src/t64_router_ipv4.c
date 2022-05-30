@@ -27,7 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_xlat_io.h"
 
 
-static t64te_tundra__xlat_status _t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol);
+static void _t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol);
 static void _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in_out_packet(t64ts_tundra__xlat_thread_context *context);
 
 
@@ -41,8 +41,7 @@ static void _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in
  *  immediately!
  */
 void t64f_router_ipv4__generate_and_send_icmpv4_time_exceeded_message_back_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
-    if(_t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(context, 1) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return;
+    _t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(context, 1);
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header = at least 1500 bytes free; 8 bytes needed (for ICMPv4 header)
 
@@ -66,8 +65,7 @@ void t64f_router_ipv4__generate_and_send_icmpv4_time_exceeded_message_back_to_in
  *  immediately!
  */
 void t64f_router_ipv4__generate_and_send_icmpv4_fragmentation_needed_message_back_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context, uint16_t mtu) {
-    if(_t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(context, 1) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return;
+    _t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(context, 1);
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header = at least 1500 bytes free; 8 bytes needed (for ICMPv4 header)
 
@@ -83,15 +81,14 @@ void t64f_router_ipv4__generate_and_send_icmpv4_fragmentation_needed_message_bac
     t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(context);
 }
 
-static t64te_tundra__xlat_status _t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol) {
+static void _t64f_router_ipv4__generate_header_of_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol) {
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes free; 20 bytes needed (for IPv4 header)
 
     context->out_packet.packet_ipv4hdr->version = 4;
     context->out_packet.packet_ipv4hdr->ihl = 5; // = 20 bytes
     context->out_packet.packet_ipv4hdr->tos = 0;
     context->out_packet.packet_ipv4hdr->tot_len = 0; // This is set to a correct value when the packet is sent (at this moment, it is not known what the final size of the packet will be)
-    if(getrandom(&context->out_packet.packet_ipv4hdr->id, 2, 0) != 2)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &context->out_packet.packet_ipv4hdr->id);
     context->out_packet.packet_ipv4hdr->frag_off = 0;
     context->out_packet.packet_ipv4hdr->ttl = T64C_TUNDRA__GENERATED_PACKET_TTL;
     context->out_packet.packet_ipv4hdr->protocol = protocol;
@@ -102,8 +99,6 @@ static t64te_tundra__xlat_status _t64f_router_ipv4__generate_header_of_ipv4_pack
     context->out_packet.packet_size = 20;
     context->out_packet.payload_raw = (context->out_packet.packet_raw + 20);
     context->out_packet.payload_size = 0;
-
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
 }
 
 static void _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in_out_packet(t64ts_tundra__xlat_thread_context *context) {

@@ -439,7 +439,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
             T64M_UTILS_IP__GET_IPV6_FRAGMENT_OFFSET(in_ipv6_carried_packet.ipv6_fragment_header)
         );
     } else {
-        out_ipv4_carried_packet.packet_ipv4hdr->id = 0;
+        t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->id);
         out_ipv4_carried_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(dont_fragment, 0, 0);
     }
     out_ipv4_carried_packet.packet_ipv4hdr->ttl = in_ipv6_carried_packet.packet_ipv6hdr->hop_limit;

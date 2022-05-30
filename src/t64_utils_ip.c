@@ -121,3 +121,13 @@ void t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(t64ts
     packet->packet_size += 8;
     packet->payload_size = 8;
 }
+
+void t64f_utils_ip__generate_ipv6_fragment_identifier(t64ts_tundra__xlat_thread_context *context, uint8_t *destination) {
+    const uint32_t fragment_id = htonl(context->fragment_identifier_ipv6++); // This prevents the program from leaking the information about its endianness
+    memcpy(destination, &fragment_id, 4);
+}
+
+void t64f_utils_ip__generate_ipv4_fragment_identifier(t64ts_tundra__xlat_thread_context *context, uint8_t *destination) {
+    const uint16_t fragment_id = htons(context->fragment_identifier_ipv4++); // This prevents the program from leaking the information about its endianness
+    memcpy(destination, &fragment_id, 2);
+}

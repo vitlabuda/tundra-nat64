@@ -241,7 +241,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4__translate_in_packet_headers_to
             T64M_UTILS_IP__GET_IPV6_FRAGMENT_OFFSET(context->in_packet.ipv6_fragment_header)
         );
     } else {
-        context->out_packet.packet_ipv4hdr->id = 0;
+        t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &context->out_packet.packet_ipv4hdr->id);
         context->out_packet.packet_ipv4hdr->frag_off = 0;
     }
 
@@ -366,7 +366,7 @@ static void _t64f_xlat_6to4__appropriately_send_out_out_packet(t64ts_tundra__xla
     const uint16_t more_fragments = T64M_UTILS_IP__GET_IPV4_MORE_FRAGMENTS_BIT(context->out_packet.packet_ipv4hdr);
     const uint16_t fragment_offset = T64M_UTILS_IP__GET_IPV4_FRAGMENT_OFFSET(context->out_packet.packet_ipv4hdr);
 
-    if(context->out_packet.packet_size <= 1260 || T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(context->out_packet.packet_ipv4hdr)) {
+    if(context->out_packet.packet_size <= 1260) {
         context->out_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(0, more_fragments, fragment_offset);
 
         t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(context);

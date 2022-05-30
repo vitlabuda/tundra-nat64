@@ -75,8 +75,7 @@ void t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(t64ts_tundra__xlat
             // If 'out_packet' is a whole, not yet fragmented packet:
             fragment_offset_8byte_blocks = 0;
             more_fragments_after_this_packet = 0;
-            if(getrandom(&fragment_identification, 2, 0) != 2)
-                return;
+            t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &fragment_identification);
         }
 
         if(more_fragments_after_this_packet && (context->out_packet.payload_size % 8) != 0)
@@ -196,8 +195,7 @@ void t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(t64ts_tundra__xlat
             // If 'out_packet' is a whole, not yet fragmented packet:
             fragment_offset_8byte_blocks = 0;
             more_fragments_after_this_packet = 0;
-            if(getrandom(&fragment_identification, 4, 0) != 4)
-                return;
+            t64f_utils_ip__generate_ipv6_fragment_identifier(context, (uint8_t *) &fragment_identification);
         }
 
         if(more_fragments_after_this_packet && (context->out_packet.payload_size % 8) != 0)

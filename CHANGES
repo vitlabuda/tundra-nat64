@@ -50,3 +50,6 @@
 
 [2.1.1 @ 2022-05-16]
 - Replaced "NAT64" with "NAT64/CLAT" in Tundra's '--help'
+
+[2.1.2 @ 2022-05-30]
+- Fragmentation handling improvements

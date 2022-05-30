@@ -52,6 +52,8 @@ extern bool t64f_utils_ip__is_ipv4_address_private(const uint8_t *ipv4_address);
 extern bool t64f_utils_ip__is_ipv4_embedded_ipv6_address_translatable(const t64ts_tundra__xlat_thread_context *context, const uint8_t *embedded_ipv4_address);
 extern bool t64f_utils_ip__is_ip_protocol_number_forbidden(const uint8_t ip_protocol_number);
 extern void t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(t64ts_tundra__packet *packet, const uint8_t icmp_type, const uint8_t icmp_code);
+extern void t64f_utils_ip__generate_ipv6_fragment_identifier(t64ts_tundra__xlat_thread_context *context, uint8_t *destination);
+extern void t64f_utils_ip__generate_ipv4_fragment_identifier(t64ts_tundra__xlat_thread_context *context, uint8_t *destination);
 
 
 #endif // _T64I_UTILS_IP_H

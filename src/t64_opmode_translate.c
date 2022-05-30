@@ -84,6 +84,9 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
         _t64fa_opmode_translate__initialize_packet_struct(&thread_contexts[i].out_packet);
         _t64fa_opmode_translate__initialize_packet_struct(&thread_contexts[i].tmp_packet);
 
+        if(getrandom(&thread_contexts[i].fragment_identifier_ipv6, 4, 0) != 4 || getrandom(&thread_contexts[i].fragment_identifier_ipv4, 2, 0) != 2)
+            t64f_log__crash(false, "Failed to generate fragment identifiers using the getrandom() system call!");
+
         thread_contexts[i].termination_pipe_read_fd = termination_pipe_read_fd;
 
         switch(file_configuration->io_mode) {
