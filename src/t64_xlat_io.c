@@ -27,7 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_log.h"
 
 
-static void _t64f_xlat_io__generate_ipv4_fragment_from_out_packet_to_tmp_packet(t64ts_tundra__xlat_thread_context *context, const uint16_t fragment_identification, const uint16_t fragment_offset_and_flags, const uint8_t *payload_copy_from_ptr, const size_t payload_copy_size);
+static void _t64f_xlat_io__generate_ipv4_fragment_from_out_packet_to_tmp_packet(t64ts_tundra__xlat_thread_context *context, const uint16_t fragment_offset_and_flags, const uint8_t *payload_copy_from_ptr, const size_t payload_copy_size);
 static void _t64f_xlat_io__generate_ipv6_fragment_from_out_packet_to_tmp_packet(t64ts_tundra__xlat_thread_context *context, const uint32_t fragment_identification, const uint16_t fragment_offset_and_flags, const uint8_t *payload_copy_from_ptr, const size_t payload_copy_size);
 static void _t64f_xlat_io__send_specified_packet(const t64ts_tundra__xlat_thread_context *context, const t64ts_tundra__packet *packet);
 
@@ -63,28 +63,15 @@ void t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(t64ts_tundra__xlat
         size_t max_fragment_payload_size = (context->configuration->translator_ipv4_outbound_mtu - 20);
         max_fragment_payload_size = (max_fragment_payload_size - (max_fragment_payload_size % 8)); // Fragment offsets are specified in 8-byte units
 
-        size_t fragment_offset_8byte_blocks; // Modified after each fragment
-        uint16_t more_fragments_after_this_packet;
-        uint16_t fragment_identification;
-        if(T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(context->out_packet.packet_ipv4hdr)) {
-            // If 'out_packet' is a fragment:
-            fragment_offset_8byte_blocks = T64M_UTILS_IP__GET_IPV4_FRAGMENT_OFFSET(context->out_packet.packet_ipv4hdr);
-            more_fragments_after_this_packet = T64M_UTILS_IP__GET_IPV4_MORE_FRAGMENTS_BIT(context->out_packet.packet_ipv4hdr);
-            fragment_identification = context->out_packet.packet_ipv4hdr->id;
-        } else {
-            // If 'out_packet' is a whole, not yet fragmented packet:
-            fragment_offset_8byte_blocks = 0;
-            more_fragments_after_this_packet = 0;
-            t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &fragment_identification);
-        }
+        size_t fragment_offset_8byte_blocks = T64M_UTILS_IP__GET_IPV4_FRAGMENT_OFFSET(context->out_packet.packet_ipv4hdr); // Modified after each fragment
+        const uint16_t more_fragments_after_this_packet = T64M_UTILS_IP__GET_IPV4_MORE_FRAGMENTS_BIT(context->out_packet.packet_ipv4hdr);
+        const uint16_t dont_fragment = T64M_UTILS_IP__GET_IPV4_DONT_FRAGMENT_BIT(context->out_packet.packet_ipv4hdr);
 
         if(more_fragments_after_this_packet && (context->out_packet.payload_size % 8) != 0)
             return;
 
         uint8_t *payload_ptr = context->out_packet.payload_raw; // Modified after each fragment
         size_t payload_remaining_bytes = context->out_packet.payload_size; // Modified after each fragment
-
-        const uint16_t dont_fragment = T64M_UTILS_IP__GET_IPV4_DONT_FRAGMENT_BIT(context->out_packet.packet_ipv4hdr);
 
         while(payload_remaining_bytes > 0) {
             size_t this_fragment_payload_size;
@@ -109,7 +96,6 @@ void t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(t64ts_tundra__xlat
             );
             _t64f_xlat_io__generate_ipv4_fragment_from_out_packet_to_tmp_packet(
                     context,
-                    fragment_identification,
                     fragment_offset_and_flags,
                     payload_ptr,
                     this_fragment_payload_size
@@ -123,12 +109,12 @@ void t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(t64ts_tundra__xlat
     }
 }
 
-static void _t64f_xlat_io__generate_ipv4_fragment_from_out_packet_to_tmp_packet(t64ts_tundra__xlat_thread_context *context, const uint16_t fragment_identification, const uint16_t fragment_offset_and_flags, const uint8_t *payload_copy_from_ptr, const size_t payload_copy_size) {
+static void _t64f_xlat_io__generate_ipv4_fragment_from_out_packet_to_tmp_packet(t64ts_tundra__xlat_thread_context *context, const uint16_t fragment_offset_and_flags, const uint8_t *payload_copy_from_ptr, const size_t payload_copy_size) {
     context->tmp_packet.packet_ipv4hdr->version = 4;
     context->tmp_packet.packet_ipv4hdr->ihl = 5;
     context->tmp_packet.packet_ipv4hdr->tos = context->out_packet.packet_ipv4hdr->tos;
     context->tmp_packet.packet_ipv4hdr->tot_len = 0; // This is set to a correct value when the packet is sent
-    context->tmp_packet.packet_ipv4hdr->id = fragment_identification;
+    context->tmp_packet.packet_ipv4hdr->id = context->out_packet.packet_ipv4hdr->id;
     context->tmp_packet.packet_ipv4hdr->frag_off = fragment_offset_and_flags;
     context->tmp_packet.packet_ipv4hdr->ttl = context->out_packet.packet_ipv4hdr->ttl;
     context->tmp_packet.packet_ipv4hdr->protocol = context->out_packet.packet_ipv4hdr->protocol;
