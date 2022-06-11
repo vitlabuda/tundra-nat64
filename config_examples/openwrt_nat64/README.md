@@ -1,12 +1,15 @@
-# Tundra-NAT64 – OpenWRT NAT64 configuration example
+# Tundra – OpenWRT NAT64 configuration example
 
-A Tundra-NAT64 instance with a very similar configuration to the one in this directory has been successfully deployed
+
+A Tundra instance with a very similar configuration to the one in this directory has been successfully deployed
 on a *TP-Link TL-WR841N v13* running **OpenWRT 21.02.3**.
 
-**This configuration assumes that your router has a dual-stack (both IPv4 and IPv6) connectivity, and that a NAT masquerade is performed on IPv4 packets going to your WAN interface.**
-**You might want to adjust the interface names, IP addresses and file paths before deploying this configuration!** 
+**This configuration assumes that your router has a dual-stack (both IPv4 and IPv6) connectivity, and that a NAT 
+masquerade is performed on IPv4 packets going to your WAN interface. You might want to adjust interface names, 
+IP addresses and file paths before deploying this configuration!** 
 
-### Steps:
+
+### Step-by-step guide:
 1. Install the `kmod-tun`, `kmod-ipt-nat6`, `kmod-nf-nat6` and `kmod-nft-nat6` packages using `opkg`.
 
 2. Cross-compile Tundra for your router's target using the OpenWRT SDK. See [this page](https://openwrt.org/docs/guide-developer/toolchain/crosscompile) for more information. For example:
@@ -23,4 +26,4 @@ on a *TP-Link TL-WR841N v13* running **OpenWRT 21.02.3**.
 6. Configure your router's firewall – **append** the contents of [`firewall.user`](firewall.user) to `/etc/firewall.user` on your router.
    You may also edit this file using LuCI: Network --> Firewall --> Custom Rules.
 
-7. Start the service by executing `/etc/init.d/tundra-nat64 start`, and if everything works, enable it by executing `/etc/init.d/tundra-nat64 enable`, so it starts automatically on boot-ups. If you encounter any problems, you may try restarting your router.
+7. Start the service by executing `/etc/init.d/tundra-nat64 start`, and if everything works correctly, enable it by executing `/etc/init.d/tundra-nat64 enable`, so it starts automatically on every boot. If you encounter any problems, you may try restarting your router.

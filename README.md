@@ -36,8 +36,7 @@ pool from which it would assign IP addresses to hosts needing its service (or so
 single IP address specified in a configuration file instead (see the [example config file](tundra-nat64.conf.example) 
 for details). However, it can be used in cooperation with **Linux's in-kernel NAT66/NAT44** translator and therefore 
 translate traffic from any number of hosts/networks, as is described in the 
-[example config file](tundra-nat64.conf.example) and shown (for NAT64) in the [deployment example](#deployment-example) 
-below.
+[example config file](tundra-nat64.conf.example).
 
 Tundra is similar to [TAYGA](http://www.litech.org/tayga/) (another stateless out-of-kernel NAT64 implementation, which 
 can act as a CLAT translator in cooperation with [clatd](https://github.com/toreanderson/clatd)), but there are some 
@@ -98,7 +97,7 @@ Modes of operation:
     Prints the program's configuration in a human-readable format, then exits.
 ```
 
-### Deployment example
+### Generic NAT64 configuration example
 The following example shows how Tundra could be deployed as **NAT64 translator** for an IPv6-only network with the use 
 of the [example configuration file](tundra-nat64.conf.example) on a router which has access to both IPv4 and IPv6:
 ```shell
@@ -135,6 +134,11 @@ with a **DNS64** recursive resolver. You can either deploy your own one (all maj
 or, if your NAT64 deployment uses the well-known prefix of `64:ff9b::/96`, use a **public DNS64 resolver**, such as the 
 one provided by [Google](https://developers.google.com/speed/public-dns/docs/dns64) or 
 [Cloudflare](https://developers.cloudflare.com/1.1.1.1/infrastructure/ipv6-networks/).
+
+### Specific configuration examples
+This repository contains the following configuration examples for specific platforms and translation modes:
+- **[OpenWRT + NAT64](config_examples/openwrt_nat64)** ([README with a step-by-step guide](config_examples/openwrt_nat64/README.md))
+- **[Debian + CLAT](config_examples/debian_clat)** ([README with a step-by-step guide](config_examples/debian_clat/README.md))
 
 
 
