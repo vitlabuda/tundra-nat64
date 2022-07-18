@@ -33,7 +33,6 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_packet_too_big_
 static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_time_exceeded_message(t64ts_tundra__xlat_thread_context *context);
 static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_parameter_problem_message(t64ts_tundra__xlat_thread_context *context);
 static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t64ts_tundra__xlat_thread_context *context, const int dont_fragment);
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ipv6_address_to_ipv4_address(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6_address, uint8_t *out_ipv4_address);
 static uint8_t _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer_value(const uint8_t in_pointer);
 
 
@@ -445,9 +444,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
     out_ipv4_carried_packet.packet_ipv4hdr->ttl = in_ipv6_carried_packet.packet_ipv6hdr->hop_limit;
     out_ipv4_carried_packet.packet_ipv4hdr->protocol = *in_ipv6_carried_packet.ipv6_carried_protocol_field;
 
-    if(_t64f_xlat_6to4_icmp__translate_carried_ipv6_address_to_ipv4_address(context, (uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
-    if(_t64f_xlat_6to4_icmp__translate_carried_ipv6_address_to_ipv4_address(context, (uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+    if(((*(context->addr_xlat_functions->perform_6to4_address_translation_for_icmp_error_packet))(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr)) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
         return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 
     out_ipv4_carried_packet.payload_raw = (out_ipv4_carried_packet.packet_raw + out_ipv4_carried_packet.packet_size);
@@ -504,24 +501,6 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
     out_ipv4_carried_packet.packet_ipv4hdr->check = t64f_checksum__calculate_ipv4_header_checksum(out_ipv4_carried_packet.packet_ipv4hdr);
 
     return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
-}
-
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ipv6_address_to_ipv4_address(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6_address, uint8_t *out_ipv4_address) {
-    if(T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(in_ipv6_address, context->configuration->router_ipv6))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // Packets from/to the router are not translated
-
-    if(T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(in_ipv6_address, context->configuration->translator_ipv6)) {
-        memcpy(out_ipv4_address, context->configuration->translator_ipv4, 4);
-        return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
-    }
-
-    if(T64M_UTILS__MEMORY_EQUAL(in_ipv6_address, context->configuration->translator_prefix, 12)) {
-        // For the purposes of debugging, illegal addresses (such as 127.0.0.1) inside ICMP packets are translated normally.
-        memcpy(out_ipv4_address, in_ipv6_address + 12, 4);
-        return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
-    }
-
-    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
 }
 
 // Returns 255 if 'in_pointer' is invalid and the translation process shall be stopped!

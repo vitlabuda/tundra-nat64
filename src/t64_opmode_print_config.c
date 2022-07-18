@@ -99,8 +99,9 @@ static void _t64f_opmode_print_config__print_command_line_config(const t64ts_tun
 static void _t64f_opmode_print_config__print_file_config(const t64ts_tundra__conf_file *file_configuration) {
     char string_ip_address_buf[INET6_ADDRSTRLEN] = {'\0'};
 
-
     printf("File configuration:\n");
+
+
 
     // program.*
     printf("* %s = %zu\n", T64C_CONF_FILE__OPTION_KEY_PROGRAM_TRANSLATOR_THREADS, file_configuration->program_translator_threads);
@@ -116,8 +117,11 @@ static void _t64f_opmode_print_config__print_file_config(const t64ts_tundra__con
 
     printf("\n");
 
+
+
     // io.*
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_IO_MODE, _t64f_opmode_print_config__get_string_representation_of_io_mode(file_configuration->io_mode));
+
     if(file_configuration->io_mode == T64TE_TUNDRA__IO_MODE_TUN) {
         printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_IO_TUN_DEVICE_PATH, _t64f_opmode_print_config__get_printable_representation_of_string(file_configuration->io_tun_device_path));
         printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_IO_TUN_INTERFACE_NAME, _t64f_opmode_print_config__get_printable_representation_of_string(file_configuration->io_tun_interface_name));
@@ -133,18 +137,37 @@ static void _t64f_opmode_print_config__print_file_config(const t64ts_tundra__con
 
     printf("\n");
 
+
+
     // translator.*
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_MODE, _t64f_opmode_print_config__get_string_representation_of_translator_mode(file_configuration->translator_mode));
-    printf("* %s = %s/96\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_PREFIX, _t64f_opmode_print_config__get_printable_representation_of_ipv6_address(file_configuration->translator_prefix, string_ip_address_buf));
-    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4, _t64f_opmode_print_config__get_printable_representation_of_ipv4_address(file_configuration->translator_ipv4, string_ip_address_buf));
-    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6, _t64f_opmode_print_config__get_printable_representation_of_ipv6_address(file_configuration->translator_ipv6, string_ip_address_buf));
-    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_ALLOW_TRANSLATION_OF_PRIVATE_IPS, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_allow_translation_of_private_ips));
+
+    switch(file_configuration->translator_mode) {
+        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64: case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
+            printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV4, _t64f_opmode_print_config__get_printable_representation_of_ipv4_address(file_configuration->translator_nat64_clat_ipv4, string_ip_address_buf));
+            printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV6, _t64f_opmode_print_config__get_printable_representation_of_ipv6_address(file_configuration->translator_nat64_clat_ipv6, string_ip_address_buf));
+            printf("* %s = %s/96\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_PREFIX, _t64f_opmode_print_config__get_printable_representation_of_ipv6_address(file_configuration->translator_nat64_clat_siit_prefix, string_ip_address_buf));
+            printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_ALLOW_TRANSLATION_OF_PRIVATE_IPS, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_nat64_clat_siit_allow_translation_of_private_ips));
+            break;
+
+        case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT:
+            printf("* %s = %s/96\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_PREFIX, _t64f_opmode_print_config__get_printable_representation_of_ipv6_address(file_configuration->translator_nat64_clat_siit_prefix, string_ip_address_buf));
+            printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_ALLOW_TRANSLATION_OF_PRIVATE_IPS, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_nat64_clat_siit_allow_translation_of_private_ips));
+            break;
+
+        default:
+            t64f_log__crash_invalid_internal_state("Invalid translator mode");
+    }
+
     printf("* %s = %zu\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4_OUTBOUND_MTU, file_configuration->translator_ipv4_outbound_mtu);
     printf("* %s = %zu\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6_OUTBOUND_MTU, file_configuration->translator_ipv6_outbound_mtu);
+
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_6TO4_COPY_DSCP_AND_ECN, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_6to4_copy_dscp_and_ecn));
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_4TO6_COPY_DSCP_AND_ECN, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->translator_4to6_copy_dscp_and_ecn));
 
     printf("\n");
+
+
 
     // router.*
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV4, _t64f_opmode_print_config__get_printable_representation_of_ipv4_address(file_configuration->router_ipv4, string_ip_address_buf));
@@ -229,6 +252,9 @@ static const char *_t64f_opmode_print_config__get_string_representation_of_trans
 
         case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
             return T64C_CONF_FILE__TRANSLATOR_MODE_CLAT;
+
+        case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT:
+            return T64C_CONF_FILE__TRANSLATOR_MODE_SIIT;
 
         default:
             t64f_log__crash_invalid_internal_state("Invalid translator mode");

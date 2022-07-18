@@ -51,7 +51,7 @@ bool t64f_utils_ip__is_ipv6_address_unusable(const uint8_t *ipv6_address) {
     );
 }
 
-bool t64f_utils_ip__is_ipv4_address_private(const uint8_t *ipv4_address) {
+bool t64f_utils_ip__is_ipv4_address_unusable_or_private(const uint8_t *ipv4_address) {
     return (bool) (
         (*ipv4_address == 0) || // 0.0.0.0/8
         (*ipv4_address == 10) || // 10.0.0.0/8
@@ -68,24 +68,6 @@ bool t64f_utils_ip__is_ipv4_address_private(const uint8_t *ipv4_address) {
         (T64M_UTILS__MEMORY_EQUAL(ipv4_address, "\xcb\x00\x71", 3)) || // 203.0.113.0/24
         (*ipv4_address >= 224) // 224.0.0.0/4 & 240.0.0.0/4 (including 255.255.255.255/32)
     );
-}
-
-bool t64f_utils_ip__is_ipv4_embedded_ipv6_address_translatable(const t64ts_tundra__xlat_thread_context *context, const uint8_t *embedded_ipv4_address) {
-    if(T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(embedded_ipv4_address, context->configuration->router_ipv4))
-        return false; // Packets from/to the router are not translated
-
-    if(T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(embedded_ipv4_address, context->configuration->translator_ipv4))
-        return false; // Translator IPv4 address cannot be mapped inside prefix
-
-    if(context->configuration->translator_allow_translation_of_private_ips) {
-        if(t64f_utils_ip__is_ipv4_address_unusable(embedded_ipv4_address))
-            return false;
-    } else {
-        if(t64f_utils_ip__is_ipv4_address_private(embedded_ipv4_address))
-            return false;
-    }
-
-    return true;
 }
 
 bool t64f_utils_ip__is_ip_protocol_number_forbidden(const uint8_t ip_protocol_number) {

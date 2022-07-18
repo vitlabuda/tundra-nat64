@@ -33,10 +33,10 @@ consequences of this design approach is that the program does not allocate any e
 Probably the most significant trait of this program, which makes it different from other NAT64/CLAT implementations, is 
 that Tundra itself cannot act as a NAT64/CLAT translator for more than one host, as it lacks an internal dynamic address 
 pool from which it would assign IP addresses to hosts needing its service (or something similar) – it uses a fixed 
-single IP address specified in a configuration file instead (see the [example config file](tundra-nat64.conf.example) 
+single IP address specified in a configuration file instead (see the [example config file](tundra-nat64.example.conf) 
 for details). However, it can be used in cooperation with **Linux's in-kernel NAT66/NAT44** translator and therefore 
 translate traffic from any number of hosts/networks, as is described in the 
-[example config file](tundra-nat64.conf.example).
+[example config file](tundra-nat64.example.conf).
 
 Tundra is similar to [TAYGA](http://www.litech.org/tayga/) (another stateless out-of-kernel NAT64 implementation, which 
 can act as a CLAT translator in cooperation with [clatd](https://github.com/toreanderson/clatd)), but there are some 
@@ -60,7 +60,7 @@ Both `gcc` and `clang` may be used to compile the program.
 
 ### Configuration file
 Tundra loads its settings from a configuration file. This repository contains a sample configuration file with 
-**detailed comments**: [tundra-nat64.conf.example](tundra-nat64.conf.example).
+**detailed comments**: [tundra-nat64.example.conf](tundra-nat64.example.conf).
 
 ### Command-line parameters
 The output of `./tundra-nat64 --help` is as follows:
@@ -99,9 +99,9 @@ Modes of operation:
 
 ### Generic NAT64 configuration example
 The following example shows how Tundra could be deployed as **NAT64 translator** for an IPv6-only network with the use 
-of the [example configuration file](tundra-nat64.conf.example) on a router which has access to both IPv4 and IPv6:
+of the [example configuration file](tundra-nat64.example.conf) on a router which has access to both IPv4 and IPv6:
 ```shell
-TUNDRA_CONFIG_FILE="./tundra-nat64.conf.example"
+TUNDRA_CONFIG_FILE="./tundra-nat64.example.conf"
 WAN_INTERFACE_NAME="eth0"  # Remember to adjust this!
 
 # Create a new TUN network interface

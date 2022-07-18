@@ -36,24 +36,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T64C_CONF_FILE__OPTION_KEY_IO_TUN_OWNER_USER "io.tun.owner_user"
 #define T64C_CONF_FILE__OPTION_KEY_IO_TUN_OWNER_GROUP "io.tun.owner_group"
 
+#define T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV4 "router.ipv4"
+#define T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV6 "router.ipv6"
+
 #define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_MODE "translator.mode"
-#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_PREFIX "translator.prefix"
-#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4 "translator.ipv4"
-#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6 "translator.ipv6"
-#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_ALLOW_TRANSLATION_OF_PRIVATE_IPS "translator.allow_translation_of_private_ips"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV4 "translator.nat64_clat.ipv4"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV6 "translator.nat64_clat.ipv6"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_PREFIX "translator.nat64_clat_siit.prefix"
+#define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_ALLOW_TRANSLATION_OF_PRIVATE_IPS "translator.nat64_clat_siit.allow_translation_of_private_ips"
 #define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4_OUTBOUND_MTU "translator.ipv4.outbound_mtu"
 #define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6_OUTBOUND_MTU "translator.ipv6.outbound_mtu"
 #define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_6TO4_COPY_DSCP_AND_ECN "translator.6to4.copy_dscp_and_ecn"
 #define T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_4TO6_COPY_DSCP_AND_ECN "translator.4to6.copy_dscp_and_ecn"
-
-#define T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV4 "router.ipv4"
-#define T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV6 "router.ipv6"
 
 #define T64C_CONF_FILE__IO_MODE_INHERITED_FDS "inherited-fds"
 #define T64C_CONF_FILE__IO_MODE_TUN "tun"
 
 #define T64C_CONF_FILE__TRANSLATOR_MODE_NAT64 "nat64"
 #define T64C_CONF_FILE__TRANSLATOR_MODE_CLAT "clat"
+#define T64C_CONF_FILE__TRANSLATOR_MODE_SIIT "siit"
 
 
 extern t64ts_tundra__conf_file *t64fa_conf_file__read_and_parse_configuration_file(const char *filepath);

@@ -212,6 +212,13 @@ void t64f_conf_file_load__find_ipv6_address(t64ts_tundra__conf_file_entry **conf
     memcpy(destination, ipv6_address_value.s6_addr, 16);
 }
 
+void t64f_conf_file_load__find_ipv6_prefix(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination) {
+    t64f_conf_file_load__find_ipv6_address(config_file_entries, key, destination);
+
+    if(!T64M_UTILS__MEMORY_EQUAL((destination + 12), "\x00\x00\x00\x00", 4))
+        t64f_log__crash(false, "The last 4 bytes of '%s' must be 0, as it is supposed to be an IPv6 /96 prefix!", key);
+}
+
 
 #undef _T64C_CONF_FILE_LOAD__LINE_BUFFER_SIZE
 #undef _T64C_CONF_FILE_LOAD__STOP_PARSING_CONFIG_SYMBOL
