@@ -182,7 +182,7 @@ static void _t64f_xlat_4to6__translate_in_packet_headers_to_out_packet_headers(t
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
-     * in_packet->packet_raw (content) -- An IPv4 packet whose header (including IPv4 Options, if there are any) has been validated
+     * in_packet->packet_raw (content) -- An IPv4 packet whose header (including IPv4 Options, if there are any, BUT excluding source & destination IP address!) has been validated
      * in_packet->packet_size -- The IPv4 packet's size (at least 20 bytes)
      * in_packet->payload_raw -- The packet's unvalidated payload (the pointer points to the beginning of the transport protocol header)
      * in_packet->payload_size -- The size of the packet's unvalidated payload (zero if the packet does not carry any payload)
