@@ -28,6 +28,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_xlat_io.h"
 #include"t64_xlat_4to6_icmp.h"
 #include"t64_router_ipv4.h"
+#include"t64_xlat_addr_nat64.h"
+#include"t64_xlat_addr_clat.h"
+#include"t64_xlat_addr_siit.h"
 
 
 static t64te_tundra__xlat_status _t64f_xlat_4to6__evaluate_in_packet(t64ts_tundra__xlat_thread_context *context);
@@ -60,8 +63,27 @@ void t64f_xlat_4to6__handle_packet(t64ts_tundra__xlat_thread_context *context) {
 
     _t64f_xlat_4to6__translate_in_packet_headers_to_out_packet_headers(context);
 
-    if(((*(context->addr_xlat_functions->perform_4to6_address_translation_for_main_packet))(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr)) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return;
+    // It would be possible to decide which function to use beforehand and then call it indirectly using a function
+    //  pointer, but indirect function calls are usually slow.
+    switch(context->configuration->translator_mode) {
+        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
+            if(t64f_xlat_addr_nat64__perform_4to6_address_translation_for_main_packet(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+                return;
+            break;
+
+        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
+            if(t64f_xlat_addr_clat__perform_4to6_address_translation_for_main_packet(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+                return;
+            break;
+
+        case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT:
+            if(t64f_xlat_addr_siit__perform_4to6_address_translation_for_main_packet(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+                return;
+            break;
+
+        default:
+            return; // This should never happen!
+    }
 
     // At this moment, the entire in_packet's IPv4 header has been validated (including any IPv4 options);
     //  therefore, it is now safe to send ICMP messages back to the packet's source host.

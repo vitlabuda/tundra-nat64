@@ -60,3 +60,6 @@
 [3.0.0 @ 2022-07-19]
 - Completely redesigned the program's IP address translation routines
 - Tundra can now act as a plain SIIT translator
+
+[3.0.1 @ 2022-07-19]
+- Due to performance reasons, IP address translation functions are no longer called indirectly via function pointers

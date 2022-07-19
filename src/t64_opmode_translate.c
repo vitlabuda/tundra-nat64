@@ -29,14 +29,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_xlat.h"
 #include"t64_conf_file.h"
 #include"t64_conf_cmdline.h"
-#include"t64_xlat_addr_nat64.h"
-#include"t64_xlat_addr_clat.h"
-#include"t64_xlat_addr_siit.h"
 
 
-static struct t64s_tundra__addr_xlat_functions *_t64fa_opmode_translate__initialize_addr_xlat_functions_struct(const t64te_tundra__translator_mode translator_mode);
-static void _t64f_opmode_translate__free_addr_xlat_functions_struct(struct t64s_tundra__addr_xlat_functions *addr_xlat_functions);
-static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration, const struct t64s_tundra__addr_xlat_functions *addr_xlat_functions, int termination_pipe_read_fd);
+static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration, int termination_pipe_read_fd);
 static void _t64fa_opmode_translate__initialize_packet_struct(t64ts_tundra__packet *packet);
 static void _t64f_opmode_translate__free_xlat_thread_contexts(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts);
 static void _t64f_opmode_translate__free_packet_struct(t64ts_tundra__packet *packet_struct);
@@ -53,12 +48,10 @@ void t64f_opmode_translate__run(const t64ts_tundra__conf_cmdline *cmdline_config
 
     t64f_log__info("%s", T64C_TUNDRA__PROGRAM_INFO_STRING);
 
-    struct t64s_tundra__addr_xlat_functions *addr_xlat_functions = _t64fa_opmode_translate__initialize_addr_xlat_functions_struct(file_configuration->translator_mode);
-
     int termination_pipe_read_fd, termination_pipe_write_fd;
     t64f_init_io__create_anonymous_pipe(&termination_pipe_read_fd, &termination_pipe_write_fd);
 
-    t64ts_tundra__xlat_thread_context *thread_contexts = _t64fa_opmode_translate__initialize_xlat_thread_contexts(cmdline_configuration, file_configuration, addr_xlat_functions, termination_pipe_read_fd);
+    t64ts_tundra__xlat_thread_context *thread_contexts = _t64fa_opmode_translate__initialize_xlat_thread_contexts(cmdline_configuration, file_configuration, termination_pipe_read_fd);
     _t64f_opmode_translate__daemonize(file_configuration);
     _t64f_opmode_translate__start_xlat_threads(file_configuration, thread_contexts);
     t64f_signal__set_signal_handlers();
@@ -72,49 +65,10 @@ void t64f_opmode_translate__run(const t64ts_tundra__conf_cmdline *cmdline_config
     t64f_init_io__close_fd(termination_pipe_read_fd);
     t64f_init_io__close_fd(termination_pipe_write_fd);
 
-    _t64f_opmode_translate__free_addr_xlat_functions_struct(addr_xlat_functions);
-
     t64f_log__info("Tundra will now terminate.");
 }
 
-static struct t64s_tundra__addr_xlat_functions *_t64fa_opmode_translate__initialize_addr_xlat_functions_struct(const t64te_tundra__translator_mode translator_mode) {
-    struct t64s_tundra__addr_xlat_functions *addr_xlat_functions = t64fa_utils__allocate_memory(1, sizeof(struct t64s_tundra__addr_xlat_functions));
-
-    switch(translator_mode) {
-        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
-            addr_xlat_functions->perform_4to6_address_translation_for_main_packet = &t64f_xlat_addr_nat64__perform_4to6_address_translation_for_main_packet;
-            addr_xlat_functions->perform_4to6_address_translation_for_icmp_error_packet = &t64f_xlat_addr_nat64__perform_4to6_address_translation_for_icmp_error_packet;
-            addr_xlat_functions->perform_6to4_address_translation_for_main_packet = &t64f_xlat_addr_nat64__perform_6to4_address_translation_for_main_packet;
-            addr_xlat_functions->perform_6to4_address_translation_for_icmp_error_packet = &t64f_xlat_addr_nat64__perform_6to4_address_translation_for_icmp_error_packet;
-            break;
-
-        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
-            addr_xlat_functions->perform_4to6_address_translation_for_main_packet = &t64f_xlat_addr_clat__perform_4to6_address_translation_for_main_packet;
-            addr_xlat_functions->perform_4to6_address_translation_for_icmp_error_packet = &t64f_xlat_addr_clat__perform_4to6_address_translation_for_icmp_error_packet;
-            addr_xlat_functions->perform_6to4_address_translation_for_main_packet = &t64f_xlat_addr_clat__perform_6to4_address_translation_for_main_packet;
-            addr_xlat_functions->perform_6to4_address_translation_for_icmp_error_packet = &t64f_xlat_addr_clat__perform_6to4_address_translation_for_icmp_error_packet;
-            break;
-
-        case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT:
-            addr_xlat_functions->perform_4to6_address_translation_for_main_packet = &t64f_xlat_addr_siit__perform_4to6_address_translation_for_main_packet;
-            addr_xlat_functions->perform_4to6_address_translation_for_icmp_error_packet = &t64f_xlat_addr_siit__perform_4to6_address_translation_for_icmp_error_packet;
-            addr_xlat_functions->perform_6to4_address_translation_for_main_packet = &t64f_xlat_addr_siit__perform_6to4_address_translation_for_main_packet;
-            addr_xlat_functions->perform_6to4_address_translation_for_icmp_error_packet = &t64f_xlat_addr_siit__perform_6to4_address_translation_for_icmp_error_packet;
-            break;
-
-        default:
-            t64f_log__crash_invalid_internal_state("Invalid translator mode");
-    }
-
-    return addr_xlat_functions;
-}
-
-static void _t64f_opmode_translate__free_addr_xlat_functions_struct(struct t64s_tundra__addr_xlat_functions *addr_xlat_functions) {
-    // For future extension.
-    t64f_utils__free_memory(addr_xlat_functions);
-}
-
-static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration, const struct t64s_tundra__addr_xlat_functions *addr_xlat_functions, int termination_pipe_read_fd) {
+static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration, int termination_pipe_read_fd) {
     t64ts_tundra__xlat_thread_context *thread_contexts = t64fa_utils__allocate_memory(file_configuration->program_translator_threads, sizeof(t64ts_tundra__xlat_thread_context));
 
     if(file_configuration->io_mode == T64TE_TUNDRA__IO_MODE_INHERITED_FDS && cmdline_configuration->inherited_fds == NULL)
@@ -125,7 +79,6 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
         // context[i].thread stays uninitialized (it is initialized in _t64f_opmode_translate_start_xlat_threads())
         thread_contexts[i].thread_id = (i + 1); // Thread ID 0 is reserved for the main thread
         thread_contexts[i].configuration = file_configuration;
-        thread_contexts[i].addr_xlat_functions = addr_xlat_functions;
 
         _t64fa_opmode_translate__initialize_packet_struct(&thread_contexts[i].in_packet);
         _t64fa_opmode_translate__initialize_packet_struct(&thread_contexts[i].out_packet);

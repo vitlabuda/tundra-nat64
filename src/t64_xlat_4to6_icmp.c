@@ -25,6 +25,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
 #include"t64_checksum.h"
+#include"t64_xlat_addr_nat64.h"
+#include"t64_xlat_addr_clat.h"
+#include"t64_xlat_addr_siit.h"
 
 
 // The array must be zero-terminated, and the integers must be in descending order!
@@ -412,8 +415,27 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6_icmp__translate_carried_ip_head
     out_ipv6_carried_packet.packet_ipv6hdr->payload_len = htons(ntohs(in_ipv4_carried_packet.packet_ipv4hdr->tot_len) - ((uint16_t) in_ipv4_carried_packet_header_length));
     out_ipv6_carried_packet.packet_ipv6hdr->hop_limit = in_ipv4_carried_packet.packet_ipv4hdr->ttl;
 
-    if(((*(context->addr_xlat_functions->perform_4to6_address_translation_for_icmp_error_packet))(context, (const uint8_t *) &in_ipv4_carried_packet.packet_ipv4hdr->saddr, (const uint8_t *) &in_ipv4_carried_packet.packet_ipv4hdr->daddr, (uint8_t *) out_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) out_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr)) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    // It would be possible to decide which function to use beforehand and then call it indirectly using a function
+    //  pointer, but indirect function calls are usually slow.
+    switch(context->configuration->translator_mode) {
+        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
+            if(t64f_xlat_addr_nat64__perform_4to6_address_translation_for_icmp_error_packet(context, (const uint8_t *) &in_ipv4_carried_packet.packet_ipv4hdr->saddr, (const uint8_t *) &in_ipv4_carried_packet.packet_ipv4hdr->daddr, (uint8_t *) out_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) out_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            break;
+
+        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
+            if(t64f_xlat_addr_clat__perform_4to6_address_translation_for_icmp_error_packet(context, (const uint8_t *) &in_ipv4_carried_packet.packet_ipv4hdr->saddr, (const uint8_t *) &in_ipv4_carried_packet.packet_ipv4hdr->daddr, (uint8_t *) out_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) out_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            break;
+
+        case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT:
+            if(t64f_xlat_addr_siit__perform_4to6_address_translation_for_icmp_error_packet(context, (const uint8_t *) &in_ipv4_carried_packet.packet_ipv4hdr->saddr, (const uint8_t *) &in_ipv4_carried_packet.packet_ipv4hdr->daddr, (uint8_t *) out_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) out_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            break;
+
+        default:
+            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // This should never happen!
+    }
 
     if(T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(in_ipv4_carried_packet.packet_ipv4hdr)) {
         out_ipv6_carried_packet.packet_ipv6hdr->nexthdr = 44;
