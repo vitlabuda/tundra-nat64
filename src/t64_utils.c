@@ -69,6 +69,7 @@ bool t64f_utils__secure_memcpy(void *destination, const void *source, const size
         return false;
 
     memcpy(destination, source, copied_size);
+
     return true;
 }
 

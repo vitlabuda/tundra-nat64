@@ -25,13 +25,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_tundra.h"
 
 
-extern t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat__perform_6to4_translator_ip_translation(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4);
-extern t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat__perform_4to6_translator_ip_translation(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6);
-extern t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat__perform_6to4_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4);
-extern t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat__perform_4to6_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6);
-extern t64te_tundra__xlat_status t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4);
-extern t64te_tundra__xlat_status t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6);
-extern t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat_siit__perform_6to4_prefix_translation_for_icmp_error_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4);
+extern bool t64f_utils_xlat_addr__nat64_clat__perform_6to4_translator_ip_translation(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4);
+extern bool t64f_utils_xlat_addr__nat64_clat__perform_4to6_translator_ip_translation(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6);
+extern bool t64f_utils_xlat_addr__nat64_clat__perform_6to4_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4);
+extern bool t64f_utils_xlat_addr__nat64_clat__perform_4to6_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6);
+extern bool t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4);
+extern bool t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6);
+extern bool t64f_utils_xlat_addr__nat64_clat_siit__perform_6to4_prefix_translation_for_icmp_error_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4);
 extern void t64f_utils_xlat_addr__nat64_clat_siit__perform_4to6_prefix_translation_for_icmp_error_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6);
 
 

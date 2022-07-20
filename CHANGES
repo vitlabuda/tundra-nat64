@@ -63,3 +63,6 @@
 
 [3.0.1 @ 2022-07-19]
 - Due to performance reasons, IP address translation functions are no longer called indirectly via function pointers
+
+[3.0.2 @ 2022-07-20]
+- Replaced the redundant 't64te_tundra__xlat_status' enum with 'bool'

@@ -25,30 +25,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_utils_xlat_addr.h"
 
 
-t64te_tundra__xlat_status t64f_xlat_addr_siit__perform_4to6_address_translation_for_main_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, uint8_t *out_src_ipv6, uint8_t *out_dst_ipv6) {
-    if(t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet(context, in_src_ipv4, out_src_ipv6) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+bool t64f_xlat_addr_siit__perform_4to6_address_translation_for_main_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, uint8_t *out_src_ipv6, uint8_t *out_dst_ipv6) {
+    if(!t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet(context, in_src_ipv4, out_src_ipv6))
+        return false;
 
     return t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet(context, in_dst_ipv4, out_dst_ipv6);
 }
 
-t64te_tundra__xlat_status t64f_xlat_addr_siit__perform_4to6_address_translation_for_icmp_error_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, uint8_t *out_src_ipv6, uint8_t *out_dst_ipv6) {
+bool t64f_xlat_addr_siit__perform_4to6_address_translation_for_icmp_error_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, uint8_t *out_src_ipv6, uint8_t *out_dst_ipv6) {
     t64f_utils_xlat_addr__nat64_clat_siit__perform_4to6_prefix_translation_for_icmp_error_packet(context, in_src_ipv4, out_src_ipv6);
     t64f_utils_xlat_addr__nat64_clat_siit__perform_4to6_prefix_translation_for_icmp_error_packet(context, in_dst_ipv4, out_dst_ipv6);
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
-t64te_tundra__xlat_status t64f_xlat_addr_siit__perform_6to4_address_translation_for_main_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, uint8_t *out_src_ipv4, uint8_t *out_dst_ipv4) {
-    if(t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet(context, in_src_ipv6, out_src_ipv4) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+bool t64f_xlat_addr_siit__perform_6to4_address_translation_for_main_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, uint8_t *out_src_ipv4, uint8_t *out_dst_ipv4) {
+    if(!t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet(context, in_src_ipv6, out_src_ipv4))
+        return false;
 
     return t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet(context, in_dst_ipv6, out_dst_ipv4);
 }
 
-t64te_tundra__xlat_status t64f_xlat_addr_siit__perform_6to4_address_translation_for_icmp_error_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, uint8_t *out_src_ipv4, uint8_t *out_dst_ipv4) {
-    if(t64f_utils_xlat_addr__nat64_clat_siit__perform_6to4_prefix_translation_for_icmp_error_packet(context, in_src_ipv6, out_src_ipv4) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+bool t64f_xlat_addr_siit__perform_6to4_address_translation_for_icmp_error_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, uint8_t *out_src_ipv4, uint8_t *out_dst_ipv4) {
+    if(!t64f_utils_xlat_addr__nat64_clat_siit__perform_6to4_prefix_translation_for_icmp_error_packet(context, in_src_ipv6, out_src_ipv4))
+        return false;
 
     return t64f_utils_xlat_addr__nat64_clat_siit__perform_6to4_prefix_translation_for_icmp_error_packet(context, in_dst_ipv6, out_dst_ipv4);
 }

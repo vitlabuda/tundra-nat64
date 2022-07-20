@@ -30,16 +30,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_xlat_addr_siit.h"
 
 
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(t64ts_tundra__xlat_thread_context *context);
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_destination_unreachable_message(t64ts_tundra__xlat_thread_context *context);
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_packet_too_big_message(t64ts_tundra__xlat_thread_context *context);
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_time_exceeded_message(t64ts_tundra__xlat_thread_context *context);
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_parameter_problem_message(t64ts_tundra__xlat_thread_context *context);
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t64ts_tundra__xlat_thread_context *context, const int dont_fragment);
+static bool _t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(t64ts_tundra__xlat_thread_context *context);
+static bool _t64f_xlat_6to4_icmp__translate_destination_unreachable_message(t64ts_tundra__xlat_thread_context *context);
+static bool _t64f_xlat_6to4_icmp__translate_packet_too_big_message(t64ts_tundra__xlat_thread_context *context);
+static bool _t64f_xlat_6to4_icmp__translate_time_exceeded_message(t64ts_tundra__xlat_thread_context *context);
+static bool _t64f_xlat_6to4_icmp__translate_parameter_problem_message(t64ts_tundra__xlat_thread_context *context);
+static bool _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t64ts_tundra__xlat_thread_context *context, const int dont_fragment);
 static uint8_t _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer_value(const uint8_t in_pointer);
 
 
-t64te_tundra__xlat_status t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_tundra__xlat_thread_context *context) {
+bool t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_tundra__xlat_thread_context *context) {
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
@@ -59,60 +59,60 @@ t64te_tundra__xlat_status t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_
      */
 
     if(T64M_UTILS_IP__IS_IPV6_PACKET_FRAGMENTED(&context->in_packet) || T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(context->out_packet.packet_ipv4hdr))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     if(context->in_packet.payload_size < 8)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     if(t64f_checksum__calculate_rfc1071_checksum(&context->in_packet, true) != 0)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header = at least 1500 bytes free; 8 bytes needed (for ICMP header)
 
     switch(context->in_packet.payload_icmpv6hdr->icmp6_type) {
         case 128: case 129: // Echo Request and Echo Reply
-            if(_t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            if(!_t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(context))
+                return false;
             break;
 
         case 1: // Destination Unreachable
-            if(_t64f_xlat_6to4_icmp__translate_destination_unreachable_message(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            if(!_t64f_xlat_6to4_icmp__translate_destination_unreachable_message(context))
+                return false;
             break;
 
         case 2: // Packet Too Big
-            if(_t64f_xlat_6to4_icmp__translate_packet_too_big_message(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            if(!_t64f_xlat_6to4_icmp__translate_packet_too_big_message(context))
+                return false;
             break;
 
         case 3: // Time Exceeded
-            if(_t64f_xlat_6to4_icmp__translate_time_exceeded_message(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            if(!_t64f_xlat_6to4_icmp__translate_time_exceeded_message(context))
+                return false;
             break;
 
         case 4: // Parameter Problem
-            if(_t64f_xlat_6to4_icmp__translate_parameter_problem_message(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            if(!_t64f_xlat_6to4_icmp__translate_parameter_problem_message(context))
+                return false;
             break;
 
         default:
             // All other types, including:
             // - MLD Multicast Listener Query/Report/Done (Type 130, 131, 132)
             // - Neighbor Discover messages (Type 133 through 137)
-            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            return false;
     }
 
     if(context->out_packet.payload_size < 8)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // Just to make sure...
+        return false; // Just to make sure...
 
     context->out_packet.payload_icmpv4hdr->checksum = 0;
     context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum(&context->out_packet, false);
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
 // Types 128 and 129 - Echo Request and Echo Reply
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(t64ts_tundra__xlat_thread_context *context) {
+static bool _t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(t64ts_tundra__xlat_thread_context *context) {
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
@@ -137,7 +137,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_echo_request_or
         context->in_packet.payload_raw,
         context->in_packet.payload_size,
         (T64C_TUNDRA__MAX_PACKET_SIZE - context->out_packet.packet_size)
-    )) return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    )) return false;
 
     // Adjust type
     if(context->out_packet.payload_icmpv4hdr->type == 128) // Echo request
@@ -145,20 +145,20 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_echo_request_or
     else if(context->out_packet.payload_icmpv4hdr->type == 129) // Echo reply
         context->out_packet.payload_icmpv4hdr->type = 0;
     else
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // This should never happen!
+        return false; // This should never happen!
 
     // Check code
     if(context->out_packet.payload_icmpv4hdr->code != 0)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     context->out_packet.packet_size += context->in_packet.payload_size;
     context->out_packet.payload_size = context->in_packet.payload_size;
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
 // Type 1 - Destination Unreachable
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_destination_unreachable_message(t64ts_tundra__xlat_thread_context *context) {
+static bool _t64f_xlat_6to4_icmp__translate_destination_unreachable_message(t64ts_tundra__xlat_thread_context *context) {
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
@@ -193,24 +193,24 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_destination_unr
             break;
 
         default:
-            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            return false;
     }
 
     if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.payload_raw + 4, "\x00\x00\x00\x00", 4))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     // Generate outbound ICMPv4 header
     t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, out_icmp_code);
 
     // Build carried IP header & part of data
-    if(_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0))
+        return false;
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
 // Type 2 - Packet Too Big
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_packet_too_big_message(t64ts_tundra__xlat_thread_context *context) {
+static bool _t64f_xlat_6to4_icmp__translate_packet_too_big_message(t64ts_tundra__xlat_thread_context *context) {
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
@@ -231,10 +231,10 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_packet_too_big_
 
     // Check inbound ICMPv6 header
     if(context->in_packet.payload_icmpv6hdr->icmp6_code != 0)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.payload_raw + 4, "\x00\x00", 2))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // = MTUs bigger than 65535 bytes cannot be handled when performing IPv6-to-IPv4 translation
+        return false; // = MTUs bigger than 65535 bytes cannot be handled when performing IPv6-to-IPv4 translation
 
     // Generate outbound ICMPv4 header
     t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 4);
@@ -258,14 +258,14 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_packet_too_big_
 
     // Build carried IP header & part of data
     //  The Don't fragment flag is set in the translated carried packet, as ICMPv4 Type 3 Code 4 is literally named "Fragmentation needed and DF set"
-    if(_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 1) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 1))
+        return false;
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
 // Type 3 - Time Exceeded
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_time_exceeded_message(t64ts_tundra__xlat_thread_context *context) {
+static bool _t64f_xlat_6to4_icmp__translate_time_exceeded_message(t64ts_tundra__xlat_thread_context *context) {
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
@@ -286,23 +286,23 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_time_exceeded_m
 
     // Check inbound ICMPv6 header
     if(context->in_packet.payload_icmpv6hdr->icmp6_code != 0 && context->in_packet.payload_icmpv6hdr->icmp6_code != 1)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.payload_raw + 4, "\x00\x00\x00\x00", 4))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     // Generate outbound ICMPv4 header
     t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 11, context->in_packet.payload_icmpv6hdr->icmp6_code);
 
     // Build carried IP header & part of data
-    if(_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0))
+        return false;
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
 // Type 4 - Parameter Problem
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_parameter_problem_message(t64ts_tundra__xlat_thread_context *context) {
+static bool _t64f_xlat_6to4_icmp__translate_parameter_problem_message(t64ts_tundra__xlat_thread_context *context) {
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
@@ -326,14 +326,14 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_parameter_probl
             {
                 // Check inbound ICMPv6 header
                 if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.payload_raw + 4, "\x00\x00\x00", 3))
-                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                    return false;
 
                 // Generate outbound ICMPv4 header
                 t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 12, 0);
 
                 const uint8_t out_pointer = _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer_value(context->in_packet.payload_raw[7]);
                 if(out_pointer == 255)
-                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                    return false;
 
                 context->out_packet.payload_raw[4] = out_pointer;
             }
@@ -346,17 +346,17 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_parameter_probl
         default:
             // All other codes, including:
             // - Code 2 (Unrecognized IPv6 option encountered)
-            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            return false;
     }
 
     // Build carried IP header & part of data
-    if(_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0))
+        return false;
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
-static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t64ts_tundra__xlat_thread_context *context, const int dont_fragment) {
+static bool _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t64ts_tundra__xlat_thread_context *context, const int dont_fragment) {
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
@@ -388,13 +388,13 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
 
     // Size checks
     if(in_ipv6_carried_packet.packet_size < 40)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header - 8 bytes ICMP header = at least 1492 bytes free; up to 40 bytes needed (for 20-byte IPv4 header + up to 20 bytes of payload)
 
     // IP header - validation, evaluation and initialization
     if(in_ipv6_carried_packet.packet_ipv6hdr->version != 6)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     {
         t64ts_tundra__ipv6_fragment_header *fragment_header = NULL;
@@ -407,7 +407,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
             (*protocol_field == 0 || *protocol_field == 43 || *protocol_field == 44 || *protocol_field == 60)
         ) {
             if(remaining_packet_size < 8)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                return false;
 
             if(*protocol_field == 44)
                 fragment_header = (t64ts_tundra__ipv6_fragment_header *) current_header_ptr;
@@ -420,7 +420,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
         }
 
         if(remaining_packet_size < 0)
-            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            return false;
 
         in_ipv6_carried_packet.payload_raw = current_header_ptr;
         in_ipv6_carried_packet.payload_size = (size_t) remaining_packet_size;
@@ -451,22 +451,22 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
     //  pointer, but indirect function calls are usually slow.
     switch(context->configuration->translator_mode) {
         case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
-            if(t64f_xlat_addr_nat64__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            if(!t64f_xlat_addr_nat64__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
+                return false;
             break;
 
         case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
-            if(t64f_xlat_addr_clat__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            if(!t64f_xlat_addr_clat__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
+                return false;
             break;
 
         case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT:
-            if(t64f_xlat_addr_siit__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            if(!t64f_xlat_addr_siit__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
+                return false;
             break;
 
         default:
-            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // This should never happen!
+            return false; // This should never happen!
     }
 
     out_ipv4_carried_packet.payload_raw = (out_ipv4_carried_packet.packet_raw + out_ipv4_carried_packet.packet_size);
@@ -514,7 +514,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
                 out_ipv4_carried_packet.payload_icmpv4hdr->type = 0;
 
         } else {
-            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            return false;
         }
     }
 
@@ -522,7 +522,7 @@ static t64te_tundra__xlat_status _t64f_xlat_6to4_icmp__translate_carried_ip_head
     out_ipv4_carried_packet.packet_ipv4hdr->check = 0; // The IPv4 header is now finished, so the checksum can be calculated...
     out_ipv4_carried_packet.packet_ipv4hdr->check = t64f_checksum__calculate_ipv4_header_checksum(out_ipv4_carried_packet.packet_ipv4hdr);
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
 // Returns 255 if 'in_pointer' is invalid and the translation process shall be stopped!

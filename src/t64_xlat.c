@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 static void _t64f_xlat__prepare_packet_struct_for_new_packet(t64ts_tundra__packet *packet_struct);
-static t64te_tundra__xlat_status _t64f_xlat__wait_for_input(t64ts_tundra__xlat_thread_context *context);
+static bool _t64f_xlat__wait_for_input(t64ts_tundra__xlat_thread_context *context);
 static void _t64f_xlat__translate_packet(t64ts_tundra__xlat_thread_context *context);
 
 
@@ -42,7 +42,7 @@ void *t64f_xlat__thread_run(void *arg) {
         _t64f_xlat__prepare_packet_struct_for_new_packet(&context->out_packet);
         _t64f_xlat__prepare_packet_struct_for_new_packet(&context->tmp_packet);
 
-        if(_t64f_xlat__wait_for_input(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+        if(!_t64f_xlat__wait_for_input(context))
             break;
 
         t64f_xlat_io__receive_packet_into_in_packet(context);
@@ -62,7 +62,7 @@ static void _t64f_xlat__prepare_packet_struct_for_new_packet(t64ts_tundra__packe
     packet_struct->ipv6_carried_protocol_field = NULL;
 }
 
-static t64te_tundra__xlat_status _t64f_xlat__wait_for_input(t64ts_tundra__xlat_thread_context *context) {
+static bool _t64f_xlat__wait_for_input(t64ts_tundra__xlat_thread_context *context) {
     struct pollfd poll_fds[2];
     T64M_UTILS__MEMORY_CLEAR(poll_fds, 2, sizeof(struct pollfd));
     poll_fds[0].fd = context->termination_pipe_read_fd;
@@ -78,13 +78,13 @@ static t64te_tundra__xlat_status _t64f_xlat__wait_for_input(t64ts_tundra__xlat_t
 
     // context->termination_pipe_read_fd
     if(poll_fds[0].revents == POLLIN)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
     if(poll_fds[0].revents != 0)
         t64f_log__thread_crash(context->thread_id, false, "poll() reported an error associated with the termination pipe's read FD (revents = %hd)!", poll_fds[0].revents);
 
     // context->packet_read_fd
     if(poll_fds[1].revents == POLLIN)
-        return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+        return true;
     if(poll_fds[1].revents != 0)
         t64f_log__thread_crash(context->thread_id, false, "poll() reported an error associated with the packet receival FD (revents = %hd)!", poll_fds[1].revents);
 

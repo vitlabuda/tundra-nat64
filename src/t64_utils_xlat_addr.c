@@ -26,89 +26,89 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_utils_ip.h"
 
 
-static t64te_tundra__xlat_status _t64f_utils_xlat_addr__nat64_clat_siit__check_embeddability_of_ipv4_into_prefix(const t64ts_tundra__xlat_thread_context *context, const uint8_t *ipv4);
+static bool _t64f_utils_xlat_addr__nat64_clat_siit__check_embeddability_of_ipv4_into_prefix(const t64ts_tundra__xlat_thread_context *context, const uint8_t *ipv4);
 
 
-t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat__perform_6to4_translator_ip_translation(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4) {
+bool t64f_utils_xlat_addr__nat64_clat__perform_6to4_translator_ip_translation(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4) {
     if(!T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(in_ipv6, context->configuration->translator_nat64_clat_ipv6))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     memcpy(out_ipv4, context->configuration->translator_nat64_clat_ipv4, 4);
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
-t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat__perform_4to6_translator_ip_translation(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6) {
+bool t64f_utils_xlat_addr__nat64_clat__perform_4to6_translator_ip_translation(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6) {
     if(!T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(in_ipv4, context->configuration->translator_nat64_clat_ipv4))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     memcpy(out_ipv6, context->configuration->translator_nat64_clat_ipv6, 16);
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
-t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat__perform_6to4_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4) {
+bool t64f_utils_xlat_addr__nat64_clat__perform_6to4_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4) {
     if(T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(in_ipv6, context->configuration->translator_nat64_clat_ipv6))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
-    if(t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet(context, in_ipv6, out_ipv4) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    if(!t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet(context, in_ipv6, out_ipv4))
+        return false;
 
     if(T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(out_ipv4, context->configuration->translator_nat64_clat_ipv4))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
-t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat__perform_4to6_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6) {
+bool t64f_utils_xlat_addr__nat64_clat__perform_4to6_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6) {
     if(T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(in_ipv4, context->configuration->translator_nat64_clat_ipv4))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
-    if(t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet(context, in_ipv4, out_ipv6) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    if(!t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet(context, in_ipv4, out_ipv6))
+        return false;
 
     if(T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(out_ipv6, context->configuration->translator_nat64_clat_ipv6))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
-t64te_tundra__xlat_status t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4) {
+bool t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4) {
     if(T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(in_ipv6, context->configuration->router_ipv6))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     if(!T64M_UTILS__MEMORY_EQUAL(in_ipv6, context->configuration->translator_nat64_clat_siit_prefix, 12))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
-    if(_t64f_utils_xlat_addr__nat64_clat_siit__check_embeddability_of_ipv4_into_prefix(context, in_ipv6 + 12) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    if(!_t64f_utils_xlat_addr__nat64_clat_siit__check_embeddability_of_ipv4_into_prefix(context, in_ipv6 + 12))
+        return false;
 
     memcpy(out_ipv4, in_ipv6 + 12, 4);
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
-t64te_tundra__xlat_status t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6) {
-    if(_t64f_utils_xlat_addr__nat64_clat_siit__check_embeddability_of_ipv4_into_prefix(context, in_ipv4) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+bool t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6) {
+    if(!_t64f_utils_xlat_addr__nat64_clat_siit__check_embeddability_of_ipv4_into_prefix(context, in_ipv4))
+        return false;
 
     memcpy(out_ipv6, context->configuration->translator_nat64_clat_siit_prefix, 12);
     memcpy(out_ipv6 + 12, in_ipv4, 4);
 
     if(T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(out_ipv6, context->configuration->router_ipv6))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
-t64te_tundra__xlat_status t64f_utils_xlat_addr__nat64_clat_siit__perform_6to4_prefix_translation_for_icmp_error_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4) {
+bool t64f_utils_xlat_addr__nat64_clat_siit__perform_6to4_prefix_translation_for_icmp_error_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4) {
     if(!T64M_UTILS__MEMORY_EQUAL(in_ipv6, context->configuration->translator_nat64_clat_siit_prefix, 12))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     // For debugging purposes, illegal addresses (such as 127.0.0.1) inside ICMP packets are translated normally.
     memcpy(out_ipv4, in_ipv6 + 12, 4);
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
 void t64f_utils_xlat_addr__nat64_clat_siit__perform_4to6_prefix_translation_for_icmp_error_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv4, uint8_t *out_ipv6) {
@@ -117,17 +117,17 @@ void t64f_utils_xlat_addr__nat64_clat_siit__perform_4to6_prefix_translation_for_
     memcpy(out_ipv6 + 12, in_ipv4, 4);
 }
 
-static t64te_tundra__xlat_status _t64f_utils_xlat_addr__nat64_clat_siit__check_embeddability_of_ipv4_into_prefix(const t64ts_tundra__xlat_thread_context *context, const uint8_t *ipv4_address) {
+static bool _t64f_utils_xlat_addr__nat64_clat_siit__check_embeddability_of_ipv4_into_prefix(const t64ts_tundra__xlat_thread_context *context, const uint8_t *ipv4_address) {
     if(T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(ipv4_address, context->configuration->router_ipv4))
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // Packets from/to the router are not translated
+        return false; // Packets from/to the router are not translated
 
     if(context->configuration->translator_nat64_clat_siit_allow_translation_of_private_ips) {
         if(t64f_utils_ip__is_ipv4_address_unusable(ipv4_address))
-            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            return false;
     } else {
         if(t64f_utils_ip__is_ipv4_address_unusable_or_private(ipv4_address))
-            return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+            return false;
     }
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }

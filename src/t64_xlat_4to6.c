@@ -33,9 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_xlat_addr_siit.h"
 
 
-static t64te_tundra__xlat_status _t64f_xlat_4to6__evaluate_in_packet(t64ts_tundra__xlat_thread_context *context);
+static bool _t64f_xlat_4to6__evaluate_in_packet(t64ts_tundra__xlat_thread_context *context);
 static void _t64f_xlat_4to6__translate_in_packet_headers_to_out_packet_headers(t64ts_tundra__xlat_thread_context *context);
-static t64te_tundra__xlat_status _t64f_xlat_4to6__translate_in_packet_payload_to_out_packet_payload(t64ts_tundra__xlat_thread_context *context);
+static bool _t64f_xlat_4to6__translate_in_packet_payload_to_out_packet_payload(t64ts_tundra__xlat_thread_context *context);
 static void _t64f_xlat_4to6__appropriately_send_out_out_packet(t64ts_tundra__xlat_thread_context *context);
 
 
@@ -58,7 +58,7 @@ void t64f_xlat_4to6__handle_packet(t64ts_tundra__xlat_thread_context *context) {
      * out_packet->ipv6_carried_protocol_field -- Undefined
      */
 
-    if(_t64f_xlat_4to6__evaluate_in_packet(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+    if(!_t64f_xlat_4to6__evaluate_in_packet(context))
         return;
 
     _t64f_xlat_4to6__translate_in_packet_headers_to_out_packet_headers(context);
@@ -67,17 +67,17 @@ void t64f_xlat_4to6__handle_packet(t64ts_tundra__xlat_thread_context *context) {
     //  pointer, but indirect function calls are usually slow.
     switch(context->configuration->translator_mode) {
         case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
-            if(t64f_xlat_addr_nat64__perform_4to6_address_translation_for_main_packet(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+            if(!t64f_xlat_addr_nat64__perform_4to6_address_translation_for_main_packet(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr))
                 return;
             break;
 
         case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
-            if(t64f_xlat_addr_clat__perform_4to6_address_translation_for_main_packet(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+            if(!t64f_xlat_addr_clat__perform_4to6_address_translation_for_main_packet(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr))
                 return;
             break;
 
         case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT:
-            if(t64f_xlat_addr_siit__perform_4to6_address_translation_for_main_packet(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+            if(!t64f_xlat_addr_siit__perform_4to6_address_translation_for_main_packet(context, (const uint8_t *) &context->in_packet.packet_ipv4hdr->saddr, (const uint8_t *) &context->in_packet.packet_ipv4hdr->daddr, (uint8_t *) context->out_packet.packet_ipv6hdr->saddr.s6_addr, (uint8_t *) context->out_packet.packet_ipv6hdr->daddr.s6_addr))
                 return;
             break;
 
@@ -92,14 +92,14 @@ void t64f_xlat_4to6__handle_packet(t64ts_tundra__xlat_thread_context *context) {
         return;
     }
 
-    if(_t64f_xlat_4to6__translate_in_packet_payload_to_out_packet_payload(context) != T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION)
+    if(!_t64f_xlat_4to6__translate_in_packet_payload_to_out_packet_payload(context))
         return;
 
     // The IPv6 'out_packet' is now complete.
     _t64f_xlat_4to6__appropriately_send_out_out_packet(context);
 }
 
-static t64te_tundra__xlat_status _t64f_xlat_4to6__evaluate_in_packet(t64ts_tundra__xlat_thread_context *context) {
+static bool _t64f_xlat_4to6__evaluate_in_packet(t64ts_tundra__xlat_thread_context *context) {
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
@@ -119,36 +119,36 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6__evaluate_in_packet(t64ts_tundr
      */
 
     if(context->in_packet.packet_size < 20)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // The smallest possible IPv4 header is 20 bytes in size.
+        return false; // The smallest possible IPv4 header is 20 bytes in size.
 
     // Version is guaranteed to be 4
 
     // IHL
     const size_t header_length = (context->in_packet.packet_ipv4hdr->ihl * 4); // in bytes
     if(header_length < 20 || header_length > context->in_packet.packet_size)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     // DSCP and ECN need not be checked
 
     // Total length
     if(ntohs(context->in_packet.packet_ipv4hdr->tot_len) != context->in_packet.packet_size)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     // Identification, DF bit, MF bit and fragment offset need not be checked
 
     // Reserved bit (next to the DF & MF bits)
     if(T64M_UTILS_IP__GET_IPV4_FRAGMENT_RESERVED_BIT(context->in_packet.packet_ipv4hdr) != 0)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // The reserved bit must be zero
+        return false; // The reserved bit must be zero
 
     // TTL
     if(context->in_packet.packet_ipv4hdr->ttl < 1)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION; // The packet should have already been dropped!
+        return false; // The packet should have already been dropped!
 
     // Protocol
     if(
         t64f_utils_ip__is_ip_protocol_number_forbidden(context->in_packet.packet_ipv4hdr->protocol) ||
         (context->in_packet.packet_ipv4hdr->protocol == 58) // ICMP for IPv6
-    ) return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    ) return false;
 
     // Source & destination address is checked & translated using 'addr_xlat_functions' later.
 
@@ -169,35 +169,35 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6__evaluate_in_packet(t64ts_tundr
         while(remaining_options_size > 0) {
             const uint8_t option_type = *current_option_ptr;
             if(option_type == 131 || option_type == 137) // Loose Source Route, Strict Source Route
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                return false;
 
             ssize_t current_option_size; // https://www.iana.org/assignments/ip-parameters/ip-parameters.xhtml
             if(option_type == 0 || option_type == 1) { // End of Options List, No Operation
                 current_option_size = 1;
             } else {
                 if(remaining_options_size < 2)
-                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                    return false;
 
                 current_option_size = current_option_ptr[1];
                 if(current_option_size < 2)
-                    return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                    return false;
             }
 
             current_option_ptr += current_option_size;
             remaining_options_size -= current_option_size;
             if(remaining_options_size < 0)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                return false;
         }
     }
 
     // Header checksum
     if(t64f_checksum__calculate_ipv4_header_checksum(context->in_packet.packet_ipv4hdr) != 0)
-        return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+        return false;
 
     context->in_packet.payload_raw = (context->in_packet.packet_raw + header_length);
     context->in_packet.payload_size = (context->in_packet.packet_size - header_length);
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
 static void _t64f_xlat_4to6__translate_in_packet_headers_to_out_packet_headers(t64ts_tundra__xlat_thread_context *context) {
@@ -272,7 +272,7 @@ static void _t64f_xlat_4to6__translate_in_packet_headers_to_out_packet_headers(t
     context->out_packet.payload_size = 0;
 }
 
-static t64te_tundra__xlat_status _t64f_xlat_4to6__translate_in_packet_payload_to_out_packet_payload(t64ts_tundra__xlat_thread_context *context) {
+static bool _t64f_xlat_4to6__translate_in_packet_payload_to_out_packet_payload(t64ts_tundra__xlat_thread_context *context) {
     /*
      * REQUIRED-STATE-OF-PACKET-BUFFERS:
      *
@@ -303,7 +303,7 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6__translate_in_packet_payload_to
         context->in_packet.payload_raw,
         context->in_packet.payload_size,
         (T64C_TUNDRA__MAX_PACKET_SIZE - context->out_packet.packet_size)
-    )) return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+    )) return false;
 
     context->out_packet.packet_size += context->in_packet.payload_size;
     context->out_packet.payload_size = context->in_packet.payload_size;
@@ -315,14 +315,14 @@ static t64te_tundra__xlat_status _t64f_xlat_4to6__translate_in_packet_payload_to
 
         } else if(*context->out_packet.ipv6_carried_protocol_field == 17 && context->out_packet.payload_size >= 8) { // UDP
             if(context->out_packet.payload_udphdr->check == 0)
-                return T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION;
+                return false;
 
             const uint16_t new_checksum = t64f_checksum__incrementally_recalculate_rfc1071_checksum(context->out_packet.payload_udphdr->check, &context->in_packet, &context->out_packet);
             context->out_packet.payload_udphdr->check = ((new_checksum == 0) ? 0xffff : new_checksum);
         }
     }
 
-    return T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION;
+    return true;
 }
 
 static void _t64f_xlat_4to6__appropriately_send_out_out_packet(t64ts_tundra__xlat_thread_context *context) {

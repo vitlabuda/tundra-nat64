@@ -24,15 +24,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 typedef enum {
-    T64TE_TUNDRA__XLAT_STATUS_CONTINUE_TRANSLATION,
-    T64TE_TUNDRA__XLAT_STATUS_STOP_TRANSLATION
-} t64te_tundra__xlat_status;
-
-
-// ---------------------------------------------------------------------------------------------------------------------
-
-
-typedef enum {
     T64TE_TUNDRA__OPERATION_MODE_TRANSLATE,
     T64TE_TUNDRA__OPERATION_MODE_MKTUN,
     T64TE_TUNDRA__OPERATION_MODE_RMTUN,
