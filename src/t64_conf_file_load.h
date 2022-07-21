@@ -33,11 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern t64ts_tundra__conf_file_entry **t64fa_conf_file_load__read_configuration_file(const char *filepath);
 extern void t64f_conf_file_load__free_configuration_file(t64ts_tundra__conf_file_entry **config_file_entries);
 extern const char *t64f_conf_file_load__find_string(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, const size_t max_characters, const bool empty_string_forbidden);
-extern uint64_t t64f_conf_file_load__find_uint64(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, const uint64_t min_value, const uint64_t max_value);
-extern bool t64f_conf_file_load__find_boolean(t64ts_tundra__conf_file_entry **config_file_entries, const char *key);
-extern void t64f_conf_file_load__find_ipv4_address(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination);
-extern void t64f_conf_file_load__find_ipv6_address(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination);
-extern void t64f_conf_file_load__find_ipv6_prefix(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination);
+extern uint64_t t64f_conf_file_load__find_uint64(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, const uint64_t min_value, const uint64_t max_value, uint64_t (*fallback_value_getter)(void));
+extern bool t64f_conf_file_load__find_boolean(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, bool (*fallback_value_getter)(void));
+extern void t64f_conf_file_load__find_ipv4_address(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination, void (*fallback_value_getter)(uint8_t *destination));
+extern void t64f_conf_file_load__find_ipv6_address(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination, void (*fallback_value_getter)(uint8_t *destination));
+extern void t64f_conf_file_load__find_ipv6_prefix(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination, void (*fallback_value_getter)(uint8_t *destination));
 
 
 #endif // _T64I_CONF_FILE_LOAD_H

@@ -66,3 +66,7 @@
 
 [3.0.2 @ 2022-07-20]
 - Replaced the redundant 't64te_tundra__xlat_status' enum with 'bool'
+
+[3.1.0 @ 2022-07-21]
+- Added the ability to auto-discover translation prefixes using the well-known DNS name 'ipv4only.arpa.'
+- In order for the program to automatically decide how many translator threads to use, the 'program.translator_threads' configuration option should be left empty (previously, '0' was used for this purpose)

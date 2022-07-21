@@ -148,11 +148,13 @@ const char *t64f_conf_file_load__find_string(t64ts_tundra__conf_file_entry **con
     return string_value;
 }
 
-uint64_t t64f_conf_file_load__find_uint64(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, const uint64_t min_value, const uint64_t max_value) {
+uint64_t t64f_conf_file_load__find_uint64(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, const uint64_t min_value, const uint64_t max_value, uint64_t (*fallback_value_getter)(void)) {
     const char *string_value = t64f_conf_file_load__find_string(config_file_entries, key, T64C_CONF_FILE_LOAD__FIND_STRING_NO_MAX_CHARACTERS, false);
 
     uint64_t integer_value;
-    if(sscanf(string_value, "%"SCNu64, &integer_value) != 1)
+    if(T64M_UTILS__STRING_EMPTY(string_value) && fallback_value_getter != NULL)
+        integer_value = (*fallback_value_getter)();
+    else if(sscanf(string_value, "%"SCNu64, &integer_value) != 1)
         t64f_log__crash(false, "The '%s' configuration file option's value is not a valid integer: '%s'", key, string_value);
 
     if(integer_value < min_value)
@@ -164,8 +166,11 @@ uint64_t t64f_conf_file_load__find_uint64(t64ts_tundra__conf_file_entry **config
     return integer_value;
 }
 
-bool t64f_conf_file_load__find_boolean(t64ts_tundra__conf_file_entry **config_file_entries, const char *key) {
+bool t64f_conf_file_load__find_boolean(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, bool (*fallback_value_getter)(void)) {
     const char *string_value = t64f_conf_file_load__find_string(config_file_entries, key, T64C_CONF_FILE_LOAD__FIND_STRING_NO_MAX_CHARACTERS, false);
+
+    if(T64M_UTILS__STRING_EMPTY(string_value) && fallback_value_getter != NULL)
+        return (*fallback_value_getter)();
 
     if(
         T64M_UTILS__STRINGS_EQUAL_CI(string_value, "1") ||
@@ -186,34 +191,40 @@ bool t64f_conf_file_load__find_boolean(t64ts_tundra__conf_file_entry **config_fi
     t64f_log__crash(false, "The '%s' configuration file option's value is not a valid boolean: '%s'", key, string_value);
 }
 
-void t64f_conf_file_load__find_ipv4_address(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination) {
+void t64f_conf_file_load__find_ipv4_address(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination, void (*fallback_value_getter)(uint8_t *destination)) {
     const char *string_value = t64f_conf_file_load__find_string(config_file_entries, key, T64C_CONF_FILE_LOAD__FIND_STRING_NO_MAX_CHARACTERS, false);
 
-    struct in_addr ipv4_address_value;
-    if(inet_aton(string_value, &ipv4_address_value) == 0)
-        t64f_log__crash(false, "The '%s' configuration file option's value is not a valid IPv4 address: '%s'", key, string_value);
+    if(T64M_UTILS__STRING_EMPTY(string_value) && fallback_value_getter != NULL) {
+        (*fallback_value_getter)(destination);
+    } else {
+        struct in_addr ipv4_address_value;
+        if(inet_aton(string_value, &ipv4_address_value) == 0)
+            t64f_log__crash(false, "The '%s' configuration file option's value is not a valid IPv4 address: '%s'", key, string_value);
+        memcpy(destination, &ipv4_address_value.s_addr, 4);
+    }
 
-    if(t64f_utils_ip__is_ipv4_address_unusable((uint8_t *) &ipv4_address_value.s_addr))
+    if(t64f_utils_ip__is_ipv4_address_unusable(destination))
         t64f_log__crash(false, "The IPv4 address specified in the '%s' configuration file option is valid, but not usable: '%s'", key, string_value);
-
-    memcpy(destination, &ipv4_address_value.s_addr, 4);
 }
 
-void t64f_conf_file_load__find_ipv6_address(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination) {
+void t64f_conf_file_load__find_ipv6_address(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination, void (*fallback_value_getter)(uint8_t *destination)) {
     const char *string_value = t64f_conf_file_load__find_string(config_file_entries, key, T64C_CONF_FILE_LOAD__FIND_STRING_NO_MAX_CHARACTERS, false);
 
-    struct in6_addr ipv6_address_value;
-    if(inet_pton(AF_INET6, string_value, &ipv6_address_value) != 1)
-        t64f_log__crash(false, "The '%s' configuration file option's value is not a valid IPv6 address: '%s'", key, string_value);
+    if(T64M_UTILS__STRING_EMPTY(string_value) && fallback_value_getter != NULL) {
+        (*fallback_value_getter)(destination);
+    } else {
+        struct in6_addr ipv6_address_value;
+        if(inet_pton(AF_INET6, string_value, &ipv6_address_value) != 1)
+            t64f_log__crash(false, "The '%s' configuration file option's value is not a valid IPv6 address: '%s'", key, string_value);
+        memcpy(destination, ipv6_address_value.s6_addr, 16);
+    }
 
-    if(t64f_utils_ip__is_ipv6_address_unusable((uint8_t *) ipv6_address_value.s6_addr))
+    if(t64f_utils_ip__is_ipv6_address_unusable(destination))
         t64f_log__crash(false, "The IPv6 address specified in the '%s' configuration file option is valid, but not usable: '%s'", key, string_value);
-
-    memcpy(destination, ipv6_address_value.s6_addr, 16);
 }
 
-void t64f_conf_file_load__find_ipv6_prefix(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination) {
-    t64f_conf_file_load__find_ipv6_address(config_file_entries, key, destination);
+void t64f_conf_file_load__find_ipv6_prefix(t64ts_tundra__conf_file_entry **config_file_entries, const char *key, uint8_t *destination, void (*fallback_value_getter)(uint8_t *destination)) {
+    t64f_conf_file_load__find_ipv6_address(config_file_entries, key, destination, fallback_value_getter);
 
     if(!T64M_UTILS__MEMORY_EQUAL((destination + 12), "\x00\x00\x00\x00", 4))
         t64f_log__crash(false, "The last 4 bytes of '%s' must be 0, as it is supposed to be an IPv6 /96 prefix!", key);

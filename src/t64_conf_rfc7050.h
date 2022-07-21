@@ -19,78 +19,13 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _T64I_TUNDRA_H
-#define _T64I_TUNDRA_H
+#ifndef _T64I_CONF_RFC7050_H
+#define _T64I_CONF_RFC7050_H
 
-// Preprocessor macro name flags:
-// C = constant
-// M = macro
-// I = include guard
-
-// Function name flags:
-// a = allocates memory
-
-// Type name flags:
-// s = struct
-// e = enum
-
-// Macro name flags:
-// M = a macro argument is used more than once (M = multi-use)
-
-// Variable name flags (only used with global variables):
-// g = global variable
-// c = constant global variable
-
-#define _GNU_SOURCE
-
-#include<stddef.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<stdbool.h>
-#include<stdarg.h>
-#include<stdnoreturn.h>
-#include<stdint.h>
-#include<inttypes.h>
-#include<limits.h>
-#include<ctype.h>
-#include<unistd.h>
-#include<fcntl.h>
-#include<errno.h>
-#include<locale.h>
-#include<getopt.h>
-#include<signal.h>
-#include<pwd.h>
-#include<grp.h>
-#include<poll.h>
-#include<pthread.h>
-#include<arpa/inet.h>
-#include<netinet/in.h>
-#include<netdb.h>
-#include<linux/if.h>
-#include<linux/if_tun.h>
-#include<linux/ip.h>
-#include<linux/ipv6.h>
-#include<linux/icmp.h>
-#include<linux/icmpv6.h>
-#include<linux/tcp.h>
-#include<linux/udp.h>
-#include<sys/types.h>
-#include<sys/file.h>
-#include<sys/socket.h>
-#include<sys/ioctl.h>
-#include<sys/prctl.h>
-#include<sys/sysinfo.h>
-#include<sys/random.h>
+#include"t64_tundra.h"
 
 
-#if CHAR_BIT != 8
-#error "Tundra only supports systems where CHAR_BIT is equal to 8!"
-#endif
+extern void t64f_conf_rfc7050__autodiscover_translator_prefix_using_ipv4only_arpa(uint8_t *destination);
 
 
-#include"t64_tundra_defs.h"
-#include"t64_tundra_typedefs.h"
-
-
-#endif // _T64I_TUNDRA_H
+#endif // _T64I_CONF_RFC7050_H

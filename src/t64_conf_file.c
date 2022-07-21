@@ -25,6 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_utils.h"
 #include"t64_log.h"
 #include"t64_conf_file_load.h"
+#include"t64_conf_rfc7050.h"
 
 
 static t64ts_tundra__conf_file *_t64fa_conf_file__parse_configuration_file(t64ts_tundra__conf_file_entry **config_file_entries);
@@ -39,6 +40,7 @@ static uid_t _t64f_conf_file__get_uid_by_username(const char *username);
 static gid_t _t64f_conf_file__get_gid_by_groupname(const char *groupname);
 static t64te_tundra__io_mode _t64f_conf_file__determine_io_mode_from_string(const char *io_mode_string);
 static t64te_tundra__translator_mode _t64f_conf_file__determine_translator_mode_from_string(const char *translator_mode_string);
+static uint64_t _t64f_conf_file__get_fallback_translator_thread_count(void);
 
 
 t64ts_tundra__conf_file *t64fa_conf_file__read_and_parse_configuration_file(const char *filepath) {
@@ -64,9 +66,7 @@ static t64ts_tundra__conf_file *_t64fa_conf_file__parse_configuration_file(t64ts
 
 static void _t64fa_conf_file__parse_program_configuration_entries(t64ts_tundra__conf_file_entry **config_file_entries, t64ts_tundra__conf_file *file_configuration) {
     // --- program.translator_threads ---
-    file_configuration->program_translator_threads = (size_t) t64f_conf_file_load__find_uint64(config_file_entries, T64C_CONF_FILE__OPTION_KEY_PROGRAM_TRANSLATOR_THREADS, 0, T64C_TUNDRA__MAX_TRANSLATOR_THREADS);
-    if(file_configuration->program_translator_threads == 0)
-        file_configuration->program_translator_threads = (size_t) get_nprocs(); // Cannot fail
+    file_configuration->program_translator_threads = (size_t) t64f_conf_file_load__find_uint64(config_file_entries, T64C_CONF_FILE__OPTION_KEY_PROGRAM_TRANSLATOR_THREADS, 1, T64C_TUNDRA__MAX_TRANSLATOR_THREADS, &_t64f_conf_file__get_fallback_translator_thread_count);
 
     // --- program.chroot_dir ---
     file_configuration->program_chroot_dir = t64fa_utils__duplicate_string(
@@ -157,10 +157,10 @@ static void _t64fa_conf_file__parse_io_tun_configuration_entries(t64ts_tundra__c
 
 static void _t64f_conf_file__parse_router_configuration_entries(t64ts_tundra__conf_file_entry **config_file_entries, t64ts_tundra__conf_file *file_configuration) {
     // --- router.ipv4 ---
-    t64f_conf_file_load__find_ipv4_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV4, file_configuration->router_ipv4);
+    t64f_conf_file_load__find_ipv4_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV4, file_configuration->router_ipv4, NULL);
 
     // --- router.ipv6 ---
-    t64f_conf_file_load__find_ipv6_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV6, file_configuration->router_ipv6);
+    t64f_conf_file_load__find_ipv6_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV6, file_configuration->router_ipv6, NULL);
 }
 
 static void _t64f_conf_file__parse_translator_configuration_entries(t64ts_tundra__conf_file_entry **config_file_entries, t64ts_tundra__conf_file *file_configuration) {
@@ -173,28 +173,28 @@ static void _t64f_conf_file__parse_translator_configuration_entries(t64ts_tundra
     _t64f_conf_file__parse_translator_nat64_clat_siit_configuration_entries(config_file_entries, file_configuration);
 
     // --- translator.ipv4.outbound_mtu ---
-    file_configuration->translator_ipv4_outbound_mtu = (size_t) t64f_conf_file_load__find_uint64(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4_OUTBOUND_MTU, T64C_TUNDRA__MINIMUM_MTU_IPV4, T64C_TUNDRA__MAXIMUM_MTU_IPV4);
+    file_configuration->translator_ipv4_outbound_mtu = (size_t) t64f_conf_file_load__find_uint64(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV4_OUTBOUND_MTU, T64C_TUNDRA__MINIMUM_MTU_IPV4, T64C_TUNDRA__MAXIMUM_MTU_IPV4, NULL);
 
     // --- translator.ipv6.outbound_mtu ---
-    file_configuration->translator_ipv6_outbound_mtu = (size_t) t64f_conf_file_load__find_uint64(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6_OUTBOUND_MTU, T64C_TUNDRA__MINIMUM_MTU_IPV6, T64C_TUNDRA__MAXIMUM_MTU_IPV6);
+    file_configuration->translator_ipv6_outbound_mtu = (size_t) t64f_conf_file_load__find_uint64(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_IPV6_OUTBOUND_MTU, T64C_TUNDRA__MINIMUM_MTU_IPV6, T64C_TUNDRA__MAXIMUM_MTU_IPV6, NULL);
 
 
     // --- translator.6to4.copy_dscp_and_ecn ---
-    file_configuration->translator_6to4_copy_dscp_and_ecn = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_6TO4_COPY_DSCP_AND_ECN);
+    file_configuration->translator_6to4_copy_dscp_and_ecn = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_6TO4_COPY_DSCP_AND_ECN, NULL);
 
     // --- translator.4to6.copy_dscp_and_ecn ---
-    file_configuration->translator_4to6_copy_dscp_and_ecn = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_4TO6_COPY_DSCP_AND_ECN);
+    file_configuration->translator_4to6_copy_dscp_and_ecn = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_4TO6_COPY_DSCP_AND_ECN, NULL);
 }
 
 static void _t64f_conf_file__parse_translator_nat64_clat_configuration_entries(t64ts_tundra__conf_file_entry **config_file_entries, t64ts_tundra__conf_file *file_configuration) {
     if(file_configuration->translator_mode == T64TE_TUNDRA__TRANSLATOR_MODE_NAT64 || file_configuration->translator_mode == T64TE_TUNDRA__TRANSLATOR_MODE_CLAT) {
         // --- translator.nat64_clat.ipv4 ---
-        t64f_conf_file_load__find_ipv4_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV4, file_configuration->translator_nat64_clat_ipv4);
+        t64f_conf_file_load__find_ipv4_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV4, file_configuration->translator_nat64_clat_ipv4, NULL);
         if(T64M_UTILS__MEMORY_EQUAL(file_configuration->translator_nat64_clat_ipv4, file_configuration->router_ipv4, 4))
             t64f_log__crash(false, "'%s' must not be the same as '%s'!", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV4, T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV4);
 
         // --- translator.nat64_clat.ipv6 ---
-        t64f_conf_file_load__find_ipv6_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV6, file_configuration->translator_nat64_clat_ipv6);
+        t64f_conf_file_load__find_ipv6_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV6, file_configuration->translator_nat64_clat_ipv6, NULL);
         if(T64M_UTILS__MEMORY_EQUAL(file_configuration->translator_nat64_clat_ipv6, file_configuration->router_ipv6, 16))
             t64f_log__crash(false, "'%s' must not be the same as '%s'!", T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_IPV6, T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV6);
     } else {
@@ -206,10 +206,10 @@ static void _t64f_conf_file__parse_translator_nat64_clat_configuration_entries(t
 static void _t64f_conf_file__parse_translator_nat64_clat_siit_configuration_entries(t64ts_tundra__conf_file_entry **config_file_entries, t64ts_tundra__conf_file *file_configuration) {
     if(file_configuration->translator_mode == T64TE_TUNDRA__TRANSLATOR_MODE_NAT64 || file_configuration->translator_mode == T64TE_TUNDRA__TRANSLATOR_MODE_CLAT || file_configuration->translator_mode == T64TE_TUNDRA__TRANSLATOR_MODE_SIIT) {
         // --- translator.nat64_clat_siit.prefix ---
-        t64f_conf_file_load__find_ipv6_prefix(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_PREFIX, file_configuration->translator_nat64_clat_siit_prefix);
+        t64f_conf_file_load__find_ipv6_prefix(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_PREFIX, file_configuration->translator_nat64_clat_siit_prefix, &t64f_conf_rfc7050__autodiscover_translator_prefix_using_ipv4only_arpa);
 
         // --- translator.nat64_clat_siit.allow_translation_of_private_ips ---
-        file_configuration->translator_nat64_clat_siit_allow_translation_of_private_ips = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_ALLOW_TRANSLATION_OF_PRIVATE_IPS);
+        file_configuration->translator_nat64_clat_siit_allow_translation_of_private_ips = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_TRANSLATOR_NAT64_CLAT_SIIT_ALLOW_TRANSLATION_OF_PRIVATE_IPS, NULL);
     } else {
         T64M_UTILS__MEMORY_CLEAR(file_configuration->translator_nat64_clat_siit_prefix, 16, 1);
         file_configuration->translator_nat64_clat_siit_allow_translation_of_private_ips = false;
@@ -253,6 +253,10 @@ static t64te_tundra__translator_mode _t64f_conf_file__determine_translator_mode_
         return T64TE_TUNDRA__TRANSLATOR_MODE_SIIT;
 
     t64f_log__crash(false, "Invalid translator mode string: '%s'", translator_mode_string);
+}
+
+static uint64_t _t64f_conf_file__get_fallback_translator_thread_count(void) {
+    return (uint64_t) get_nprocs();  // Cannot fail
 }
 
 void t64f_conf_file__free_parsed_configuration_file(t64ts_tundra__conf_file *file_configuration) {
