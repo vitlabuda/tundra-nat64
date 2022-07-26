@@ -19,13 +19,16 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _T64I_CONF_RFC7050_H
-#define _T64I_CONF_RFC7050_H
+#ifndef _T64I_XLAT_ADDR_EXTERNAL_H
+#define _T64I_XLAT_ADDR_EXTERNAL_H
 
 #include"t64_tundra.h"
 
 
-extern void t64f_conf_rfc7050__autodiscover_addressing_prefix_using_ipv4only_arpa(uint8_t *destination);
+extern bool t64f_xlat_addr_external__perform_4to6_address_translation_for_main_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, uint8_t *out_src_ipv6, uint8_t *out_dst_ipv6);
+extern bool t64f_xlat_addr_external__perform_4to6_address_translation_for_icmp_error_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, uint8_t *out_src_ipv6, uint8_t *out_dst_ipv6);
+extern bool t64f_xlat_addr_external__perform_6to4_address_translation_for_main_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, uint8_t *out_src_ipv4, uint8_t *out_dst_ipv4);
+extern bool t64f_xlat_addr_external__perform_6to4_address_translation_for_icmp_error_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, uint8_t *out_src_ipv4, uint8_t *out_dst_ipv4);
 
 
-#endif // _T64I_CONF_RFC7050_H
+#endif // _T64I_XLAT_ADDR_EXTERNAL_H

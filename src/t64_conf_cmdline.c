@@ -43,8 +43,10 @@ Options:\n\
     Specifies the file from which the program's configuration will be loaded.\n\
     DEFAULT: "T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH"\n\
     NOTE: To load the configuration from standard input, specify '/dev/stdin' as the config file path.\n\
-  -f, --"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...\n\
+  -f, --"T64C_CONF_CMDLINE__LONGOPT_IO_INHERITED_FDS"=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...\n\
     Specifies the file descriptors to be used in the '"T64C_CONF_FILE__IO_MODE_INHERITED_FDS"' I/O mode. Ignored otherwise.\n\
+  -F, --"T64C_CONF_CMDLINE__LONGOPT_ADDRESSING_EXTERNAL_INHERITED_FDS"=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...\n\
+    Specifies the file descriptors to be used for the '"T64C_CONF_FILE__ADDRESSING_EXTERNAL_TRANSPORT_INHERITED_FDS"' transport of the '"T64C_CONF_FILE__ADDRESSING_MODE_EXTERNAL"' addressing mode. Ignored otherwise.\n\
 \n\
 Modes of operation:\n\
   "T64C_CONF_CMDLINE__OPMODE_TRANSLATE"\n\
@@ -98,9 +100,10 @@ t64ts_tundra__conf_cmdline *t64fa_conf_cmdline__parse_cmdline_configuration(int 
     if(argc < 1 || argv[0] == NULL)
         t64f_log__crash(false, "argv[0] does not exist or is NULL!");
 
-    t64ts_tundra__conf_cmdline *cmdline_configuration = t64fa_utils__allocate_memory(1, sizeof(t64ts_tundra__conf_cmdline));
+    t64ts_tundra__conf_cmdline *cmdline_configuration = t64fa_utils__allocate_zeroed_out_memory(1, sizeof(t64ts_tundra__conf_cmdline));
     cmdline_configuration->config_file_path = NULL;
-    cmdline_configuration->inherited_fds = NULL;
+    cmdline_configuration->io_inherited_fds = NULL;
+    cmdline_configuration->addressing_external_inherited_fds = NULL;
     cmdline_configuration->mode_of_operation = T64TE_TUNDRA__OPERATION_MODE_TRANSLATE;
 
     _t64f_conf_cmdline__parse_cmdline_options(cmdline_configuration, argc, argv);
@@ -114,38 +117,45 @@ t64ts_tundra__conf_cmdline *t64fa_conf_cmdline__parse_cmdline_configuration(int 
 }
 
 static void _t64f_conf_cmdline__parse_cmdline_options(t64ts_tundra__conf_cmdline *cmdline_configuration, int argc, char **argv) {
-    static const char *option_string = "hvlc:f:";
+    static const char *option_string = "hvlc:f:F:";
     static const struct option long_options[] = {
-            {T64C_CONF_CMDLINE__LONGOPT_HELP,           no_argument,        NULL, 'h'},
-            {T64C_CONF_CMDLINE__LONGOPT_VERSION,        no_argument,        NULL, 'v'},
-            {T64C_CONF_CMDLINE__LONGOPT_LICENSE,        no_argument,        NULL, 'l'},
-            {T64C_CONF_CMDLINE__LONGOPT_CONFIG_FILE,    required_argument,  NULL, 'c'},
-            {T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS,  required_argument,  NULL, 'f'},
-            {NULL,                                      no_argument,        NULL, 0},
+            {T64C_CONF_CMDLINE__LONGOPT_HELP,                               no_argument,        NULL, T64C_CONF_CMDLINE__SHORTOPT_HELP},
+            {T64C_CONF_CMDLINE__LONGOPT_VERSION,                            no_argument,        NULL, T64C_CONF_CMDLINE__SHORTOPT_VERSION},
+            {T64C_CONF_CMDLINE__LONGOPT_LICENSE,                            no_argument,        NULL, T64C_CONF_CMDLINE__SHORTOPT_LICENSE},
+            {T64C_CONF_CMDLINE__LONGOPT_CONFIG_FILE,                        required_argument,  NULL, T64C_CONF_CMDLINE__SHORTOPT_CONFIG_FILE},
+            {T64C_CONF_CMDLINE__LONGOPT_IO_INHERITED_FDS,                   required_argument,  NULL, T64C_CONF_CMDLINE__SHORTOPT_IO_INHERITED_FDS},
+            {T64C_CONF_CMDLINE__LONGOPT_ADDRESSING_EXTERNAL_INHERITED_FDS,  required_argument,  NULL, T64C_CONF_CMDLINE__SHORTOPT_ADDRESSING_EXTERNAL_INHERITED_FDS},
+            {NULL,                                                          no_argument,        NULL, 0},
     };
 
     int getopt_option;
     while ((getopt_option = getopt_long(argc, argv, option_string, long_options, NULL)) > 0) {
         switch (getopt_option) {
-            case 'h':
+            case T64C_CONF_CMDLINE__SHORTOPT_HELP:
                 _t64f_conf_cmdline__print_help_and_exit(argv[0]);
 
-            case 'v':
+            case T64C_CONF_CMDLINE__SHORTOPT_VERSION:
                 _t64f_conf_cmdline__print_version_and_exit();
 
-            case 'l':
+            case T64C_CONF_CMDLINE__SHORTOPT_LICENSE:
                 _t64f_conf_cmdline__print_license_and_exit();
 
-            case 'c':
-                if (cmdline_configuration->config_file_path != NULL)
+            case T64C_CONF_CMDLINE__SHORTOPT_CONFIG_FILE:
+                if(cmdline_configuration->config_file_path != NULL)
                     t64f_log__crash(false, "The config file path has already been set: %s", cmdline_configuration->config_file_path);
                 cmdline_configuration->config_file_path = t64fa_utils__duplicate_string(optarg);
                 break;
 
-            case 'f':
-                if (cmdline_configuration->inherited_fds != NULL)
-                    t64f_log__crash(false, "The list of inherited file descriptors has already been set: %s", cmdline_configuration->inherited_fds);
-                cmdline_configuration->inherited_fds = t64fa_utils__duplicate_string(optarg);
+            case T64C_CONF_CMDLINE__SHORTOPT_IO_INHERITED_FDS:
+                if(cmdline_configuration->io_inherited_fds != NULL)
+                    t64f_log__crash(false, "The list of inherited file descriptors for packet I/O has already been set: %s", cmdline_configuration->io_inherited_fds);
+                cmdline_configuration->io_inherited_fds = t64fa_utils__duplicate_string(optarg);
+                break;
+
+            case T64C_CONF_CMDLINE__SHORTOPT_ADDRESSING_EXTERNAL_INHERITED_FDS:
+                if(cmdline_configuration->addressing_external_inherited_fds != NULL)
+                    t64f_log__crash(false, "The list of inherited file descriptors for external address translation has already been set: %s", cmdline_configuration->addressing_external_inherited_fds);
+                cmdline_configuration->addressing_external_inherited_fds = t64fa_utils__duplicate_string(optarg);
                 break;
 
             case '?':
@@ -215,8 +225,10 @@ static t64te_tundra__operation_mode _t64f_conf_cmdline__determine_operation_mode
 
 void t64f_conf_cmdline__free_cmdline_configuration(t64ts_tundra__conf_cmdline *cmdline_configuration) {
     t64f_utils__free_memory(cmdline_configuration->config_file_path);
-    if(cmdline_configuration->inherited_fds != NULL)
-        t64f_utils__free_memory(cmdline_configuration->inherited_fds);
+    if(cmdline_configuration->io_inherited_fds != NULL)
+        t64f_utils__free_memory(cmdline_configuration->io_inherited_fds);
+    if(cmdline_configuration->addressing_external_inherited_fds != NULL)
+        t64f_utils__free_memory(cmdline_configuration->addressing_external_inherited_fds);
 
     t64f_utils__free_memory(cmdline_configuration);
 }

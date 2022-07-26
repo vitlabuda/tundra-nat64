@@ -33,8 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration, int termination_pipe_read_fd);
 static void _t64fa_opmode_translate__initialize_packet_struct(t64ts_tundra__packet *packet);
+static t64ts_tundra__external_addr_xlat_state *_t64fa_opmode_translate__initialize_external_addr_xlat_state_struct(const t64ts_tundra__conf_file *file_configuration, char **addressing_external_next_fds_string_ptr);
 static void _t64f_opmode_translate__free_xlat_thread_contexts(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts);
 static void _t64f_opmode_translate__free_packet_struct(t64ts_tundra__packet *packet_struct);
+static void _t64f_opmode_translate__free_external_addr_xlat_state_struct(t64ts_tundra__external_addr_xlat_state *external_addr_xlat_state);
 static void _t64f_opmode_translate__daemonize(const t64ts_tundra__conf_file *file_configuration);
 static void _t64f_opmode_translate__start_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts);
 static void _t64f_opmode_translate__print_information_about_translation_start(const t64ts_tundra__conf_file *file_configuration);
@@ -69,11 +71,15 @@ void t64f_opmode_translate__run(const t64ts_tundra__conf_cmdline *cmdline_config
 }
 
 static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration, int termination_pipe_read_fd) {
-    t64ts_tundra__xlat_thread_context *thread_contexts = t64fa_utils__allocate_memory(file_configuration->program_translator_threads, sizeof(t64ts_tundra__xlat_thread_context));
+    t64ts_tundra__xlat_thread_context *thread_contexts = t64fa_utils__allocate_zeroed_out_memory(file_configuration->program_translator_threads, sizeof(t64ts_tundra__xlat_thread_context));
 
-    if(file_configuration->io_mode == T64TE_TUNDRA__IO_MODE_INHERITED_FDS && cmdline_configuration->inherited_fds == NULL)
-        t64f_log__crash(false, "Even though the program is in the '"T64C_CONF_FILE__IO_MODE_INHERITED_FDS"' I/O mode, the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option is missing!");
-    const char *next_fds_string_ptr = cmdline_configuration->inherited_fds;
+    if(file_configuration->io_mode == T64TE_TUNDRA__IO_MODE_INHERITED_FDS && cmdline_configuration->io_inherited_fds == NULL)
+        t64f_log__crash(false, "Even though the program is in the '%s' I/O mode, the '-%c' / '--%s' command-line option is missing!", T64C_CONF_FILE__IO_MODE_INHERITED_FDS, T64C_CONF_CMDLINE__SHORTOPT_IO_INHERITED_FDS, T64C_CONF_CMDLINE__LONGOPT_IO_INHERITED_FDS);
+    if(file_configuration->addressing_mode == T64TE_TUNDRA__ADDRESSING_MODE_EXTERNAL && file_configuration->addressing_external_transport == T64TE_TUNDRA__ADDRESSING_EXTERNAL_TRANSPORT_INHERITED_FDS && cmdline_configuration->addressing_external_inherited_fds == NULL)
+        t64f_log__crash(false, "Even though the program is configured to use the '%s' transport of the '%s' addressing mode, the '-%c' / '--%s' command-line option is missing!", T64C_CONF_FILE__ADDRESSING_EXTERNAL_TRANSPORT_INHERITED_FDS, T64C_CONF_FILE__ADDRESSING_MODE_EXTERNAL, T64C_CONF_CMDLINE__SHORTOPT_ADDRESSING_EXTERNAL_INHERITED_FDS, T64C_CONF_CMDLINE__LONGOPT_ADDRESSING_EXTERNAL_INHERITED_FDS);
+
+    char *io_next_fds_string_ptr = cmdline_configuration->io_inherited_fds;
+    char *addressing_external_next_fds_string_ptr = cmdline_configuration->addressing_external_inherited_fds;
 
     for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
         // context[i].thread stays uninitialized (it is initialized in _t64f_opmode_translate_start_xlat_threads())
@@ -87,11 +93,17 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
         if(getrandom(&thread_contexts[i].fragment_identifier_ipv6, 4, 0) != 4 || getrandom(&thread_contexts[i].fragment_identifier_ipv4, 2, 0) != 2)
             t64f_log__crash(false, "Failed to generate fragment identifiers using the getrandom() system call!");
 
+        thread_contexts[i].external_addr_xlat_state = (
+            (file_configuration->addressing_mode == T64TE_TUNDRA__ADDRESSING_MODE_EXTERNAL) ?
+            _t64fa_opmode_translate__initialize_external_addr_xlat_state_struct(file_configuration, &addressing_external_next_fds_string_ptr) :
+            NULL
+        );
+
         thread_contexts[i].termination_pipe_read_fd = termination_pipe_read_fd;
 
         switch(file_configuration->io_mode) {
             case T64TE_TUNDRA__IO_MODE_INHERITED_FDS:
-                next_fds_string_ptr = t64f_init_io__get_fd_pair_from_inherited_fds_string(&thread_contexts[i].packet_read_fd, &thread_contexts[i].packet_write_fd, next_fds_string_ptr);
+                io_next_fds_string_ptr = t64f_init_io__get_fd_pair_from_inherited_fds_string(&thread_contexts[i].packet_read_fd, &thread_contexts[i].packet_write_fd, io_next_fds_string_ptr, T64C_CONF_CMDLINE__SHORTOPT_IO_INHERITED_FDS, T64C_CONF_CMDLINE__LONGOPT_IO_INHERITED_FDS);
                 break;
 
             case T64TE_TUNDRA__IO_MODE_TUN:
@@ -108,7 +120,7 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
 }
 
 static void _t64fa_opmode_translate__initialize_packet_struct(t64ts_tundra__packet *packet_struct) {
-    packet_struct->packet_raw = t64fa_utils__allocate_memory(T64C_TUNDRA__MAX_PACKET_SIZE + 1, sizeof(uint8_t));
+    packet_struct->packet_raw = t64fa_utils__allocate_zeroed_out_memory(T64C_TUNDRA__MAX_PACKET_SIZE + 1, sizeof(uint8_t));
     packet_struct->packet_raw[T64C_TUNDRA__MAX_PACKET_SIZE] = '\0';
     packet_struct->packet_size = 0;
 
@@ -119,12 +131,48 @@ static void _t64fa_opmode_translate__initialize_packet_struct(t64ts_tundra__pack
     packet_struct->ipv6_carried_protocol_field = NULL;
 }
 
+static t64ts_tundra__external_addr_xlat_state *_t64fa_opmode_translate__initialize_external_addr_xlat_state_struct(const t64ts_tundra__conf_file *file_configuration, char **addressing_external_next_fds_string_ptr) {
+    t64ts_tundra__external_addr_xlat_state *external_addr_xlat_state = t64fa_utils__allocate_zeroed_out_memory(1, sizeof(t64ts_tundra__external_addr_xlat_state));
+
+    if(file_configuration->addressing_external_cache_size_main_addresses > 0) {
+        // It is absolutely crucial that the cache memory is zeroed out!
+        external_addr_xlat_state->address_cache_4to6_main_packet = t64fa_utils__allocate_zeroed_out_memory(file_configuration->addressing_external_cache_size_main_addresses, sizeof(t64ts_tundra__external_addr_xlat_cache_entry));
+        external_addr_xlat_state->address_cache_6to4_main_packet = t64fa_utils__allocate_zeroed_out_memory(file_configuration->addressing_external_cache_size_main_addresses, sizeof(t64ts_tundra__external_addr_xlat_cache_entry));
+    } else {
+        external_addr_xlat_state->address_cache_4to6_main_packet = NULL;
+        external_addr_xlat_state->address_cache_6to4_main_packet = NULL;
+    }
+
+    if(file_configuration->addressing_external_cache_size_icmp_error_addresses > 0) {
+        // It is absolutely crucial that the cache memory is zeroed out!
+        external_addr_xlat_state->address_cache_4to6_icmp_error_packet = t64fa_utils__allocate_zeroed_out_memory(file_configuration->addressing_external_cache_size_icmp_error_addresses, sizeof(t64ts_tundra__external_addr_xlat_cache_entry));
+        external_addr_xlat_state->address_cache_6to4_icmp_error_packet = t64fa_utils__allocate_zeroed_out_memory(file_configuration->addressing_external_cache_size_icmp_error_addresses, sizeof(t64ts_tundra__external_addr_xlat_cache_entry));
+    } else {
+        external_addr_xlat_state->address_cache_4to6_icmp_error_packet = NULL;
+        external_addr_xlat_state->address_cache_6to4_icmp_error_packet = NULL;
+    }
+
+    if(file_configuration->addressing_external_transport == T64TE_TUNDRA__ADDRESSING_EXTERNAL_TRANSPORT_INHERITED_FDS) {
+        *addressing_external_next_fds_string_ptr = t64f_init_io__get_fd_pair_from_inherited_fds_string(&external_addr_xlat_state->read_fd, &external_addr_xlat_state->write_fd, *addressing_external_next_fds_string_ptr, T64C_CONF_CMDLINE__SHORTOPT_ADDRESSING_EXTERNAL_INHERITED_FDS, T64C_CONF_CMDLINE__LONGOPT_ADDRESSING_EXTERNAL_INHERITED_FDS);
+    } else {
+        external_addr_xlat_state->read_fd = external_addr_xlat_state->write_fd = -1;
+    }
+
+    if(getrandom(&external_addr_xlat_state->message_identifier, 4, 0) != 4)
+        t64f_log__crash(false, "Failed to generate a message identifier for external address translation using the getrandom() system call!");
+
+    return external_addr_xlat_state;
+}
+
 // Closes 'packet_read_fd' and 'packet_write_fd', but not 'termination_pipe_read_fd'!
 static void _t64f_opmode_translate__free_xlat_thread_contexts(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts) {
     for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
         _t64f_opmode_translate__free_packet_struct(&thread_contexts[i].in_packet);
         _t64f_opmode_translate__free_packet_struct(&thread_contexts[i].out_packet);
         _t64f_opmode_translate__free_packet_struct(&thread_contexts[i].tmp_packet);
+
+        if(thread_contexts[i].external_addr_xlat_state != NULL)
+            _t64f_opmode_translate__free_external_addr_xlat_state_struct(thread_contexts[i].external_addr_xlat_state);
 
         if(thread_contexts[i].packet_read_fd == thread_contexts[i].packet_write_fd) {
             t64f_init_io__close_fd(thread_contexts[i].packet_read_fd);
@@ -140,6 +188,24 @@ static void _t64f_opmode_translate__free_xlat_thread_contexts(const t64ts_tundra
 static void _t64f_opmode_translate__free_packet_struct(t64ts_tundra__packet *packet_struct) {
     // For future extension.
     t64f_utils__free_memory(packet_struct->packet_raw);
+}
+
+static void _t64f_opmode_translate__free_external_addr_xlat_state_struct(t64ts_tundra__external_addr_xlat_state *external_addr_xlat_state) {
+    if(external_addr_xlat_state->address_cache_4to6_main_packet != NULL)
+        t64f_utils__free_memory(external_addr_xlat_state->address_cache_4to6_main_packet);
+    if(external_addr_xlat_state->address_cache_4to6_icmp_error_packet != NULL)
+        t64f_utils__free_memory(external_addr_xlat_state->address_cache_4to6_icmp_error_packet);
+    if(external_addr_xlat_state->address_cache_6to4_main_packet != NULL)
+        t64f_utils__free_memory(external_addr_xlat_state->address_cache_6to4_main_packet);
+    if(external_addr_xlat_state->address_cache_6to4_icmp_error_packet != NULL)
+        t64f_utils__free_memory(external_addr_xlat_state->address_cache_6to4_icmp_error_packet);
+
+    if(external_addr_xlat_state->read_fd >= 0)
+        close(external_addr_xlat_state->read_fd);
+    if(external_addr_xlat_state->write_fd >= 0 && external_addr_xlat_state->write_fd != external_addr_xlat_state->read_fd)
+        close(external_addr_xlat_state->write_fd);
+
+    t64f_utils__free_memory(external_addr_xlat_state);
 }
 
 static void _t64f_opmode_translate__daemonize(const t64ts_tundra__conf_file *file_configuration) {
@@ -167,7 +233,7 @@ static void _t64f_opmode_translate__daemonize(const t64ts_tundra__conf_file *fil
 
 static void _t64f_opmode_translate__start_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts) {
     for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
-        int pthread_errno = pthread_create(&thread_contexts[i].thread, NULL, t64f_xlat__thread_run, thread_contexts + i);
+        const int pthread_errno = pthread_create(&thread_contexts[i].thread, NULL, t64f_xlat__thread_run, thread_contexts + i);
         if(pthread_errno != 0) {
             errno = pthread_errno;
             t64f_log__crash(true, "Failed to create a new translator thread!");
@@ -176,21 +242,22 @@ static void _t64f_opmode_translate__start_xlat_threads(const t64ts_tundra__conf_
 }
 
 static void _t64f_opmode_translate__print_information_about_translation_start(const t64ts_tundra__conf_file *file_configuration) {
-    const char *translator_mode_string;
-    switch(file_configuration->translator_mode) {
-        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64: translator_mode_string = "NAT64"; break;
-        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT: translator_mode_string = "CLAT"; break;
-        case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT: translator_mode_string = "SIIT"; break;
-        default: t64f_log__crash_invalid_internal_state("Invalid translator mode");
+    const char *addressing_mode_string;
+    switch(file_configuration->addressing_mode) {
+        case T64TE_TUNDRA__ADDRESSING_MODE_NAT64: addressing_mode_string = "NAT64"; break;
+        case T64TE_TUNDRA__ADDRESSING_MODE_CLAT: addressing_mode_string = "CLAT"; break;
+        case T64TE_TUNDRA__ADDRESSING_MODE_SIIT: addressing_mode_string = "SIIT"; break;
+        case T64TE_TUNDRA__ADDRESSING_MODE_EXTERNAL: addressing_mode_string = "<external>"; break;
+        default: t64f_log__crash_invalid_internal_state("Invalid addressing mode");
     }
 
     switch(file_configuration->io_mode) {
         case T64TE_TUNDRA__IO_MODE_INHERITED_FDS:
-            t64f_log__info("%zu threads are now performing %s translation of packets on command-line-provided file descriptors...", file_configuration->program_translator_threads, translator_mode_string);
+            t64f_log__info("%zu threads are now performing %s translation of packets on command-line-provided file descriptors...", file_configuration->program_translator_threads, addressing_mode_string);
             break;
 
         case T64TE_TUNDRA__IO_MODE_TUN:
-            t64f_log__info("%zu threads are now performing %s translation of packets on TUN interface '%s'...", file_configuration->program_translator_threads, translator_mode_string, file_configuration->io_tun_interface_name);
+            t64f_log__info("%zu threads are now performing %s translation of packets on TUN interface '%s'...", file_configuration->program_translator_threads, addressing_mode_string, file_configuration->io_tun_interface_name);
             break;
 
         default:
@@ -219,7 +286,7 @@ static void _t64f_opmode_translate__terminate_xlat_threads(const t64ts_tundra__c
 
     // Wait for the threads to terminate
     for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
-        int pthread_errno = pthread_join(thread_contexts[i].thread, NULL);
+        const int pthread_errno = pthread_join(thread_contexts[i].thread, NULL);
         if(pthread_errno != 0) {
             errno = pthread_errno;
             t64f_log__crash(true, "Failed to join a translator thread!");

@@ -64,7 +64,7 @@ static void _t64f_xlat__prepare_packet_struct_for_new_packet(t64ts_tundra__packe
 
 static bool _t64f_xlat__wait_for_input(t64ts_tundra__xlat_thread_context *context) {
     struct pollfd poll_fds[2];
-    T64M_UTILS__MEMORY_CLEAR(poll_fds, 2, sizeof(struct pollfd));
+    T64M_UTILS__MEMORY_ZERO_OUT(poll_fds, 2 * sizeof(struct pollfd));
     poll_fds[0].fd = context->termination_pipe_read_fd;
     poll_fds[0].events = POLLIN;
     poll_fds[1].fd = context->packet_read_fd;

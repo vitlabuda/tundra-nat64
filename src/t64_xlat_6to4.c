@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
+#include"t64_log.h"
 #include"t64_checksum.h"
 #include"t64_xlat_io.h"
 #include"t64_xlat_6to4_icmp.h"
@@ -31,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_xlat_addr_nat64.h"
 #include"t64_xlat_addr_clat.h"
 #include"t64_xlat_addr_siit.h"
+#include"t64_xlat_addr_external.h"
 
 
 static bool _t64f_xlat_6to4__evaluate_in_packet(t64ts_tundra__xlat_thread_context *context);
@@ -65,24 +67,29 @@ void t64f_xlat_6to4__handle_packet(t64ts_tundra__xlat_thread_context *context) {
 
     // It would be possible to decide which function to use beforehand and then call it indirectly using a function
     //  pointer, but indirect function calls are usually slow.
-    switch(context->configuration->translator_mode) {
-        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
+    switch(context->configuration->addressing_mode) {
+        case T64TE_TUNDRA__ADDRESSING_MODE_NAT64:
             if(!t64f_xlat_addr_nat64__perform_6to4_address_translation_for_main_packet(context, (const uint8_t *) context->in_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) context->in_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &context->out_packet.packet_ipv4hdr->saddr, (uint8_t *) &context->out_packet.packet_ipv4hdr->daddr))
                 return;
             break;
 
-        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
+        case T64TE_TUNDRA__ADDRESSING_MODE_CLAT:
             if(!t64f_xlat_addr_clat__perform_6to4_address_translation_for_main_packet(context, (const uint8_t *) context->in_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) context->in_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &context->out_packet.packet_ipv4hdr->saddr, (uint8_t *) &context->out_packet.packet_ipv4hdr->daddr))
                 return;
             break;
 
-        case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT:
+        case T64TE_TUNDRA__ADDRESSING_MODE_SIIT:
             if(!t64f_xlat_addr_siit__perform_6to4_address_translation_for_main_packet(context, (const uint8_t *) context->in_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) context->in_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &context->out_packet.packet_ipv4hdr->saddr, (uint8_t *) &context->out_packet.packet_ipv4hdr->daddr))
                 return;
             break;
 
+        case T64TE_TUNDRA__ADDRESSING_MODE_EXTERNAL:
+            if(!t64f_xlat_addr_external__perform_6to4_address_translation_for_main_packet(context, (const uint8_t *) context->in_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) context->in_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &context->out_packet.packet_ipv4hdr->saddr, (uint8_t *) &context->out_packet.packet_ipv4hdr->daddr))
+                return;
+            break;
+
         default:
-            return; // This should never happen!
+            t64f_log__thread_crash_invalid_internal_state(context->thread_id, "Invalid addressing mode");
     }
 
     // At this moment, the entire in_packet's IPv6 header has been validated (including any IPv6 extension headers);

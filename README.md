@@ -19,30 +19,69 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-# Tundra-NAT64
-**Tundra-NAT64** is an open-source **stateless NAT64 and CLAT implementation for Linux** which operates entirely in user-space, 
-can run in **multiple threads** (and thus make use of today's modern multicore CPUs) and uses either the TUN driver or 
-inherited file descriptors to receive and send packets. It is written in pure C and translates packets from IPv6 to 
-IPv4 and vice versa according to [RFC 7915](https://datatracker.ietf.org/doc/html/rfc7915) *(SIIT – Stateless IP/ICMP 
-Translation Algorithm)*.
 
-The stateless NAT64/CLAT translator offered by Tundra focuses on being minimal – features which are not necessary for 
-SOHO-grade NAT64/CLAT service are often omitted, and so are features which can be substituted by something else. One of the
-consequences of this design approach is that the program does not allocate any extra memory after it initializes.
+# Tundra-NAT64
+
+**Tundra-NAT64** is an open-source **IPv6-to-IPv4 & IPv4-to-IPv6 translator for Linux** which operates 
+entirely in user-space, can run in multiple threads (and thus make use of today's modern multicore CPUs) and uses 
+either the TUN driver or inherited file descriptors to receive and send packets. It is written in pure C and translates 
+packets according to the rules of **SIIT** (_Stateless IP/ICMP Translation Algorithm_; 
+[RFC 7915](https://datatracker.ietf.org/doc/html/rfc7915)), while offering the following **configurable address 
+translation modes**:
+
+- **Stateless NAT64** – In this mode, Tundra is making it possible for a single host, or, in cooperation with Linux's 
+  in-kernel NAT66 translator (as described below), for any number of hosts on an IPv6-only network to access IPv4-only 
+  hosts.
+
+- **Stateless CLAT** – In this mode, Tundra is making it possible for programs using IPv4-only sockets (`AF_INET`) to
+  access IPv4-only hosts when running on a computer connected to an IPv6-only network with a NAT64 service. In addition,
+  when running on a router which is connected to the outside world over an IPv6-only network with a NAT64 service,
+  Tundra may be used to create a dual-stack internal network in cooperation with Linux's in-kernel NAT44 translator.
+
+- **SIIT** – In this mode, Tundra is translating IPv6 packets whose addresses are composed of an IPv4 address wrapped
+  inside a translation prefix into IPv4 packets with the same IPv4 addresses (extracted from the aforementioned prefix),
+  and vice versa.
+
+- **External** – In this mode, Tundra delegates address translation to another program–server, with which it
+  communicates via inherited file descriptors, Unix stream sockets or TCP. Tundra will translate packets from IPv4 to 
+  IPv6 and vice versa as per the rules of SIIT while querying an external address translator for IP addresses to be 
+  put in the translated packets. The specification of the protocol which Tundra uses to communicate with the external 
+  translator can be found in 
+  [external_addr_xlat/EXTERNAL-ADDR-XLAT-PROTOCOL.md](external_addr_xlat/EXTERNAL-ADDR-XLAT-PROTOCOL.md).
+
+More information about the aforementioned address translation modes (including how to configure them) can be found in 
+relevant sections of the [example configuration file](tundra-nat64.example.conf).
+
+The SIIT/NAT64/CLAT translator offered by Tundra focuses on being minimal – features which are not necessary for 
+SOHO-grade SIIT/NAT64/CLAT service are often omitted, and so are features which can be substituted by something else. 
+One of the consequences of this design approach is that the program does not allocate any extra memory after it 
+initializes.
 
 Probably the most significant trait of this program, which makes it different from other NAT64/CLAT implementations, is 
 that Tundra itself cannot act as a NAT64/CLAT translator for more than one host, as it lacks an internal dynamic address 
-pool from which it would assign IP addresses to hosts needing its service (or something similar) – it uses a fixed 
+pool (or something similar) from which it would assign IP addresses to hosts needing its service – it uses a fixed 
 single IP address specified in a configuration file instead (see the [example config file](tundra-nat64.example.conf) 
 for details). However, it can be used in cooperation with **Linux's in-kernel NAT66/NAT44** translator and therefore 
-translate traffic from any number of hosts/networks, as is described in the 
-[example config file](tundra-nat64.example.conf).
+translate traffic from any number of hosts/networks.
 
-Tundra is similar to [TAYGA](http://www.litech.org/tayga/) (another stateless out-of-kernel NAT64 implementation, which 
-can act as a CLAT translator in cooperation with [clatd](https://github.com/toreanderson/clatd)), but there are some 
-differences. Tundra is multi-threaded, it can receive and send packets from inherited file descriptors and lacks the 
+Tundra is, in certain aspects, similar to [TAYGA](http://www.litech.org/tayga/) (another stateless out-of-kernel NAT64 
+implementation, which can act as a CLAT translator in cooperation with [clatd](https://github.com/toreanderson/clatd)), 
+but there are some differences. Tundra is multi-threaded, has configurable address translation modes (including the 
+non-traditional `external` mode), can receive and send packets from inherited file descriptors, and lacks the 
 aforementioned dynamic address pool. TAYGA also inspired this program's name - both "taiga" and "tundra" are subarctic 
 biomes and the word "tundra" starts with "tun", the name of the driver which Tundra uses to exchange packets.
+
+The reason why this program is named _Tundra-NAT64_ despite it offering other address translation modes than just NAT64
+is that originally, it was meant to be only a stateless NAT64 translator and the other modes were added later. Since
+rebranding it would be quite difficult and could cause certain problems (due to, for example, permalinks pointing to 
+this Git repository whose name/URL contains the `nat64`), I decided not to do it.
+
+Tundra was the subject of a Czech-language talk I held at the 
+[Seminář IPv6: deset let poté](https://www.cesnet.cz/akce/seminar-ipv6-deset-let-pote/) conference on the 6th June 2022 
+in Prague – [presentation](https://www.cesnet.cz/wp-content/uploads/2022/06/Bezstavovy-NAT64_Vit-Labuda.pdf),
+[video](https://www.youtube.com/watch?v=JJvqBH02GiA&t=3167s).
+
+
 
 
 
@@ -56,6 +95,8 @@ Both `gcc` and `clang` may be used to compile the program.
 
 
 
+
+
 ## Configuration & usage
 
 ### Configuration file
@@ -64,7 +105,7 @@ Tundra loads its settings from a configuration file. This repository contains a 
 
 ### Command-line parameters
 The output of `./tundra-nat64 --help` is as follows:
-```
+```text
 Usage: ./tundra-nat64 [OPTION]... [MODE_OF_OPERATION]
 
 Options:
@@ -78,8 +119,10 @@ Options:
     Specifies the file from which the program's configuration will be loaded.
     DEFAULT: /etc/tundra-nat64/tundra-nat64.conf
     NOTE: To load the configuration from standard input, specify '/dev/stdin' as the config file path.
-  -f, --inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...
+  -f, --io-inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...
     Specifies the file descriptors to be used in the 'inherited-fds' I/O mode. Ignored otherwise.
+  -F, --addressing-external-inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...
+    Specifies the file descriptors to be used for the 'inherited-fds' transport of the 'external' addressing mode. Ignored otherwise.
 
 Modes of operation:
   translate
@@ -139,6 +182,8 @@ one provided by [Google](https://developers.google.com/speed/public-dns/docs/dns
 This repository contains the following configuration examples for specific platforms and translation modes:
 - **[OpenWRT + NAT64](config_examples/openwrt_nat64)** ([README with a step-by-step guide](config_examples/openwrt_nat64/README.md))
 - **[Debian + CLAT](config_examples/debian_clat)** ([README with a step-by-step guide](config_examples/debian_clat/README.md))
+
+
 
 
 

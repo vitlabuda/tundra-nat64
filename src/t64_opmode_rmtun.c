@@ -32,7 +32,7 @@ void t64f_opmode_rmtun__run(const t64ts_tundra__conf_file *file_configuration) {
         t64f_log__crash(false, "The I/O mode is not '"T64C_CONF_FILE__IO_MODE_TUN"'; therefore, persistent TUN interfaces cannot be removed!");
 
     {
-        int tun_fd = t64f_init_io__open_tun_interface(file_configuration);
+        const int tun_fd = t64f_init_io__open_tun_interface(file_configuration);
         t64f_init_io__set_tun_interface_persistent(tun_fd, false);
         t64f_init_io__close_fd(tun_fd);
     }

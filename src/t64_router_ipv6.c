@@ -28,7 +28,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_xlat_io.h"
 
 
-static void _t64f_router_ipv6__generate_header_of_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol);
+static void _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context, const uint8_t icmp_type, const uint8_t icmp_code, const uint16_t additional_2bytes);
+static void _t64f_router_ipv6__generate_header_of_icmp_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context);
 static void _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(t64ts_tundra__xlat_thread_context *context);
 
 
@@ -41,19 +42,21 @@ static void _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in
  *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
  *  immediately!
  */
+void t64f_router_ipv6__generate_and_send_icmpv6_address_unreachable_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
+    _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(context, 1, 3, 0);
+}
+
+/*
+ * When this function is called, in_packet's IPv6 header(s) must be fully validated and all the packet's properties
+ *  (i.e. 'packet_size', 'payload_raw', 'payload_size', 'ipv6_fragment_header' and 'ipv6_carried_protocol_field') must
+ *  be set correctly. The packet's payload does not have to be validated. In other words, this function can be called
+ *  at any point after the '_t64f_xlat_6to4__evaluate_in_packet()' function succeeds.
+ * This function overwrites all the contents of out_packet - it generates the ICMPv6 packet there and sends it out.
+ *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
+ *  immediately!
+ */
 void t64f_router_ipv6__generate_and_send_icmpv6_time_exceeded_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
-    _t64f_router_ipv6__generate_header_of_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(context, 58);
-
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 40 bytes IPv6 header = at least 1480 bytes free; 8 bytes needed (for ICMPv6 header)
-
-    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 0);
-
-    _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(context);
-
-    context->out_packet.payload_icmpv6hdr->icmp6_cksum = 0;
-    context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum(&context->out_packet, true);
-
-    t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(context);
+    _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(context, 3, 0, 0);
 }
 
 /*
@@ -66,13 +69,16 @@ void t64f_router_ipv6__generate_and_send_icmpv6_time_exceeded_message_back_to_in
  *  immediately!
  */
 void t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context, uint16_t mtu) {
-    _t64f_router_ipv6__generate_header_of_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(context, 58);
+    _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(context, 2, 0, htons(mtu));
+}
+
+static void _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context, const uint8_t icmp_type, const uint8_t icmp_code, const uint16_t additional_2bytes) {
+    _t64f_router_ipv6__generate_header_of_icmp_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(context);
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 40 bytes IPv6 header = at least 1480 bytes free; 8 bytes needed (for ICMPv6 header)
 
-    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 2, 0);
-    mtu = htons(mtu);
-    memcpy(context->out_packet.payload_raw + 6, &mtu, 2);
+    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, icmp_type, icmp_code);
+    memcpy(context->out_packet.payload_raw + 6, &additional_2bytes, 2);
 
     _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(context);
 
@@ -82,14 +88,14 @@ void t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_i
     t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(context);
 }
 
-static void _t64f_router_ipv6__generate_header_of_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t protocol) {
+static void _t64f_router_ipv6__generate_header_of_icmp_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context) {
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes free; 40 bytes needed (for IPv6 header)
 
     context->out_packet.packet_ipv6hdr->version = 6;
     context->out_packet.packet_ipv6hdr->priority = 0;
-    memset(context->out_packet.packet_ipv6hdr->flow_lbl, 0, 3);
+    T64M_UTILS__MEMORY_ZERO_OUT(context->out_packet.packet_ipv6hdr->flow_lbl, 3);
     context->out_packet.packet_ipv6hdr->payload_len = 0; // This is set to a correct value when the packet is sent (at this moment, it is not known what the final size of the packet's payload will be)
-    context->out_packet.packet_ipv6hdr->nexthdr = protocol;
+    context->out_packet.packet_ipv6hdr->nexthdr = 58; // ICMPv6
     context->out_packet.packet_ipv6hdr->hop_limit = T64C_TUNDRA__GENERATED_PACKET_TTL;
     memcpy(context->out_packet.packet_ipv6hdr->saddr.s6_addr, context->configuration->router_ipv6, 16);
     memcpy(context->out_packet.packet_ipv6hdr->daddr.s6_addr, context->in_packet.packet_ipv6hdr->saddr.s6_addr, 16);

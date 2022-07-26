@@ -98,7 +98,7 @@ bool t64f_utils_ip__is_ip_protocol_number_forbidden(const uint8_t ip_protocol_nu
 void t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(t64ts_tundra__packet *packet, const uint8_t icmp_type, const uint8_t icmp_code) {
     packet->payload_raw[0] = icmp_type;
     packet->payload_raw[1] = icmp_code;
-    memset(packet->payload_raw + 2, 0, 6);
+    T64M_UTILS__MEMORY_ZERO_OUT(packet->payload_raw + 2, 6);
 
     packet->packet_size += 8;
     packet->payload_size = 8;

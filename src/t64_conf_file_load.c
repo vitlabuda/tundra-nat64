@@ -61,7 +61,7 @@ t64ts_tundra__conf_file_entry **t64fa_conf_file_load__read_configuration_file(co
 
 static t64ts_tundra__conf_file_entry** _t64fa_conf_file_load__read_open_config_file(FILE *conf_file_stream) {
     size_t entry_index = 0;
-    t64ts_tundra__conf_file_entry **config_file_entries = t64fa_utils__allocate_memory(1, sizeof(t64ts_tundra__conf_file_entry *));
+    t64ts_tundra__conf_file_entry **config_file_entries = t64fa_utils__allocate_zeroed_out_memory(1, sizeof(t64ts_tundra__conf_file_entry *));
     *config_file_entries = NULL;
 
     char line_buffer[_T64C_CONF_FILE_LOAD__LINE_BUFFER_SIZE];
@@ -85,7 +85,7 @@ static t64ts_tundra__conf_file_entry** _t64fa_conf_file_load__read_open_config_f
         if(_t64f_conf_file_load__get_entry_value_by_key(config_file_entries, key_ptr) != NULL)
             t64f_log__crash(false, "The key '%s' is specified more than once in the configuration file!", key_ptr);
 
-        t64ts_tundra__conf_file_entry *new_entry = t64fa_utils__allocate_memory(1, sizeof(t64ts_tundra__conf_file_entry));
+        t64ts_tundra__conf_file_entry *new_entry = t64fa_utils__allocate_zeroed_out_memory(1, sizeof(t64ts_tundra__conf_file_entry));
         new_entry->key = t64fa_utils__duplicate_string(key_ptr);
         new_entry->value = t64fa_utils__duplicate_string(value_ptr);
 

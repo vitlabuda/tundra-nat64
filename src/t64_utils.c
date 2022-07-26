@@ -25,7 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_log.h"
 
 
-void *t64fa_utils__allocate_memory(const size_t n, const size_t item_size) {
+void *t64fa_utils__allocate_zeroed_out_memory(const size_t n, const size_t item_size) {
     void *memory = calloc(n, item_size);
     if(memory == NULL)
         t64f_log__crash(false, "Out of memory!");

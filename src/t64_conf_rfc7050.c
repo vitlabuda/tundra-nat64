@@ -37,9 +37,9 @@ static void _t64f_conf_rfc7050__print_info_log_message_on_start(void);
 static void _t64f_conf_rfc7050__print_info_log_message_on_finish(const uint8_t *found_ipv6_prefix);
 
 
-void t64f_conf_rfc7050__autodiscover_translator_prefix_using_ipv4only_arpa(uint8_t *destination) {
+void t64f_conf_rfc7050__autodiscover_addressing_prefix_using_ipv4only_arpa(uint8_t *destination) {
     struct addrinfo hints;
-    T64M_UTILS__MEMORY_CLEAR(&hints, 1, sizeof(struct addrinfo));
+    T64M_UTILS__MEMORY_ZERO_OUT(&hints, sizeof(struct addrinfo));
     hints.ai_family = AF_INET6;
     hints.ai_socktype = SOCK_STREAM;
 
@@ -59,7 +59,7 @@ void t64f_conf_rfc7050__autodiscover_translator_prefix_using_ipv4only_arpa(uint8
             const uint8_t *ipv6_address = (const uint8_t *) (((struct sockaddr_in6 *) current_result->ai_addr)->sin6_addr.s6_addr);
             if(T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(ipv6_address + 12, _T64C_CONF_RFC7050__TARGET_IPV4_1) || T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(ipv6_address + 12, _T64C_CONF_RFC7050__TARGET_IPV4_2)) {
                 memcpy(destination, ipv6_address, 12);
-                T64M_UTILS__MEMORY_CLEAR(destination + 12, 4, 1);
+                T64M_UTILS__MEMORY_ZERO_OUT(destination + 12, 4);
                 freeaddrinfo(results);
                 _t64f_conf_rfc7050__print_info_log_message_on_finish(destination);
                 return;
@@ -78,7 +78,7 @@ static void _t64f_conf_rfc7050__print_info_log_message_on_start(void) {
 
 static void _t64f_conf_rfc7050__print_info_log_message_on_finish(const uint8_t *found_ipv6_prefix) {
     struct in6_addr address_struct;
-    T64M_UTILS__MEMORY_CLEAR(&address_struct, 1, sizeof(struct in6_addr));
+    T64M_UTILS__MEMORY_ZERO_OUT(&address_struct, sizeof(struct in6_addr));
     memcpy(address_struct.s6_addr, found_ipv6_prefix, 16);
 
     char found_ipv6_prefix_string[INET6_ADDRSTRLEN] = {'\0'};

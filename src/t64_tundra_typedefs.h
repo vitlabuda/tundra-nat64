@@ -37,14 +37,23 @@ typedef enum {
 } t64te_tundra__io_mode;
 
 typedef enum {
-    T64TE_TUNDRA__TRANSLATOR_MODE_NAT64,
-    T64TE_TUNDRA__TRANSLATOR_MODE_CLAT,
-    T64TE_TUNDRA__TRANSLATOR_MODE_SIIT
-} t64te_tundra__translator_mode;
+    T64TE_TUNDRA__ADDRESSING_MODE_NAT64,
+    T64TE_TUNDRA__ADDRESSING_MODE_CLAT,
+    T64TE_TUNDRA__ADDRESSING_MODE_SIIT,
+    T64TE_TUNDRA__ADDRESSING_MODE_EXTERNAL
+} t64te_tundra__addressing_mode;
+
+typedef enum {
+    T64TE_TUNDRA__ADDRESSING_EXTERNAL_TRANSPORT_NONE,
+    T64TE_TUNDRA__ADDRESSING_EXTERNAL_TRANSPORT_INHERITED_FDS,
+    T64TE_TUNDRA__ADDRESSING_EXTERNAL_TRANSPORT_UNIX,
+    T64TE_TUNDRA__ADDRESSING_EXTERNAL_TRANSPORT_TCP
+} t64te_tundra__addressing_external_transport;
 
 typedef struct {
     char *config_file_path; // Cannot be NULL - contains either command-line-provided filepath, or T64C_TUNDRA_DEFAULT_CONFIG_FILE_PATH
-    char *inherited_fds; // Is NULL, when no inherited-fds are specified via command-line options
+    char *io_inherited_fds; // NULL if no 'io-inherited-fds' are specified via command-line options
+    char *addressing_external_inherited_fds;  // NULL if no 'addressing-external-inherited-fds' are specified via command-line options
     t64te_tundra__operation_mode mode_of_operation;
 } t64ts_tundra__conf_cmdline;
 
@@ -55,31 +64,69 @@ typedef struct {
 
 typedef struct {
     // The items are ordered in a way to reduce struct padding as much as possible, which is the reason why they seem to be in a "somewhat random order".
-    uint8_t translator_nat64_clat_siit_prefix[16];
-    uint8_t translator_nat64_clat_ipv6[16];
+    struct sockaddr_un addressing_external_unix_socket_info;
+    uint8_t addressing_nat64_clat_siit_prefix[16];
+    uint8_t addressing_nat64_clat_ipv6[16];
     uint8_t router_ipv6[16];
+    struct timeval addressing_external_unix_tcp_timeout;
     char *program_chroot_dir; // Cannot be NULL, but can be empty (= no chroot should be performed)
     char *io_tun_device_path; // NULL if io_mode != TUN; Cannot be empty - contains either the config-file-provided TUN device path, or T64C_TUNDRA_DEFAULT_TUN_DEVICE_PATH
     char *io_tun_interface_name; // NULL if io_mode != TUN; Cannot be empty
+    struct addrinfo *addressing_external_tcp_socket_info; // Not NULL if addressing_mode == EXTERNAL && addressing_external_transport == TCP
     size_t program_translator_threads; // Between 1 and T64C_TUNDRA__MAX_TRANSLATOR_THREADS (including)
+    size_t addressing_external_cache_size_main_addresses;
+    size_t addressing_external_cache_size_icmp_error_addresses;
     size_t translator_ipv4_outbound_mtu;
     size_t translator_ipv6_outbound_mtu;
-    uint8_t translator_nat64_clat_ipv4[4];
+    uint8_t addressing_nat64_clat_ipv4[4];
     uint8_t router_ipv4[4];
     uid_t program_privilege_drop_user_uid; // Must not be accessed if program_privilege_drop_user_perform == false
     uid_t io_tun_owner_user_uid; // Must not be accessed if io_mode != TUN or if io_tun_owner_user_set == false
     gid_t program_privilege_drop_group_gid; // Must not be accessed if program_privilege_drop_group_perform == false
     gid_t io_tun_owner_group_gid; // Must not be accessed if io_mode != TUN or if io_tun_owner_group_set == false
     t64te_tundra__io_mode io_mode;
-    t64te_tundra__translator_mode translator_mode;
+    t64te_tundra__addressing_mode addressing_mode;
+    t64te_tundra__addressing_external_transport addressing_external_transport;
     bool program_privilege_drop_user_perform;
     bool program_privilege_drop_group_perform;
     bool io_tun_owner_user_set; // Must not be accessed if io_mode != TUN
     bool io_tun_owner_group_set; // Must not be accessed if io_mode != TUN
-    bool translator_nat64_clat_siit_allow_translation_of_private_ips;
+    bool addressing_nat64_clat_siit_allow_translation_of_private_ips;
     bool translator_6to4_copy_dscp_and_ecn;
     bool translator_4to6_copy_dscp_and_ecn;
 } t64ts_tundra__conf_file;
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+
+typedef struct {
+    uint8_t src_ipv6[16];
+    uint8_t dst_ipv6[16];
+    time_t expiration_timestamp;
+    uint8_t src_ipv4[4];
+    uint8_t dst_ipv4[4];
+} t64ts_tundra__external_addr_xlat_cache_entry;
+
+typedef struct {
+    t64ts_tundra__external_addr_xlat_cache_entry *address_cache_4to6_main_packet;
+    t64ts_tundra__external_addr_xlat_cache_entry *address_cache_4to6_icmp_error_packet;
+    t64ts_tundra__external_addr_xlat_cache_entry *address_cache_6to4_main_packet;
+    t64ts_tundra__external_addr_xlat_cache_entry *address_cache_6to4_icmp_error_packet;
+    int read_fd;
+    int write_fd;
+    uint32_t message_identifier;
+} t64ts_tundra__external_addr_xlat_state;
+
+typedef struct __attribute__((__packed__)) {
+    uint8_t magic_byte;
+    uint8_t version;
+    uint8_t message_type;
+    uint8_t cache_lifetime;
+    uint32_t message_identifier;
+    uint8_t src_ip[16];
+    uint8_t dst_ip[16];
+} t64ts_tundra__external_addr_xlat_message;  // SIZE: 40 bytes
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -90,7 +137,7 @@ typedef struct __attribute__((__packed__)) {
     uint8_t reserved;
     uint16_t offset_and_flags;
     uint16_t identification[2];
-} t64ts_tundra__ipv6_fragment_header;
+} t64ts_tundra__ipv6_fragment_header;  // SIZE: 8 bytes
 
 typedef struct {
     union __attribute__((__packed__)) {
@@ -119,6 +166,7 @@ typedef struct {
     t64ts_tundra__packet tmp_packet;
     pthread_t thread;
     const t64ts_tundra__conf_file *configuration;
+    t64ts_tundra__external_addr_xlat_state *external_addr_xlat_state;
     size_t thread_id;
     int termination_pipe_read_fd;
     int packet_read_fd;

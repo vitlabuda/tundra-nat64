@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static volatile sig_atomic_t _t64g_signal__should_translator_continue_running = 1;
 
 
-static void _t64f_signal__signal_handler_function(int signum);
+static void _t64f_signal__signal_handler_function(__attribute__((unused)) int signum);
 
 
 sig_atomic_t t64f_signal__should_translator_continue_running(void) {
@@ -44,7 +44,7 @@ void t64f_signal__set_signal_handlers(void) {
     sigemptyset(&signal_mask);
 
     struct sigaction signal_action;
-    T64M_UTILS__MEMORY_CLEAR(&signal_action, 1, sizeof(struct sigaction));
+    T64M_UTILS__MEMORY_ZERO_OUT(&signal_action, sizeof(struct sigaction));
     signal_action.sa_handler = _t64f_signal__signal_handler_function;
     signal_action.sa_mask = signal_mask;
     signal_action.sa_flags = 0;
@@ -57,7 +57,7 @@ void t64f_signal__set_signal_handlers(void) {
     ) t64f_log__crash(true, "Failed to set the program's signal handlers!");
 }
 
-static void _t64f_signal__signal_handler_function(int signum) {
+static void _t64f_signal__signal_handler_function(__attribute__((unused)) int signum) {
     _t64g_signal__should_translator_continue_running = 0;
 
     // t64f_log_info() cannot be called, as it uses async-signal-unsafe functions.

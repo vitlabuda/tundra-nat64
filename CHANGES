@@ -70,3 +70,8 @@
 [3.1.0 @ 2022-07-21]
 - Added the ability to auto-discover translation prefixes using the well-known DNS name 'ipv4only.arpa.'
 - In order for the program to automatically decide how many translator threads to use, the 'program.translator_threads' configuration option should be left empty (previously, '0' was used for this purpose)
+
+[4.0.0 @ 2022-07-26]
+- Added the 'external' addressing mode, in which Tundra queries an external program for the translation of IP addresses in packets
+- Redesigned the "router subsystem"
+- Other minor improvements

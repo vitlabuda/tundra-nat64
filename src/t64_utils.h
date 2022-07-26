@@ -30,13 +30,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T64M_UTILS__STRING_EMPTY(str) (*(str) == '\0')
 
 #define T64M_UTILS__MEMORY_EQUAL(ptr1, ptr2, n) (memcmp((ptr1), (ptr2), (n)) == 0)
-#define T64M_UTILS__MEMORY_CLEAR(memory, n, item_size) (memset((memory), 0, (n) * (item_size)))
+#define T64M_UTILS__MEMORY_ZERO_OUT(memory, n) (memset((memory), 0, (n)))
 
 #define T64MM_UTILS__MINIMUM(num1, num2) (((num1) > (num2)) ? (num2) : (num1))
 #define T64MM_UTILS__MAXIMUM(num1, num2) (((num1) > (num2)) ? (num1) : (num2))
 
 
-extern void *t64fa_utils__allocate_memory(const size_t n, const size_t item_size);
+extern void *t64fa_utils__allocate_zeroed_out_memory(const size_t n, const size_t item_size);
 extern void *t64fa_utils__reallocate_memory(void *old_memory, const size_t n, const size_t item_size);
 extern char *t64fa_utils__duplicate_string(const char *string);
 extern void t64f_utils__free_memory(void *memory);

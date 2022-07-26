@@ -95,7 +95,7 @@ static uint32_t _t64f_checksum__sum_ipv4_pseudo_header(const t64ts_tundra__packe
         uint8_t protocol;
         uint16_t length;
     } ipv4_pseudo_header;
-    T64M_UTILS__MEMORY_CLEAR((void *) &ipv4_pseudo_header, 1, sizeof(ipv4_pseudo_header));
+    T64M_UTILS__MEMORY_ZERO_OUT((void *) &ipv4_pseudo_header, sizeof(ipv4_pseudo_header));
 
     ipv4_pseudo_header.source_address = ipv4_packet->packet_ipv4hdr->saddr;
     ipv4_pseudo_header.destination_address = ipv4_packet->packet_ipv4hdr->daddr;
@@ -115,12 +115,11 @@ static uint32_t _t64f_checksum__sum_ipv6_pseudo_header(const t64ts_tundra__packe
         uint8_t zeroes[3];
         uint8_t protocol;
     } ipv6_pseudo_header;
-    T64M_UTILS__MEMORY_CLEAR((void *) &ipv6_pseudo_header, 1, sizeof(ipv6_pseudo_header));
+    T64M_UTILS__MEMORY_ZERO_OUT((void *) &ipv6_pseudo_header, sizeof(ipv6_pseudo_header));
 
     memcpy((void *) ipv6_pseudo_header.source_address, ipv6_packet->packet_ipv6hdr->saddr.s6_addr, 16);
     memcpy((void *) ipv6_pseudo_header.destination_address, ipv6_packet->packet_ipv6hdr->daddr.s6_addr, 16);
     ipv6_pseudo_header.length = htonl((uint32_t) ipv6_packet->payload_size);
-    memset((void *) ipv6_pseudo_header.zeroes, 0, 3);
     ipv6_pseudo_header.protocol = *(ipv6_packet->ipv6_carried_protocol_field);
 
     return _t64f_checksum__sum_16bit_words((uint8_t *) &ipv6_pseudo_header, sizeof(ipv6_pseudo_header));

@@ -25,6 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_tundra.h"
 
 
+extern void t64f_router_ipv6__generate_and_send_icmpv6_address_unreachable_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context);
 extern void t64f_router_ipv6__generate_and_send_icmpv6_time_exceeded_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context);
 extern void t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context, uint16_t mtu);
 

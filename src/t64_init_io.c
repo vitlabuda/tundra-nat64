@@ -24,7 +24,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_log.h"
-#include"t64_conf_cmdline.h"
 
 
 // Creates the interface if it doesn't exist
@@ -35,11 +34,11 @@ int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configu
         flags |= IFF_MULTI_QUEUE;
 
     struct ifreq tun_interface_request;
-    T64M_UTILS__MEMORY_CLEAR(&tun_interface_request, 1, sizeof(struct ifreq));
+    T64M_UTILS__MEMORY_ZERO_OUT(&tun_interface_request, sizeof(struct ifreq));
     tun_interface_request.ifr_flags = flags;
     t64f_utils__secure_strncpy(tun_interface_request.ifr_name, file_configuration->io_tun_interface_name, IFNAMSIZ);
 
-    int tun_fd = open(file_configuration->io_tun_device_path, O_RDWR);
+    const int tun_fd = open(file_configuration->io_tun_device_path, O_RDWR);
     if(tun_fd < 0)
         t64f_log__crash(true, "Failed to open the TUN device file: %s", file_configuration->io_tun_device_path);
 
@@ -52,12 +51,12 @@ int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configu
     return tun_fd;
 }
 
-void t64f_init_io__set_tun_interface_persistent(int tun_fd, const bool tun_persistent) {
+void t64f_init_io__set_tun_interface_persistent(const int tun_fd, const bool tun_persistent) {
     if(ioctl(tun_fd, TUNSETPERSIST, (tun_persistent ? 1 : 0)) < 0)
         t64f_log__crash(true, "Failed to %s the TUN interface's persistence status!", (tun_persistent ? "set" : "unset"));
 }
 
-void t64f_init_io__change_ownership_of_persistent_tun_interface(const t64ts_tundra__conf_file *file_configuration, int persistent_tun_fd) {
+void t64f_init_io__change_ownership_of_persistent_tun_interface(const t64ts_tundra__conf_file *file_configuration, const int persistent_tun_fd) {
     if(file_configuration->io_tun_owner_user_set && ioctl(persistent_tun_fd, TUNSETOWNER, file_configuration->io_tun_owner_user_uid) < 0)
         t64f_log__crash(true, "Failed to set the TUN interface's owner user to UID %"PRIdMAX"!", (intmax_t) file_configuration->io_tun_owner_user_uid);
 
@@ -65,23 +64,24 @@ void t64f_init_io__change_ownership_of_persistent_tun_interface(const t64ts_tund
         t64f_log__crash(true, "Failed to set the TUN interface's owner group to GID %"PRIdMAX"!", (intmax_t) file_configuration->io_tun_owner_group_gid);
 }
 
-const char *t64f_init_io__get_fd_pair_from_inherited_fds_string(int *read_fd, int *write_fd, const char *next_fds_string_ptr) {
+char *t64f_init_io__get_fd_pair_from_inherited_fds_string(int *read_fd, int *write_fd, char *next_fds_string_ptr, const char short_opt, const char *long_opt) {
     if(next_fds_string_ptr == NULL)
-        t64f_log__crash(false, "The value of the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option does not contain enough file descriptors for all translator threads!");
+        t64f_log__crash(false, "The value of the '-%c' / '--%s' command-line option does not contain enough file descriptors for all translator threads!", short_opt, long_opt);
 
     if(sscanf(next_fds_string_ptr, "%d,%d", read_fd, write_fd) != 2)
-        t64f_log__crash(false, "The value of the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option is formatted incorrectly: '%s'", next_fds_string_ptr);
+        t64f_log__crash(false, "The value of the '-%c' / '--%s' command-line option is formatted incorrectly: '%s'", short_opt, long_opt, next_fds_string_ptr);
 
-    if(fcntl(*read_fd, F_GETFD) < 0)
-        t64f_log__crash(true, "The read file descriptor %d obtained from the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option is invalid!", *read_fd);
+    if(*read_fd < 0 || fcntl(*read_fd, F_GETFD) < 0)
+        t64f_log__crash(true, "The read file descriptor %d obtained from the '-%c' / '--%s' command-line option is invalid!", *read_fd, short_opt, long_opt);
 
-    if(fcntl(*write_fd, F_GETFD) < 0)
-        t64f_log__crash(true, "The write file descriptor %d obtained from the '-f' or '--"T64C_CONF_CMDLINE__LONGOPT_INHERITED_FDS"' command-line option is invalid!", *write_fd);
+    if(*write_fd < 0 || fcntl(*write_fd, F_GETFD) < 0)
+        t64f_log__crash(true, "The write file descriptor %d obtained from the '-%c' / '--%s' command-line option is invalid!", *write_fd, short_opt, long_opt);
 
-    const char *separator_ptr = strchr(next_fds_string_ptr, ';');
+    char *separator_ptr = strchr(next_fds_string_ptr, ';');
     if(separator_ptr == NULL)
         return NULL;
-    return separator_ptr + 1;
+
+    return (separator_ptr + 1);
 }
 
 void t64f_init_io__create_anonymous_pipe(int *pipe_read_fd, int *pipe_write_fd) {
@@ -93,7 +93,7 @@ void t64f_init_io__create_anonymous_pipe(int *pipe_read_fd, int *pipe_write_fd) 
     *pipe_write_fd = pipe_fds[1];
 }
 
-void t64f_init_io__close_fd(int fd) {
+void t64f_init_io__close_fd(const int fd) {
     if(close(fd) < 0)
         t64f_log__crash(true, "Failed to close the file descriptor %d!", fd);
 }

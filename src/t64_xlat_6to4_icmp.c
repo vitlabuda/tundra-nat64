@@ -24,10 +24,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
+#include"t64_log.h"
 #include"t64_checksum.h"
 #include"t64_xlat_addr_nat64.h"
 #include"t64_xlat_addr_clat.h"
 #include"t64_xlat_addr_siit.h"
+#include"t64_xlat_addr_external.h"
 
 
 static bool _t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(t64ts_tundra__xlat_thread_context *context);
@@ -377,12 +379,12 @@ static bool _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t
 
     // Declaration & initialization of variables
     t64ts_tundra__packet in_ipv6_carried_packet;
-    T64M_UTILS__MEMORY_CLEAR(&in_ipv6_carried_packet, 1, sizeof(t64ts_tundra__packet));
+    T64M_UTILS__MEMORY_ZERO_OUT(&in_ipv6_carried_packet, sizeof(t64ts_tundra__packet));
     in_ipv6_carried_packet.packet_raw = (context->in_packet.payload_raw + 8);
     in_ipv6_carried_packet.packet_size = (context->in_packet.payload_size - 8);
 
     t64ts_tundra__packet out_ipv4_carried_packet;
-    T64M_UTILS__MEMORY_CLEAR(&out_ipv4_carried_packet, 1, sizeof(t64ts_tundra__packet));
+    T64M_UTILS__MEMORY_ZERO_OUT(&out_ipv4_carried_packet, sizeof(t64ts_tundra__packet));
     out_ipv4_carried_packet.packet_raw = (context->out_packet.payload_raw + 8);
     out_ipv4_carried_packet.packet_size = 20;
 
@@ -449,24 +451,29 @@ static bool _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t
 
     // It would be possible to decide which function to use beforehand and then call it indirectly using a function
     //  pointer, but indirect function calls are usually slow.
-    switch(context->configuration->translator_mode) {
-        case T64TE_TUNDRA__TRANSLATOR_MODE_NAT64:
+    switch(context->configuration->addressing_mode) {
+        case T64TE_TUNDRA__ADDRESSING_MODE_NAT64:
             if(!t64f_xlat_addr_nat64__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
                 return false;
             break;
 
-        case T64TE_TUNDRA__TRANSLATOR_MODE_CLAT:
+        case T64TE_TUNDRA__ADDRESSING_MODE_CLAT:
             if(!t64f_xlat_addr_clat__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
                 return false;
             break;
 
-        case T64TE_TUNDRA__TRANSLATOR_MODE_SIIT:
+        case T64TE_TUNDRA__ADDRESSING_MODE_SIIT:
             if(!t64f_xlat_addr_siit__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
                 return false;
             break;
 
+        case T64TE_TUNDRA__ADDRESSING_MODE_EXTERNAL:
+            if(!t64f_xlat_addr_external__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
+                return false;
+            break;
+
         default:
-            return false; // This should never happen!
+            t64f_log__thread_crash_invalid_internal_state(context->thread_id, "Invalid addressing mode");
     }
 
     out_ipv4_carried_packet.payload_raw = (out_ipv4_carried_packet.packet_raw + out_ipv4_carried_packet.packet_size);
