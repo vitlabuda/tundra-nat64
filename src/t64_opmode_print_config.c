@@ -242,7 +242,7 @@ static void _t64f_opmode_print_config__print_file_addressing_external_config(con
 static void _t64f_opmode_print_config__print_file_addressing_external_unix_config(const t64ts_tundra__conf_file *file_configuration) {
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_ADDRESSING_EXTERNAL_UNIX_PATH, file_configuration->addressing_external_unix_socket_info.sun_path);
 
-    printf("* %s = %"PRIu64"\n", T64C_CONF_FILE__OPTION_KEY_ADDRESSING_EXTERNAL_UNIX_TCP_TIMEOUT_MILLISECONDS, ((file_configuration->addressing_external_unix_tcp_timeout.tv_sec * 1000) + (file_configuration->addressing_external_unix_tcp_timeout.tv_usec / 1000)));
+    printf("* %s = %"PRIu64"\n", T64C_CONF_FILE__OPTION_KEY_ADDRESSING_EXTERNAL_UNIX_TCP_TIMEOUT_MILLISECONDS, (uint64_t) ((file_configuration->addressing_external_unix_tcp_timeout.tv_sec * 1000) + (file_configuration->addressing_external_unix_tcp_timeout.tv_usec / 1000)));
 }
 
 static void _t64f_opmode_print_config__print_file_addressing_external_tcp_config(const t64ts_tundra__conf_file *file_configuration) {
@@ -279,7 +279,7 @@ static void _t64f_opmode_print_config__print_file_addressing_external_tcp_config
         }
     }
 
-    printf("* %s = %"PRIu64"\n", T64C_CONF_FILE__OPTION_KEY_ADDRESSING_EXTERNAL_UNIX_TCP_TIMEOUT_MILLISECONDS, ((file_configuration->addressing_external_unix_tcp_timeout.tv_sec * 1000) + (file_configuration->addressing_external_unix_tcp_timeout.tv_usec / 1000)));
+    printf("* %s = %"PRIu64"\n", T64C_CONF_FILE__OPTION_KEY_ADDRESSING_EXTERNAL_UNIX_TCP_TIMEOUT_MILLISECONDS, (uint64_t) ((file_configuration->addressing_external_unix_tcp_timeout.tv_sec * 1000) + (file_configuration->addressing_external_unix_tcp_timeout.tv_usec / 1000)));
 }
 
 static void _t64f_opmode_print_config__print_file_translator_config(const t64ts_tundra__conf_file *file_configuration) {

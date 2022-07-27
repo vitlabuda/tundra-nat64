@@ -286,8 +286,8 @@ static void _t64f_conf_file__parse_addressing_external_unix_tcp_configuration_en
     if(file_configuration->addressing_mode == T64TE_TUNDRA__ADDRESSING_MODE_EXTERNAL && (file_configuration->addressing_external_transport == T64TE_TUNDRA__ADDRESSING_EXTERNAL_TRANSPORT_UNIX || file_configuration->addressing_external_transport == T64TE_TUNDRA__ADDRESSING_EXTERNAL_TRANSPORT_TCP)) {
         // --- addressing.external.unix_tcp.timeout_milliseconds ---
         uint64_t timeout_milliseconds = t64f_conf_file_load__find_uint64(config_file_entries, T64C_CONF_FILE__OPTION_KEY_ADDRESSING_EXTERNAL_UNIX_TCP_TIMEOUT_MILLISECONDS, T64C_TUNDRA__MINIMUM_TIMEOUT_MILLISECONDS, T64C_TUNDRA__MAXIMUM_TIMEOUT_MILLISECONDS, NULL);
-        file_configuration->addressing_external_unix_tcp_timeout.tv_sec = (timeout_milliseconds / 1000);
-        file_configuration->addressing_external_unix_tcp_timeout.tv_usec = ((timeout_milliseconds % 1000) * 1000);
+        file_configuration->addressing_external_unix_tcp_timeout.tv_sec = (time_t) (timeout_milliseconds / 1000);
+        file_configuration->addressing_external_unix_tcp_timeout.tv_usec = (suseconds_t) ((timeout_milliseconds % 1000) * 1000);
     }
 }
 

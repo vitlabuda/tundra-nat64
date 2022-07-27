@@ -81,3 +81,6 @@
 
 [4.1.1 @ 2022-07-27]
 - Split 't64_utils_ip.*' to 't64_utils_ip.*' and 't64_utils_icmp.*'
+
+[4.1.2 @ 2022-07-27]
+- Fixed typing errors related to socket timeout intervals
