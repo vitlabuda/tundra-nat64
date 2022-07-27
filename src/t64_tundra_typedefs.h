@@ -87,6 +87,7 @@ typedef struct {
     t64te_tundra__io_mode io_mode;
     t64te_tundra__addressing_mode addressing_mode;
     t64te_tundra__addressing_external_transport addressing_external_transport;
+    uint8_t router_generated_packet_ttl;
     bool program_privilege_drop_user_perform;
     bool program_privilege_drop_group_perform;
     bool io_tun_owner_user_set; // Must not be accessed if io_mode != TUN

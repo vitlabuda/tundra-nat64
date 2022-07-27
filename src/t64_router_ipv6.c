@@ -96,7 +96,7 @@ static void _t64f_router_ipv6__generate_header_of_icmp_ipv6_packet_sent_back_to_
     T64M_UTILS__MEMORY_ZERO_OUT(context->out_packet.packet_ipv6hdr->flow_lbl, 3);
     context->out_packet.packet_ipv6hdr->payload_len = 0; // This is set to a correct value when the packet is sent (at this moment, it is not known what the final size of the packet's payload will be)
     context->out_packet.packet_ipv6hdr->nexthdr = 58; // ICMPv6
-    context->out_packet.packet_ipv6hdr->hop_limit = T64C_TUNDRA__GENERATED_PACKET_TTL;
+    context->out_packet.packet_ipv6hdr->hop_limit = context->configuration->router_generated_packet_ttl;
     memcpy(context->out_packet.packet_ipv6hdr->saddr.s6_addr, context->configuration->router_ipv6, 16);
     memcpy(context->out_packet.packet_ipv6hdr->daddr.s6_addr, context->in_packet.packet_ipv6hdr->saddr.s6_addr, 16);
 

@@ -168,6 +168,11 @@ static void _t64f_conf_file__parse_router_configuration_entries(t64ts_tundra__co
 
     // --- router.ipv6 ---
     t64f_conf_file_load__find_ipv6_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV6, file_configuration->router_ipv6, NULL);
+
+    // --- router.generated_packet_ttl ---
+    file_configuration->router_generated_packet_ttl = (uint8_t) t64f_conf_file_load__find_uint64(
+        config_file_entries, T64C_CONF_FILE__OPTION_KEY_ROUTER_GENERATED_PACKET_TTL, T64C_TUNDRA__MINIMUM_GENERATED_PACKET_TTL, T64C_TUNDRA__MAXIMUM_GENERATED_PACKET_TTL, NULL
+    );
 }
 
 static void _t64f_conf_file__parse_addressing_configuration_entries(t64ts_tundra__conf_file_entry **config_file_entries, t64ts_tundra__conf_file *file_configuration) {

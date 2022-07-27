@@ -96,7 +96,7 @@ static void _t64f_router_ipv4__generate_header_of_icmp_ipv4_packet_sent_back_to_
     context->out_packet.packet_ipv4hdr->tot_len = 0; // This is set to a correct value when the packet is sent (at this moment, it is not known what the final size of the packet will be)
     t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &context->out_packet.packet_ipv4hdr->id);
     context->out_packet.packet_ipv4hdr->frag_off = 0;
-    context->out_packet.packet_ipv4hdr->ttl = T64C_TUNDRA__GENERATED_PACKET_TTL;
+    context->out_packet.packet_ipv4hdr->ttl = context->configuration->router_generated_packet_ttl;
     context->out_packet.packet_ipv4hdr->protocol = 1; // ICMPv4
     context->out_packet.packet_ipv4hdr->check = 0; // This is set to a correct value when the packet is sent (at this moment, it is not known what the final state of the packet's header will be)
     memcpy(&context->out_packet.packet_ipv4hdr->saddr, context->configuration->router_ipv4, 4);

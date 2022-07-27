@@ -89,7 +89,8 @@ static void _t64f_opmode_print_config__print_compile_time_config(void) {
     printf("* %s = %zu\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__MINIMUM_MTU_IPV6), T64C_TUNDRA__MINIMUM_MTU_IPV6);
     printf("* %s = %zu\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__MAXIMUM_MTU_IPV4), T64C_TUNDRA__MAXIMUM_MTU_IPV4);
     printf("* %s = %zu\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__MAXIMUM_MTU_IPV6), T64C_TUNDRA__MAXIMUM_MTU_IPV6);
-    printf("* %s = %"PRIu8"\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__GENERATED_PACKET_TTL), T64C_TUNDRA__GENERATED_PACKET_TTL);
+    printf("* %s = %"PRIu8"\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__MINIMUM_GENERATED_PACKET_TTL), T64C_TUNDRA__MINIMUM_GENERATED_PACKET_TTL);
+    printf("* %s = %"PRIu8"\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__MAXIMUM_GENERATED_PACKET_TTL), T64C_TUNDRA__MAXIMUM_GENERATED_PACKET_TTL);
 
     printf("\n");
 
@@ -175,6 +176,7 @@ static void _t64f_opmode_print_config__print_file_router_config(const t64ts_tund
 
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV4, _t64f_opmode_print_config__get_printable_representation_of_ipv4_address(file_configuration->router_ipv4, string_ip_address_buf));
     printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV6, _t64f_opmode_print_config__get_printable_representation_of_ipv6_address(file_configuration->router_ipv6, string_ip_address_buf));
+    printf("* %s = %"PRIu8"\n", T64C_CONF_FILE__OPTION_KEY_ROUTER_GENERATED_PACKET_TTL, file_configuration->router_generated_packet_ttl);
 }
 
 static void _t64f_opmode_print_config__print_file_addressing_config(const t64ts_tundra__conf_file *file_configuration) {
