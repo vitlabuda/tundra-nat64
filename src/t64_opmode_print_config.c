@@ -78,8 +78,12 @@ static void _t64f_opmode_print_config__print_compile_time_config(void) {
 
     printf("* %s = %s\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH), _t64f_opmode_print_config__get_printable_representation_of_string(T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH));
     printf("* %s = %s\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__DEFAULT_TUN_DEVICE_PATH), _t64f_opmode_print_config__get_printable_representation_of_string(T64C_TUNDRA__DEFAULT_TUN_DEVICE_PATH));
+
+    printf("\n");
+
     printf("* %s = %s\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__WORKING_DIRECTORY), _t64f_opmode_print_config__get_printable_representation_of_string(T64C_TUNDRA__WORKING_DIRECTORY));
     printf("* %s = %zu\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__MAX_TRANSLATOR_THREADS), T64C_TUNDRA__MAX_TRANSLATOR_THREADS);
+    printf("* %s = %zu\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__MAX_ADDRESSING_EXTERNAL_CACHE_SIZE), T64C_TUNDRA__MAX_ADDRESSING_EXTERNAL_CACHE_SIZE);
     printf("* %s = %u\n", _T64M_OPMODE_PRINT_CONFIG__STRINGIFY(T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL), T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL);
 
     printf("\n");
