@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
+#include"t64_utils_icmp.h"
 #include"t64_log.h"
 #include"t64_checksum.h"
 #include"t64_xlat_addr_nat64.h"
@@ -202,7 +203,7 @@ static bool _t64f_xlat_6to4_icmp__translate_destination_unreachable_message(t64t
         return false;
 
     // Generate outbound ICMPv4 header
-    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, out_icmp_code);
+    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, out_icmp_code);
 
     // Build carried IP header & part of data
     if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0))
@@ -239,7 +240,7 @@ static bool _t64f_xlat_6to4_icmp__translate_packet_too_big_message(t64ts_tundra_
         return false; // = MTUs bigger than 65535 bytes cannot be handled when performing IPv6-to-IPv4 translation
 
     // Generate outbound ICMPv4 header
-    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 4);
+    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 4);
 
     {
         uint16_t mtu;
@@ -294,7 +295,7 @@ static bool _t64f_xlat_6to4_icmp__translate_time_exceeded_message(t64ts_tundra__
         return false;
 
     // Generate outbound ICMPv4 header
-    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 11, context->in_packet.payload_icmpv6hdr->icmp6_code);
+    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 11, context->in_packet.payload_icmpv6hdr->icmp6_code);
 
     // Build carried IP header & part of data
     if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0))
@@ -331,7 +332,7 @@ static bool _t64f_xlat_6to4_icmp__translate_parameter_problem_message(t64ts_tund
                     return false;
 
                 // Generate outbound ICMPv4 header
-                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 12, 0);
+                t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 12, 0);
 
                 const uint8_t out_pointer = _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer_value(context->in_packet.payload_raw[7]);
                 if(out_pointer == 255)
@@ -342,7 +343,7 @@ static bool _t64f_xlat_6to4_icmp__translate_parameter_problem_message(t64ts_tund
             break;
 
         case 1: // Unrecognized Next Header type encountered
-            t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 2);
+            t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 2);
             break;
 
         default:

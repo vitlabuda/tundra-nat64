@@ -88,22 +88,6 @@ bool t64f_utils_ip__is_ip_protocol_number_forbidden(const uint8_t ip_protocol_nu
     //  (ip_protocol_number == 50) || // Encapsulating Security Payload
 }
 
-/*
- * Puts the supplied 'icmp_type' to the first byte and 'icmp_code' to the second byte of the packet's payload and zeroes
- *  out the remaining 6 bytes. After that, it increments 'packet->packet_size' by 8 and sets 'packet->payload_size'
- *  to 8. This function does not perform any boundary checks - it is assumed that there are at least 8 bytes free in the
- *  packet buffer!
- * Keep in mind that you need to compute the checksum yourself after you generate the final form of the ICMPv4/v6 message!
- */
-void t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(t64ts_tundra__packet *packet, const uint8_t icmp_type, const uint8_t icmp_code) {
-    packet->payload_raw[0] = icmp_type;
-    packet->payload_raw[1] = icmp_code;
-    T64M_UTILS__MEMORY_ZERO_OUT(packet->payload_raw + 2, 6);
-
-    packet->packet_size += 8;
-    packet->payload_size = 8;
-}
-
 void t64f_utils_ip__generate_ipv6_fragment_identifier(t64ts_tundra__xlat_thread_context *context, uint8_t *destination) {
     const uint32_t fragment_id = htonl(context->fragment_identifier_ipv6++); // This prevents the program from leaking the information about its endianness
     memcpy(destination, &fragment_id, 4);

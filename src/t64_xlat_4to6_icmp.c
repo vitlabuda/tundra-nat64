@@ -24,6 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
+#include"t64_utils_icmp.h"
 #include"t64_log.h"
 #include"t64_checksum.h"
 #include"t64_xlat_addr_nat64.h"
@@ -196,7 +197,7 @@ static bool _t64f_xlat_4to6_icmp__translate_destination_unreachable_message(t64t
                     return false;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 1, 0);
+                t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 1, 0);
             }
             break;
 
@@ -207,7 +208,7 @@ static bool _t64f_xlat_4to6_icmp__translate_destination_unreachable_message(t64t
                     return false;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 1, 1);
+                t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 1, 1);
             }
             break;
 
@@ -218,7 +219,7 @@ static bool _t64f_xlat_4to6_icmp__translate_destination_unreachable_message(t64t
                     return false;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 1, 4);
+                t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 1, 4);
             }
             break;
 
@@ -229,7 +230,7 @@ static bool _t64f_xlat_4to6_icmp__translate_destination_unreachable_message(t64t
                     return false;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 2, 0);
+                t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 2, 0);
 
                 {
                     uint16_t mtu;
@@ -260,7 +261,7 @@ static bool _t64f_xlat_4to6_icmp__translate_destination_unreachable_message(t64t
                     return false;
 
                 // Generate outbound ICMPv6 header
-                t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 4, 1);
+                t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 4, 1);
 
                 context->out_packet.payload_raw[7] = 6; // Pointer points to the "Next header" field
             }
@@ -307,7 +308,7 @@ static bool _t64f_xlat_4to6_icmp__translate_time_exceeded_message(t64ts_tundra__
         return false;
 
     // Generate outbound ICMPv6 header
-    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, context->in_packet.payload_icmpv4hdr->code);
+    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, context->in_packet.payload_icmpv4hdr->code);
 
     // Build carried IP header & part of data
     if(!_t64f_xlat_4to6_icmp__translate_carried_ip_header_and_part_of_data(context))
@@ -344,7 +345,7 @@ static bool _t64f_xlat_4to6_icmp__translate_parameter_problem_message(t64ts_tund
         return false;
 
     // Generate outbound ICMPv6 header
-    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 4, 0);
+    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 4, 0);
 
     {
         const uint8_t out_pointer = _t64f_xlat_4to6_icmp__translate_parameter_problem_pointer_value(context->in_packet.payload_raw[4]);

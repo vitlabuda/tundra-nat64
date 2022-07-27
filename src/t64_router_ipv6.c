@@ -23,7 +23,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_router_ipv6.h"
 
 #include"t64_utils.h"
-#include"t64_utils_ip.h"
+#include"t64_utils_icmp.h"
 #include"t64_checksum.h"
 #include"t64_xlat_io.h"
 
@@ -77,7 +77,7 @@ static void _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_
 
     // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 40 bytes IPv6 header = at least 1480 bytes free; 8 bytes needed (for ICMPv6 header)
 
-    t64f_utils_ip__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, icmp_type, icmp_code);
+    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, icmp_type, icmp_code);
     memcpy(context->out_packet.payload_raw + 6, &additional_2bytes, 2);
 
     _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(context);

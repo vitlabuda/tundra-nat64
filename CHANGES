@@ -78,3 +78,6 @@
 
 [4.1.0 @ 2022-07-27]
 - Added the 'router.generated_packet_ttl' configuration option (in former versions, TTL/hop limit of generated packets used to be configurable only at compile-time)
+
+[4.1.1 @ 2022-07-27]
+- Split 't64_utils_ip.*' to 't64_utils_ip.*' and 't64_utils_icmp.*'
