@@ -1,6 +1,9 @@
 # Tundra-NAT64 external address translation protocol specification 
 
 
+
+
+
 ## 1 Introduction
 [Tundra-NAT64](https://github.com/vitlabuda/tundra-nat64) offers the ability to delegate address translation to
 another program–server, with which it communicates via inherited file descriptors, Unix stream sockets or TCP.
@@ -9,6 +12,9 @@ options as documented in the [example configuration file](../tundra-nat64.exampl
 packets from IPv4 to IPv6 and vice versa as per the rules of SIIT (Stateless IP/ICMP Translation Algorithm, see 
 [RFC 7915](https://datatracker.ietf.org/doc/html/rfc7915)) while querying the external address translator for IP 
 addresses to be put in the translated packets. This querying is done using the protocol described in this document.
+
+
+
 
 
 ## 2 Message structure specification
@@ -109,7 +115,11 @@ should _cache lifetime_ be of in case of a _request_ message, or what addresses 
 in case of an erroneous _response_ message), the field MUST be zeroed out.
 
 
+
+
+
 ## 3 Tundra-NAT64's implementation details
+
 
 ### 3.1 Connection establishment
 Each translator thread holds and manages its own connection to an external address translator. If the transport is set 
@@ -122,11 +132,13 @@ If the `inherited-fds` transport is configured to be used, the file descriptors 
 `addressing-external-inherited-fds` command-line argument and checked whether they are valid during initialization, 
 i.e. before translator threads are started.
 
+
 ### 3.2 Sending & receiving data
 When Tundra sends/receives messages to/from the sockets/inherited file descriptors, it uses the `write()` and `read()`
 functions in a loop, i.e. a single call to these functions need not send or receive a whole message. As a result,
 when using the `inherited-fds` transport, the file descriptors should be referring to a "stream" communication channel, 
 for example a `pipe()` or a `SOCK_STREAM` socket.
+
 
 ### 3.3 Protocol & transmission error handling
 When a protocol (e.g. a _response_ message with invalid contents is received) or transmission (e.g. the connection 
@@ -138,7 +150,28 @@ to be re-established if the `addressing.external.transport` option is set to `un
 set to `inherited-fds`, the program will crash, as it has no way of obtaining a new set of inherited file descriptors.
 
 
-## 4 Licensing & author
+
+
+
+## 4 Implementations
+
+
+### 4.1 Libraries
+- **[tundra-xaxlib-python](https://github.com/vitlabuda/tundra-xaxlib-python)** (Python) – Enables one to easily parse 
+  and construct wireformat messages used by this protocol in Python programs.
+
+
+### 4.2 Examples
+- **[tundra-xaxlib-python/examples/001_nat64.py](https://github.com/vitlabuda/tundra-xaxlib-python/blob/main/examples/001_nat64.py)**
+  (Python, uses _tundra-xaxlib-python_) – An example external address translation server which works almost exactly the 
+  same as Tundra-NAT64's built-in `nat64` addressing mode, i.e. it is able to, without the help of a NAT66, statelessly 
+  translate packets from one source IPv6 to one source IPv4 and do the inverse process for packets going the other way.
+
+
+
+
+
+## 5 Licensing & author
 This project is licensed under the **3-clause BSD license** – see the [LICENSE](../LICENSE) file.
 
 Created by **[Vít Labuda](https://vitlabuda.cz/)**.
