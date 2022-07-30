@@ -37,24 +37,30 @@ static const char *_t64f_conf_file_load__get_entry_value_by_key(t64ts_tundra__co
 
 
 t64ts_tundra__conf_file_entry **t64fa_conf_file_load__read_configuration_file(const char *filepath) {
-    FILE *conf_file_stream = fopen(filepath, "r");
-    if(conf_file_stream == NULL)
-        t64f_log__crash(true, "Failed to open the configuration file: %s", filepath);
+    t64ts_tundra__conf_file_entry **config_file_entries;
 
-    const int conf_file_fd = fileno(conf_file_stream);
-    if(conf_file_fd < 0)
-        t64f_log__crash(true, "Failed to get the file descriptor of the open configuration file: %s", filepath);
+    if(T64M_UTILS__STRINGS_EQUAL(filepath, "-")) {
+        config_file_entries = _t64fa_conf_file_load__read_open_config_file(stdin);
+    } else {
+        FILE *conf_file_stream = fopen(filepath, "r");
+        if(conf_file_stream == NULL)
+            t64f_log__crash(true, "Failed to open the configuration file: %s", filepath);
 
-    if(flock(conf_file_fd, LOCK_SH) != 0)
-        t64f_log__crash(true, "Failed to lock the open configuration file: %s", filepath);
+        const int conf_file_fd = fileno(conf_file_stream);
+        if(conf_file_fd < 0)
+            t64f_log__crash(true, "Failed to get the file descriptor of the open configuration file: %s", filepath);
 
-    t64ts_tundra__conf_file_entry **config_file_entries = _t64fa_conf_file_load__read_open_config_file(conf_file_stream);
+        if(flock(conf_file_fd, LOCK_SH) != 0)
+            t64f_log__crash(true, "Failed to lock the open configuration file: %s", filepath);
 
-    if(flock(conf_file_fd, LOCK_UN) != 0)
-        t64f_log__crash(true, "Failed to unlock the open configuration file: %s", filepath);
+        config_file_entries = _t64fa_conf_file_load__read_open_config_file(conf_file_stream);
 
-    if(fclose(conf_file_stream) != 0)
-        t64f_log__crash(true, "Failed to close the configuration file: %s", filepath);
+        if(flock(conf_file_fd, LOCK_UN) != 0)
+            t64f_log__crash(true, "Failed to unlock the open configuration file: %s", filepath);
+
+        if(fclose(conf_file_stream) != 0)
+            t64f_log__crash(true, "Failed to close the configuration file: %s", filepath);
+    }
 
     return config_file_entries;
 }
