@@ -22,6 +22,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_tundra.h"
 #include"t64_init.h"
 
+#include"t64_utils.h"
 #include"t64_log.h"
 #include"t64_conf_cmdline.h"
 #include"t64_conf_file.h"
@@ -34,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static void _t64f_init__check_compile_time_config(void);
 static void _t64f_init__initialize_program(void);
+static void _t64f_init__ignore_sigpipe(void);
 static void _t64f_init__finalize_program(void);
 static void _t64f_init__run_program_according_to_operation_mode(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration);
 
@@ -83,8 +85,32 @@ static void _t64f_init__initialize_program(void) {
     if(prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
         t64f_log__crash(true, "Failed to set 'PR_SET_NO_NEW_PRIVS' to 1!");
 
+    _t64f_init__ignore_sigpipe();
+
     if(setlocale(LC_ALL, "C") == NULL)
         t64f_log__crash(false, "Failed to set the program's locale to 'C'!");
+}
+
+static void _t64f_init__ignore_sigpipe(void) {
+    /*
+     * It is ABSOLUTELY CRUCIAL for this program to ignore 'SIGPIPE' signals, as it handles errors caused by
+     * unexpectedly closed file descriptors itself, and is sometimes able to recover from them (for example,
+     * the subsystem dealing with external addressing mode [t64_xlat_addr_external.c] is programmed to reconnect to
+     * the configured external address translation server in case an unexpected error occurs)!
+     */
+
+    sigset_t signal_mask;
+    sigemptyset(&signal_mask);
+
+    struct sigaction signal_action;
+    T64M_UTILS__MEMORY_ZERO_OUT(&signal_action, sizeof(struct sigaction));
+    signal_action.sa_handler = SIG_IGN;
+    signal_action.sa_mask = signal_mask;
+    signal_action.sa_flags = 0;
+    signal_action.sa_restorer = NULL;
+
+    if(sigaction(SIGPIPE, &signal_action, NULL) < 0)
+        t64f_log__crash(true, "Failed to make the program ignore the 'SIGPIPE' signal!");
 }
 
 static void _t64f_init__finalize_program(void) {

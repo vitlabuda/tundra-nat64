@@ -87,3 +87,6 @@
 
 [4.1.3 @ 2022-07-27]
 - Added 'T64C_TUNDRA__MAX_ADDRESSING_EXTERNAL_CACHE_SIZE' to the output of the 'print-config' operation mode
+
+[4.1.4 @ 2022-07-30]
+- The program now ignores the 'SIGPIPE' signal
