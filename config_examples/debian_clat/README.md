@@ -28,7 +28,7 @@ file paths before deploying this configuration!**
 
 3. Compile Tundra using `gcc` or `clang`:
    ```shell
-   gcc -Wall -pthread -std=c11 -O3 -flto -o tundra-nat64 src/t64_*.c
+   gcc -Wall -Wextra -pthread -std=c11 -O3 -flto -o tundra-nat64 src/t64_*.c
    ```
 
 4. Copy the compiled Tundra binary to a path from which it will be executed. You might also want to change the 

@@ -89,7 +89,7 @@ in Prague – [presentation](https://www.cesnet.cz/wp-content/uploads/2022/06/Be
 Since Tundra has no dependencies other than Linux's standard C library and `libpthread`, it can be compiled by a single 
 command and without the use of a build system: 
 ```shell
-gcc -Wall -pthread -std=c11 -O3 -flto -o tundra-nat64 src/t64_*.c
+gcc -Wall -Wextra -pthread -std=c11 -O3 -flto -o tundra-nat64 src/t64_*.c
 ```
 Both `gcc` and `clang` may be used to compile the program.
 
