@@ -79,7 +79,7 @@ this Git repository whose name/URL contains the `nat64`), I decided not to do it
 Tundra was the subject of a Czech-language talk I held at the 
 [Seminář IPv6: deset let poté](https://www.cesnet.cz/akce/seminar-ipv6-deset-let-pote/) conference on the 6th June 2022 
 in Prague – [presentation](https://www.cesnet.cz/wp-content/uploads/2022/06/Bezstavovy-NAT64_Vit-Labuda.pdf),
-[video](https://www.youtube.com/watch?v=JJvqBH02GiA&t=3167s).
+[video](https://www.youtube.com/watch?v=wnsD_W5ITbE).
 
 
 
