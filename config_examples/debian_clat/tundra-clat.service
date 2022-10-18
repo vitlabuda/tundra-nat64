@@ -4,9 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ProtectKernelTunables=true
-ProtectKernelModules=true
-ProtectControlGroups=true
+NoNewPrivileges=true
 WorkingDirectory=/
 ExecStart=/bin/bash /usr/local/etc/tundra-clat/start-tundra.sh
 ExecStop=/bin/bash /usr/local/etc/tundra-clat/stop-tundra.sh
