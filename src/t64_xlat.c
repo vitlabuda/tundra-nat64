@@ -45,7 +45,8 @@ void *t64f_xlat__thread_run(void *arg) {
         if(!_t64f_xlat__wait_for_input(context))
             break;
 
-        t64f_xlat_io__receive_packet_into_in_packet(context);
+        if(!t64f_xlat_io__receive_packet_into_in_packet(context))
+            continue;
 
         _t64f_xlat__translate_packet(context);
     }
@@ -73,20 +74,17 @@ static bool _t64f_xlat__wait_for_input(t64ts_tundra__xlat_thread_context *contex
     if(poll(poll_fds, 2, -1) < 0)
         t64f_log__thread_crash(context->thread_id, true, "Failed to poll() for an input!");
 
-    if(poll_fds[0].fd != context->termination_pipe_read_fd || poll_fds[1].fd != context->packet_read_fd)
-        t64f_log__thread_crash_invalid_internal_state(context->thread_id, "poll() seems to have rearranged its input 'pollfd' structures");
-
     // context->termination_pipe_read_fd
     if(poll_fds[0].revents == POLLIN)
         return false;
     if(poll_fds[0].revents != 0)
-        t64f_log__thread_crash(context->thread_id, false, "poll() reported an error associated with the termination pipe's read FD (revents = %hd)!", poll_fds[0].revents);
+        t64f_log__thread_crash(context->thread_id, false, "poll() reported an error associated with 'termination_pipe_read_fd' (revents = %hd)!", poll_fds[0].revents);
 
     // context->packet_read_fd
     if(poll_fds[1].revents == POLLIN)
         return true;
     if(poll_fds[1].revents != 0)
-        t64f_log__thread_crash(context->thread_id, false, "poll() reported an error associated with the packet receival FD (revents = %hd)!", poll_fds[1].revents);
+        t64f_log__thread_crash(context->thread_id, false, "poll() reported an error associated with 'packet_read_fd' (revents = %hd)!", poll_fds[1].revents);
 
     // if (poll_fds[0].revents == 0) AND (poll_fds[1].revents == 0)
     t64f_log__thread_crash_invalid_internal_state(context->thread_id, "poll() with infinite timeout returned without reporting any events");

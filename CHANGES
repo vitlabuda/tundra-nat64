@@ -93,3 +93,6 @@
 
 [4.1.5 @ 2022-07-30]
 - Configuration from standard input can be now loaded by specifying '-' as the configuration file path
+
+[4.1.6 @ 2022-12-03]
+- The translator can now use non-blocking file descriptors to receive and send packets

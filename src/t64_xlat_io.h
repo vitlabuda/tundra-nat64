@@ -25,7 +25,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_tundra.h"
 
 
-extern void t64f_xlat_io__receive_packet_into_in_packet(t64ts_tundra__xlat_thread_context *context);
+extern bool t64f_xlat_io__receive_packet_into_in_packet(t64ts_tundra__xlat_thread_context *context);
 extern void t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(t64ts_tundra__xlat_thread_context *context);
 extern void t64f_xlat_io__send_specified_ipv4_packet(t64ts_tundra__xlat_thread_context *context, t64ts_tundra__packet *ipv4_packet);
 extern void t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(t64ts_tundra__xlat_thread_context *context);

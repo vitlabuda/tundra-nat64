@@ -30,18 +30,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static void _t64f_xlat_io__generate_ipv4_fragment_from_out_packet_to_tmp_packet(t64ts_tundra__xlat_thread_context *context, const uint16_t fragment_offset_and_flags, const uint8_t *payload_copy_from_ptr, const size_t payload_copy_size);
 static void _t64f_xlat_io__generate_ipv6_fragment_from_out_packet_to_tmp_packet(t64ts_tundra__xlat_thread_context *context, const uint32_t fragment_identification, const uint16_t fragment_offset_and_flags, const uint8_t *payload_copy_from_ptr, const size_t payload_copy_size);
 static void _t64f_xlat_io__send_specified_packet(const t64ts_tundra__xlat_thread_context *context, const t64ts_tundra__packet *packet);
+static void _t64f_xlat_io__wait_for_packet_write_fd_to_be_available(const t64ts_tundra__xlat_thread_context *context);
+static bool _t64f_xlat_io__send_specified_packet_via_packet_write_fd(const t64ts_tundra__xlat_thread_context *context, const t64ts_tundra__packet *packet);
 
 
-void t64f_xlat_io__receive_packet_into_in_packet(t64ts_tundra__xlat_thread_context *context) {
+bool t64f_xlat_io__receive_packet_into_in_packet(t64ts_tundra__xlat_thread_context *context) {
     const ssize_t read_return_value = read(context->packet_read_fd, context->in_packet.packet_raw, T64C_TUNDRA__MAX_PACKET_SIZE);
 
-    if(read_return_value < 0)
+    if(read_return_value < 0) {
+        if(errno == EAGAIN || errno == EWOULDBLOCK)
+            return false;
+
         t64f_log__thread_crash(context->thread_id, true, "An error occurred while receiving a packet!");
+    }
 
     if(read_return_value == 0)
         t64f_log__thread_crash(context->thread_id, false, "An end-of-file occurred while receiving a packet!");
 
     context->in_packet.packet_size = (size_t) read_return_value;
+
+    return true;
 }
 
 /*
@@ -270,11 +278,40 @@ void t64f_xlat_io__send_specified_ipv6_packet(t64ts_tundra__xlat_thread_context 
 }
 
 static void _t64f_xlat_io__send_specified_packet(const t64ts_tundra__xlat_thread_context *context, const t64ts_tundra__packet *packet) {
+    while(!_t64f_xlat_io__send_specified_packet_via_packet_write_fd(context, packet))
+        _t64f_xlat_io__wait_for_packet_write_fd_to_be_available(context);
+}
+
+static void _t64f_xlat_io__wait_for_packet_write_fd_to_be_available(const t64ts_tundra__xlat_thread_context *context) {
+    struct pollfd poll_fd;
+    T64M_UTILS__MEMORY_ZERO_OUT(&poll_fd, sizeof(struct pollfd));
+    poll_fd.fd = context->packet_write_fd;
+    poll_fd.events = POLLOUT;
+
+    if(poll(&poll_fd, 1, -1) < 0)
+        t64f_log__thread_crash(context->thread_id, true, "Failed to poll() for 'packet_write_fd' to become available for writing!");
+
+    if(poll_fd.revents == POLLOUT)
+        return;
+
+    if(poll_fd.revents != 0)
+        t64f_log__thread_crash(context->thread_id, false, "poll() reported an error associated with 'packet_write_fd' (revents = %hd)!", poll_fd.revents);
+
+    t64f_log__thread_crash_invalid_internal_state(context->thread_id, "poll() with infinite timeout returned without reporting any events");
+}
+
+static bool _t64f_xlat_io__send_specified_packet_via_packet_write_fd(const t64ts_tundra__xlat_thread_context *context, const t64ts_tundra__packet *packet) {
     const ssize_t write_return_value = write(context->packet_write_fd, packet->packet_raw, packet->packet_size);
 
-    if(write_return_value < 0)
+    if(write_return_value < 0) {
+        if(errno == EAGAIN || errno == EWOULDBLOCK)
+            return false;
+
         t64f_log__thread_crash(context->thread_id, true, "An error occurred while sending a packet!");
+    }
 
     if(((size_t) write_return_value) != packet->packet_size)
         t64f_log__thread_info(context->thread_id, "Only a part of an outbound packet could be sent (sent = %zu bytes, packet size = %zu bytes).", (size_t) write_return_value, packet->packet_size);
+
+    return true;
 }
