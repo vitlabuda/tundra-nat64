@@ -92,6 +92,7 @@ typedef struct {
     bool program_privilege_drop_group_perform;
     bool io_tun_owner_user_set; // Must not be accessed if io_mode != TUN
     bool io_tun_owner_group_set; // Must not be accessed if io_mode != TUN
+    bool io_tun_multi_queue; // Must not be accessed if io_mode != TUN
     bool addressing_nat64_clat_siit_allow_translation_of_private_ips;
     bool translator_6to4_copy_dscp_and_ecn;
     bool translator_4to6_copy_dscp_and_ecn;

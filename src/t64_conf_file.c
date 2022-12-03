@@ -120,6 +120,7 @@ static void _t64fa_conf_file__parse_io_configuration_entries(t64ts_tundra__conf_
         file_configuration->io_tun_owner_user_uid = 0; // Not used
         file_configuration->io_tun_owner_group_set = false; // Not used
         file_configuration->io_tun_owner_group_gid = 0; // Not used
+        file_configuration->io_tun_multi_queue = false; // Not used
     }
 }
 
@@ -160,6 +161,9 @@ static void _t64fa_conf_file__parse_io_tun_configuration_entries(t64ts_tundra__c
             file_configuration->io_tun_owner_group_gid = _t64f_conf_file__get_gid_by_groupname(owner_groupname);
         }
     }
+
+    // --- io.tun.multi_queue ---
+    file_configuration->io_tun_multi_queue = t64f_conf_file_load__find_boolean(config_file_entries, T64C_CONF_FILE__OPTION_KEY_IO_TUN_MULTI_QUEUE, NULL);
 }
 
 static void _t64f_conf_file__parse_router_configuration_entries(t64ts_tundra__conf_file_entry **config_file_entries, t64ts_tundra__conf_file *file_configuration) {

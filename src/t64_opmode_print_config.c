@@ -172,6 +172,8 @@ static void _t64f_opmode_print_config__print_file_io_config(const t64ts_tundra__
             printf("* %s = %s (GID: %"PRIdMAX")\n", T64C_CONF_FILE__OPTION_KEY_IO_TUN_OWNER_GROUP, _T64C_OPMODE_PRINT_CONFIG__TRUE_BOOLEAN_REPRESENTATION, (intmax_t) file_configuration->io_tun_owner_group_gid);
         else
             printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_IO_TUN_OWNER_GROUP, _T64C_OPMODE_PRINT_CONFIG__FALSE_BOOLEAN_REPRESENTATION);
+
+        printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_IO_TUN_MULTI_QUEUE, _t64f_opmode_print_config__get_printable_representation_of_boolean(file_configuration->io_tun_multi_queue));
     }
 }
 

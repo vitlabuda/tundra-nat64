@@ -27,18 +27,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // Creates the interface if it doesn't exist
-// Can be used more than once (the TUN interface is multi-queue)
-int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configuration) {
-    int flags = IFF_TUN | IFF_NO_PI;
-    if(file_configuration->program_translator_threads != 1)
-        flags |= IFF_MULTI_QUEUE;
+int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configuration, const bool non_blocking) {
+    int tun_flags = IFF_TUN | IFF_NO_PI;
+    if(file_configuration->io_tun_multi_queue)
+        tun_flags |= IFF_MULTI_QUEUE;
 
     struct ifreq tun_interface_request;
     T64M_UTILS__MEMORY_ZERO_OUT(&tun_interface_request, sizeof(struct ifreq));
-    tun_interface_request.ifr_flags = flags;
+    tun_interface_request.ifr_flags = tun_flags;
     t64f_utils__secure_strncpy(tun_interface_request.ifr_name, file_configuration->io_tun_interface_name, IFNAMSIZ);
 
-    const int tun_fd = open(file_configuration->io_tun_device_path, O_RDWR);
+    int open_flags = O_RDWR;
+    if(non_blocking)
+        open_flags |= O_NONBLOCK;
+
+    const int tun_fd = open(file_configuration->io_tun_device_path, open_flags);
     if(tun_fd < 0)
         t64f_log__crash(true, "Failed to open the TUN device file: %s", file_configuration->io_tun_device_path);
 
@@ -93,7 +96,11 @@ void t64f_init_io__create_anonymous_pipe(int *pipe_read_fd, int *pipe_write_fd) 
     *pipe_write_fd = pipe_fds[1];
 }
 
-void t64f_init_io__close_fd(const int fd) {
-    if(close(fd) < 0)
+void t64f_init_io__close_fd(const int fd, const bool ignore_ebadf) {
+    if(close(fd) < 0) {
+        if(ignore_ebadf && errno == EBADF)
+            return;
+
         t64f_log__crash(true, "Failed to close the file descriptor %d!", fd);
+    }
 }

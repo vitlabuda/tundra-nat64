@@ -25,12 +25,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_tundra.h"
 
 
-extern int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configuration);
+extern int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configuration, const bool non_blocking);
 extern void t64f_init_io__set_tun_interface_persistent(const int tun_fd, const bool tun_persistent);
 extern void t64f_init_io__change_ownership_of_persistent_tun_interface(const t64ts_tundra__conf_file *file_configuration, const int persistent_tun_fd);
 extern char *t64f_init_io__get_fd_pair_from_inherited_fds_string(int *read_fd, int *write_fd, char *next_fds_string_ptr, const char short_opt, const char *long_opt);
 extern void t64f_init_io__create_anonymous_pipe(int *pipe_read_fd, int *pipe_write_fd);
-extern void t64f_init_io__close_fd(const int fd);
+extern void t64f_init_io__close_fd(const int fd, const bool ignore_ebadf);
 
 
 #endif // _T64I_INIT_IO_H

@@ -64,8 +64,8 @@ void t64f_opmode_translate__run(const t64ts_tundra__conf_cmdline *cmdline_config
     _t64f_opmode_translate__terminate_xlat_threads(file_configuration, thread_contexts, termination_pipe_write_fd);
     _t64f_opmode_translate__free_xlat_thread_contexts(file_configuration, thread_contexts);
 
-    t64f_init_io__close_fd(termination_pipe_read_fd);
-    t64f_init_io__close_fd(termination_pipe_write_fd);
+    t64f_init_io__close_fd(termination_pipe_read_fd, false);
+    t64f_init_io__close_fd(termination_pipe_write_fd, false);
 
     t64f_log__info("Tundra will now terminate.");
 }
@@ -80,6 +80,7 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
 
     char *io_next_fds_string_ptr = cmdline_configuration->io_inherited_fds;
     char *addressing_external_next_fds_string_ptr = cmdline_configuration->addressing_external_inherited_fds;
+    int single_queue_tun_fd = -1;
 
     for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
         // context[i].thread stays uninitialized (it is initialized in _t64f_opmode_translate_start_xlat_threads())
@@ -107,8 +108,16 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
                 break;
 
             case T64TE_TUNDRA__IO_MODE_TUN:
-                thread_contexts[i].packet_read_fd = t64f_init_io__open_tun_interface(file_configuration);
-                thread_contexts[i].packet_write_fd = thread_contexts[i].packet_read_fd;
+                if(file_configuration->io_tun_multi_queue) {
+                    thread_contexts[i].packet_read_fd = t64f_init_io__open_tun_interface(file_configuration, false);
+                    thread_contexts[i].packet_write_fd = thread_contexts[i].packet_read_fd;
+                } else {
+                    if(single_queue_tun_fd < 0)
+                        single_queue_tun_fd = t64f_init_io__open_tun_interface(file_configuration, true);
+
+                    thread_contexts[i].packet_read_fd = single_queue_tun_fd;
+                    thread_contexts[i].packet_write_fd = single_queue_tun_fd;
+                }
                 break;
 
             default:
@@ -174,12 +183,8 @@ static void _t64f_opmode_translate__free_xlat_thread_contexts(const t64ts_tundra
         if(thread_contexts[i].external_addr_xlat_state != NULL)
             _t64f_opmode_translate__free_external_addr_xlat_state_struct(thread_contexts[i].external_addr_xlat_state);
 
-        if(thread_contexts[i].packet_read_fd == thread_contexts[i].packet_write_fd) {
-            t64f_init_io__close_fd(thread_contexts[i].packet_read_fd);
-        } else {
-            t64f_init_io__close_fd(thread_contexts[i].packet_read_fd);
-            t64f_init_io__close_fd(thread_contexts[i].packet_write_fd);
-        }
+        t64f_init_io__close_fd(thread_contexts[i].packet_read_fd, true);
+        t64f_init_io__close_fd(thread_contexts[i].packet_write_fd, true);
     }
 
     t64f_utils__free_memory(thread_contexts);
@@ -200,10 +205,8 @@ static void _t64f_opmode_translate__free_external_addr_xlat_state_struct(t64ts_t
     if(external_addr_xlat_state->address_cache_6to4_icmp_error_packet != NULL)
         t64f_utils__free_memory(external_addr_xlat_state->address_cache_6to4_icmp_error_packet);
 
-    if(external_addr_xlat_state->read_fd >= 0)
-        close(external_addr_xlat_state->read_fd);
-    if(external_addr_xlat_state->write_fd >= 0 && external_addr_xlat_state->write_fd != external_addr_xlat_state->read_fd)
-        close(external_addr_xlat_state->write_fd);
+    t64f_init_io__close_fd(external_addr_xlat_state->read_fd, true);
+    t64f_init_io__close_fd(external_addr_xlat_state->write_fd, true);
 
     t64f_utils__free_memory(external_addr_xlat_state);
 }

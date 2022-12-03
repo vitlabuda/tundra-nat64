@@ -96,3 +96,6 @@
 
 [4.1.6 @ 2022-12-03]
 - The translator can now use non-blocking file descriptors to receive and send packets
+
+[4.2.0 @ 2022-12-03]
+- Added the 'io.tun.multi_queue' configuration option, making it possible to configure whether each translator thread will be given its own TUN file descriptor or not
