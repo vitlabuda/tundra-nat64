@@ -88,8 +88,7 @@ void t64f_log__thread_info(const size_t thread_id, const char *format, ...) {
 }
 
 static void _t64f_log__print_log_message(const size_t thread_id, const bool print_errno, const char *category_banner, const char *format, va_list argument_list) {
-    if(pthread_mutex_lock(&_t64g_log__log_output_mutex) != 0)
-        exit(T64C_TUNDRA__EXIT_CODE_MUTEX_FAILURE);
+    pthread_mutex_lock(&_t64g_log__log_output_mutex);
 
     fprintf(stderr, "[T%zu :: %s] ", thread_id, category_banner);
     vfprintf(stderr, format, argument_list);
@@ -102,6 +101,5 @@ static void _t64f_log__print_log_message(const size_t thread_id, const bool prin
 
     fflush(stderr);
 
-    if(pthread_mutex_unlock(&_t64g_log__log_output_mutex) != 0)
-        exit(T64C_TUNDRA__EXIT_CODE_MUTEX_FAILURE);
+    pthread_mutex_unlock(&_t64g_log__log_output_mutex);
 }

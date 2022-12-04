@@ -170,11 +170,11 @@ typedef struct {
     const t64ts_tundra__conf_file *configuration;
     t64ts_tundra__external_addr_xlat_state *external_addr_xlat_state;
     size_t thread_id;
-    int termination_pipe_read_fd;
     int packet_read_fd;
     int packet_write_fd;
     uint32_t fragment_identifier_ipv6;
     uint16_t fragment_identifier_ipv4;
+    bool joined;
 } t64ts_tundra__xlat_thread_context;
 
 

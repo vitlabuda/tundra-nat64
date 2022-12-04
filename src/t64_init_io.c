@@ -27,7 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // Creates the interface if it doesn't exist
-int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configuration, const bool non_blocking) {
+int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configuration) {
     int tun_flags = IFF_TUN | IFF_NO_PI;
     if(file_configuration->io_tun_multi_queue)
         tun_flags |= IFF_MULTI_QUEUE;
@@ -37,11 +37,7 @@ int t64f_init_io__open_tun_interface(const t64ts_tundra__conf_file *file_configu
     tun_interface_request.ifr_flags = tun_flags;
     t64f_utils__secure_strncpy(tun_interface_request.ifr_name, file_configuration->io_tun_interface_name, IFNAMSIZ);
 
-    int open_flags = O_RDWR;
-    if(non_blocking)
-        open_flags |= O_NONBLOCK;
-
-    const int tun_fd = open(file_configuration->io_tun_device_path, open_flags);
+    const int tun_fd = open(file_configuration->io_tun_device_path, O_RDWR);
     if(tun_fd < 0)
         t64f_log__crash(true, "Failed to open the TUN device file: %s", file_configuration->io_tun_device_path);
 
@@ -85,15 +81,6 @@ char *t64f_init_io__get_fd_pair_from_inherited_fds_string(int *read_fd, int *wri
         return NULL;
 
     return (separator_ptr + 1);
-}
-
-void t64f_init_io__create_anonymous_pipe(int *pipe_read_fd, int *pipe_write_fd) {
-    int pipe_fds[2];
-    if(pipe(pipe_fds) < 0)
-        t64f_log__crash(true, "Failed to create a new anonymous pipe!");
-
-    *pipe_read_fd = pipe_fds[0];
-    *pipe_write_fd = pipe_fds[1];
 }
 
 void t64f_init_io__close_fd(const int fd, const bool ignore_ebadf) {

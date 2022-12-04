@@ -19,23 +19,16 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef _T64I_XLAT_INTERRUPT_H
+#define _T64I_XLAT_INTERRUPT_H
+
 #include"t64_tundra.h"
-#include"t64_opmode_rmtun.h"
-
-#include"t64_log.h"
-#include"t64_init_io.h"
-#include"t64_conf_file.h"
 
 
-void t64f_opmode_rmtun__run(const t64ts_tundra__conf_file *file_configuration) {
-    if(file_configuration->io_mode != T64TE_TUNDRA__IO_MODE_TUN)
-        t64f_log__crash(false, "The I/O mode is not '"T64C_CONF_FILE__IO_MODE_TUN"'; therefore, persistent TUN interfaces cannot be removed!");
+extern ssize_t t64f_xlat_interrupt__read(const int fd, void *buf, const size_t count);
+extern ssize_t t64f_xlat_interrupt__write(const int fd, const void *buf, const size_t count);
+extern int t64f_xlat_interrupt__connect(const int sockfd, const struct sockaddr *addr, const socklen_t addrlen, const bool close_sockfd_before_exiting);
+extern int t64f_xlat_interrupt__close(const int fd);
 
-    {
-        const int tun_fd = t64f_init_io__open_tun_interface(file_configuration);
-        t64f_init_io__set_tun_interface_persistent(tun_fd, false);
-        t64f_init_io__close_fd(tun_fd, false);
-    }
 
-    t64f_log__info("A persistent TUN interface named '%s' has been successfully removed!", file_configuration->io_tun_interface_name);
-}
+#endif // _T64I_XLAT_INTERRUPT_H

@@ -25,8 +25,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_tundra.h"
 
 
-extern sig_atomic_t t64f_signal__should_translator_continue_running(void);
-extern void t64f_signal__set_signal_handlers(void);
+#define T64C_SIGNAL__TRANSLATOR_THREAD_TERMINATION_SIGNAL SIGTERM
+
+
+extern void t64f_signal__initialize(void);
+extern bool t64f_signal__should_this_thread_continue_running(void);
 
 
 #endif // _T64I_SIGNAL_H

@@ -26,43 +26,83 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_log.h"
 
 
-#define _T64C_SIGNAL__SIGNAL_RECEIVED_MESSAGE "[T0 :: "T64C_LOG__CATEGORY_BANNER_SIGNAL"] A signal was received - the translator will shut down soon.\n"
+#define _T64C_SIGNAL__MAIN_THREAD_TERMINATION_SIGNAL_MESSAGE "[T0 :: "T64C_LOG__CATEGORY_BANNER_SIGNAL"] A signal was received - the translator will shut down soon.\n"
 
 
-static volatile sig_atomic_t _t64g_signal__should_translator_continue_running = 1;
+static __thread volatile sig_atomic_t _t64gt_signal__termination_signal_caught = 0;
 
 
-static void _t64f_signal__signal_handler_function(__attribute__((unused)) int signum);
+static void _t64f_signal__termination_signal_handler_function(__attribute__((unused)) int sig, siginfo_t *info, __attribute__((unused)) void *ucontext);
+static void _t64f_signal__ignore_signal(const int signal_number);
+static void _t64f_signal__set_signal_handler(const int signal_number, void (*signal_handler)(int, siginfo_t *, void *));
+static sigset_t _t64f_signal__generate_empty_signal_mask(void);
 
 
-sig_atomic_t t64f_signal__should_translator_continue_running(void) {
-    return _t64g_signal__should_translator_continue_running;
+void t64f_signal__initialize(void) {
+    /*
+     * It is ABSOLUTELY CRUCIAL for this program to ignore 'SIGPIPE' signals, as it handles errors caused by
+     * unexpectedly closed file descriptors itself, and is sometimes able to recover from them (for example,
+     * the subsystem dealing with external addressing mode [t64_xlat_addr_external.c] is programmed to reconnect to
+     * the configured external address translation server in case an unexpected error occurs)!
+     */
+    _t64f_signal__ignore_signal(SIGPIPE);
+
+    // Since signal handlers are shared among all threads, make sure 'T64C_SIGNAL__TRANSLATOR_THREAD_TERMINATION_SIGNAL'
+    //  is configured to be handled! (as of now, the constant is an alias for 'SIGTERM')
+    _t64f_signal__set_signal_handler(SIGTERM, _t64f_signal__termination_signal_handler_function);
+    _t64f_signal__set_signal_handler(SIGINT, _t64f_signal__termination_signal_handler_function);
+    _t64f_signal__set_signal_handler(SIGHUP, _t64f_signal__termination_signal_handler_function);
 }
 
-void t64f_signal__set_signal_handlers(void) {
-    sigset_t signal_mask;
-    sigemptyset(&signal_mask);
+bool t64f_signal__should_this_thread_continue_running(void) {
+    return (bool) (!_t64gt_signal__termination_signal_caught);
+}
 
+static void _t64f_signal__termination_signal_handler_function(__attribute__((unused)) int sig, siginfo_t *info, __attribute__((unused)) void *ucontext) {
+    pid_t main_thread_pid = getpid();
+    pid_t this_thread_pid = gettid();
+
+    if(main_thread_pid == this_thread_pid) {  // If this function is being run on the main thread
+        _t64gt_signal__termination_signal_caught = 1;
+        write(STDERR_FILENO, _T64C_SIGNAL__MAIN_THREAD_TERMINATION_SIGNAL_MESSAGE, strlen(_T64C_SIGNAL__MAIN_THREAD_TERMINATION_SIGNAL_MESSAGE));
+
+    } else if(info->si_pid == main_thread_pid) {  // If the signal has been sent from within this process
+        _t64gt_signal__termination_signal_caught = 1;
+
+    }
+}
+
+static void _t64f_signal__ignore_signal(const int signal_number) {
     struct sigaction signal_action;
     T64M_UTILS__MEMORY_ZERO_OUT(&signal_action, sizeof(struct sigaction));
-    signal_action.sa_handler = _t64f_signal__signal_handler_function;
-    signal_action.sa_mask = signal_mask;
+    signal_action.sa_handler = SIG_IGN;
+    signal_action.sa_mask = _t64f_signal__generate_empty_signal_mask();
     signal_action.sa_flags = 0;
     signal_action.sa_restorer = NULL;
 
-    if(
-        (sigaction(SIGTERM, &signal_action, NULL) < 0) ||
-        (sigaction(SIGINT, &signal_action, NULL) < 0) ||
-        (sigaction(SIGHUP, &signal_action, NULL) < 0)
-    ) t64f_log__crash(true, "Failed to set the program's signal handlers!");
+    if(sigaction(signal_number, &signal_action, NULL) < 0)
+        t64f_log__crash(true, "Failed to ignore the signal with number %d!", signal_number);
 }
 
-static void _t64f_signal__signal_handler_function(__attribute__((unused)) int signum) {
-    _t64g_signal__should_translator_continue_running = 0;
+static void _t64f_signal__set_signal_handler(const int signal_number, void (*signal_handler)(int, siginfo_t *, void *)) {
+    struct sigaction signal_action;
+    T64M_UTILS__MEMORY_ZERO_OUT(&signal_action, sizeof(struct sigaction));
+    signal_action.sa_sigaction = signal_handler;
+    signal_action.sa_mask = _t64f_signal__generate_empty_signal_mask();
+    signal_action.sa_flags = SA_SIGINFO;
+    signal_action.sa_restorer = NULL;
 
-    // t64f_log_info() cannot be called, as it uses async-signal-unsafe functions.
-    write(STDERR_FILENO, _T64C_SIGNAL__SIGNAL_RECEIVED_MESSAGE, strlen(_T64C_SIGNAL__SIGNAL_RECEIVED_MESSAGE));
+    if(sigaction(signal_number, &signal_action, NULL) < 0)
+        t64f_log__crash(true, "Failed to set a handler for the signal with number %d!", signal_number);
+}
+
+static sigset_t _t64f_signal__generate_empty_signal_mask(void) {
+    sigset_t signal_mask;
+    T64M_UTILS__MEMORY_ZERO_OUT(&signal_mask, sizeof(sigset_t));
+    sigemptyset(&signal_mask);
+
+    return signal_mask;
 }
 
 
-#undef _T64C_SIGNAL__SIGNAL_RECEIVED_MESSAGE
+#undef _T64C_SIGNAL__MAIN_THREAD_TERMINATION_SIGNAL_MESSAGE

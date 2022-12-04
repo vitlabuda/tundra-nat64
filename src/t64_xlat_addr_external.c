@@ -28,6 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_conf_file.h"
 #include"t64_router_ipv4.h"
 #include"t64_router_ipv6.h"
+#include"t64_xlat_interrupt.h"
 
 
 #define _T64C_XLAT_ADDR_EXTERNAL__MESSAGE_MAGIC_BYTE ((uint8_t) 0x54)
@@ -326,9 +327,9 @@ static bool _t64f_xlat_addr_external__ensure_external_translation_fds_are_open(t
 
 static void _t64f_xlat_addr_external__close_external_translation_fds_if_necessary(t64ts_tundra__xlat_thread_context *context) {
     if(context->external_addr_xlat_state->read_fd >= 0)
-        close(context->external_addr_xlat_state->read_fd);
+        t64f_xlat_interrupt__close(context->external_addr_xlat_state->read_fd);
     if(context->external_addr_xlat_state->write_fd >= 0 && context->external_addr_xlat_state->write_fd != context->external_addr_xlat_state->read_fd)
-        close(context->external_addr_xlat_state->write_fd);
+        t64f_xlat_interrupt__close(context->external_addr_xlat_state->write_fd);
 
     context->external_addr_xlat_state->read_fd = context->external_addr_xlat_state->write_fd = -1;
 }
@@ -338,8 +339,12 @@ static int _t64f_xlat_addr_external__open_external_translation_socket(const int 
     if(socket_fd < 0)
         return -1;
 
-    if(connect(socket_fd, address, address_length) < 0 || setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, timeout, sizeof(struct timeval)) < 0 || setsockopt(socket_fd, SOL_SOCKET, SO_SNDTIMEO, timeout, sizeof(struct timeval)) < 0) {
-        close(socket_fd);
+    if(
+        (t64f_xlat_interrupt__connect(socket_fd, address, address_length, true) < 0) ||
+        (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, timeout, sizeof(struct timeval)) < 0) ||
+        (setsockopt(socket_fd, SOL_SOCKET, SO_SNDTIMEO, timeout, sizeof(struct timeval)) < 0)
+    ) {
+        t64f_xlat_interrupt__close(socket_fd);
         return -1;
     }
 
@@ -351,7 +356,8 @@ static bool _t64f_xlat_addr_external__receive_message_from_external_translation_
     ssize_t remaining_bytes = sizeof(t64ts_tundra__external_addr_xlat_message);
 
     while(remaining_bytes > 0) {
-        const ssize_t return_value = read(context->external_addr_xlat_state->read_fd, current_ptr, (size_t) remaining_bytes);
+        const ssize_t return_value = t64f_xlat_interrupt__read(context->external_addr_xlat_state->read_fd, current_ptr, (size_t) remaining_bytes);
+
         if(return_value < 1) {
             _t64f_xlat_addr_external__close_external_translation_fds_if_necessary(context);
             return false;
@@ -369,7 +375,8 @@ static bool _t64f_xlat_addr_external__send_message_to_external_translation_fd(t6
     ssize_t remaining_bytes = sizeof(t64ts_tundra__external_addr_xlat_message);
 
     while(remaining_bytes > 0) {
-        const ssize_t return_value = write(context->external_addr_xlat_state->write_fd, current_ptr, (size_t) remaining_bytes);
+        const ssize_t return_value = t64f_xlat_interrupt__write(context->external_addr_xlat_state->write_fd, current_ptr, (size_t) remaining_bytes);
+
         if(return_value < 1) {
             _t64f_xlat_addr_external__close_external_translation_fds_if_necessary(context);
             return false;

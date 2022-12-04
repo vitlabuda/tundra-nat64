@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _T64C_CONF_RFC7050__DNS_NAME "ipv4only.arpa."
 #define _T64C_CONF_RFC7050__TARGET_IPV4_1 "\xc0\x00\x00\xaa"
 #define _T64C_CONF_RFC7050__TARGET_IPV4_2 "\xc0\x00\x00\xab"
-#define _T64C_CONF_RFC7050__RETRY_INTERVAL_SECONDS ((unsigned int) 3)
+#define _T64C_CONF_RFC7050__RETRY_INTERVAL ((unsigned int) 3) // In seconds
 
 
 static void _t64f_conf_rfc7050__print_info_log_message_on_start(void);
@@ -48,7 +48,7 @@ void t64f_conf_rfc7050__autodiscover_addressing_prefix_using_ipv4only_arpa(uint8
     for(;;) {
         struct addrinfo *results;
         if(getaddrinfo(_T64C_CONF_RFC7050__DNS_NAME, NULL, (const struct addrinfo *) &hints, &results) != 0) {
-            sleep(_T64C_CONF_RFC7050__RETRY_INTERVAL_SECONDS);
+            sleep(_T64C_CONF_RFC7050__RETRY_INTERVAL);
             continue;
         }
 
@@ -67,7 +67,7 @@ void t64f_conf_rfc7050__autodiscover_addressing_prefix_using_ipv4only_arpa(uint8
         }
 
         freeaddrinfo(results);
-        sleep(_T64C_CONF_RFC7050__RETRY_INTERVAL_SECONDS);
+        sleep(_T64C_CONF_RFC7050__RETRY_INTERVAL);
     }
 }
 

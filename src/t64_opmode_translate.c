@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_conf_cmdline.h"
 
 
-static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration, int termination_pipe_read_fd);
+static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration);
 static void _t64fa_opmode_translate__initialize_packet_struct(t64ts_tundra__packet *packet);
 static t64ts_tundra__external_addr_xlat_state *_t64fa_opmode_translate__initialize_external_addr_xlat_state_struct(const t64ts_tundra__conf_file *file_configuration, char **addressing_external_next_fds_string_ptr);
 static void _t64f_opmode_translate__free_xlat_thread_contexts(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts);
@@ -41,7 +41,7 @@ static void _t64f_opmode_translate__daemonize(const t64ts_tundra__conf_file *fil
 static void _t64f_opmode_translate__start_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts);
 static void _t64f_opmode_translate__print_information_about_translation_start(const t64ts_tundra__conf_file *file_configuration);
 static void _t64f_opmode_translate__monitor_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts);
-static void _t64f_opmode_translate__terminate_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts, int termination_pipe_write_fd);
+static void _t64f_opmode_translate__terminate_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts);
 
 
 void t64f_opmode_translate__run(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration) {
@@ -50,27 +50,20 @@ void t64f_opmode_translate__run(const t64ts_tundra__conf_cmdline *cmdline_config
 
     t64f_log__info("%s", T64C_TUNDRA__PROGRAM_INFO_STRING);
 
-    int termination_pipe_read_fd, termination_pipe_write_fd;
-    t64f_init_io__create_anonymous_pipe(&termination_pipe_read_fd, &termination_pipe_write_fd);
-
-    t64ts_tundra__xlat_thread_context *thread_contexts = _t64fa_opmode_translate__initialize_xlat_thread_contexts(cmdline_configuration, file_configuration, termination_pipe_read_fd);
+    t64ts_tundra__xlat_thread_context *thread_contexts = _t64fa_opmode_translate__initialize_xlat_thread_contexts(cmdline_configuration, file_configuration);
     _t64f_opmode_translate__daemonize(file_configuration);
     _t64f_opmode_translate__start_xlat_threads(file_configuration, thread_contexts);
-    t64f_signal__set_signal_handlers();
     _t64f_opmode_translate__print_information_about_translation_start(file_configuration);
 
     _t64f_opmode_translate__monitor_xlat_threads(file_configuration, thread_contexts);
 
-    _t64f_opmode_translate__terminate_xlat_threads(file_configuration, thread_contexts, termination_pipe_write_fd);
+    _t64f_opmode_translate__terminate_xlat_threads(file_configuration, thread_contexts);
     _t64f_opmode_translate__free_xlat_thread_contexts(file_configuration, thread_contexts);
-
-    t64f_init_io__close_fd(termination_pipe_read_fd, false);
-    t64f_init_io__close_fd(termination_pipe_write_fd, false);
 
     t64f_log__info("Tundra will now terminate.");
 }
 
-static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration, int termination_pipe_read_fd) {
+static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration) {
     t64ts_tundra__xlat_thread_context *thread_contexts = t64fa_utils__allocate_zeroed_out_memory(file_configuration->program_translator_threads, sizeof(t64ts_tundra__xlat_thread_context));
 
     if(file_configuration->io_mode == T64TE_TUNDRA__IO_MODE_INHERITED_FDS && cmdline_configuration->io_inherited_fds == NULL)
@@ -86,6 +79,7 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
         // context[i].thread stays uninitialized (it is initialized in _t64f_opmode_translate_start_xlat_threads())
         thread_contexts[i].thread_id = (i + 1); // Thread ID 0 is reserved for the main thread
         thread_contexts[i].configuration = file_configuration;
+        thread_contexts[i].joined = false;
 
         _t64fa_opmode_translate__initialize_packet_struct(&thread_contexts[i].in_packet);
         _t64fa_opmode_translate__initialize_packet_struct(&thread_contexts[i].out_packet);
@@ -100,8 +94,6 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
             NULL
         );
 
-        thread_contexts[i].termination_pipe_read_fd = termination_pipe_read_fd;
-
         switch(file_configuration->io_mode) {
             case T64TE_TUNDRA__IO_MODE_INHERITED_FDS:
                 io_next_fds_string_ptr = t64f_init_io__get_fd_pair_from_inherited_fds_string(&thread_contexts[i].packet_read_fd, &thread_contexts[i].packet_write_fd, io_next_fds_string_ptr, T64C_CONF_CMDLINE__SHORTOPT_IO_INHERITED_FDS, T64C_CONF_CMDLINE__LONGOPT_IO_INHERITED_FDS);
@@ -109,11 +101,11 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
 
             case T64TE_TUNDRA__IO_MODE_TUN:
                 if(file_configuration->io_tun_multi_queue) {
-                    thread_contexts[i].packet_read_fd = t64f_init_io__open_tun_interface(file_configuration, false);
+                    thread_contexts[i].packet_read_fd = t64f_init_io__open_tun_interface(file_configuration);
                     thread_contexts[i].packet_write_fd = thread_contexts[i].packet_read_fd;
                 } else {
                     if(single_queue_tun_fd < 0)
-                        single_queue_tun_fd = t64f_init_io__open_tun_interface(file_configuration, true);
+                        single_queue_tun_fd = t64f_init_io__open_tun_interface(file_configuration);
 
                     thread_contexts[i].packet_read_fd = single_queue_tun_fd;
                     thread_contexts[i].packet_write_fd = single_queue_tun_fd;
@@ -269,30 +261,55 @@ static void _t64f_opmode_translate__print_information_about_translation_start(co
 }
 
 static void _t64f_opmode_translate__monitor_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts) {
-    while(t64f_signal__should_translator_continue_running()) {
+    while(t64f_signal__should_this_thread_continue_running()) {
         for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
             if(pthread_tryjoin_np(thread_contexts[i].thread, NULL) != EBUSY)
                 t64f_log__crash(false, "A translator thread has terminated unexpectedly!");
         }
 
-        sleep(T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL);
+        usleep(T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL);
     }
 }
 
-static void _t64f_opmode_translate__terminate_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts, int termination_pipe_write_fd) {
-    // Inform the threads that they should terminate
-    {
-        const char write_char = 'x'; // The data are never read, so the value does not matter
-        if(write(termination_pipe_write_fd, &write_char, 1) != 1)
-            t64f_log__crash(true, "Failed to inform the translator threads that they should terminate!");
-    }
+static void _t64f_opmode_translate__terminate_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts) {
+    // Even though it is extremely unlikely, threads may not terminate on first signal (due to a race condition - when
+    //  the signal is delivered between t64f_signal__should_this_thread_continue_running() and a blocking system call);
+    //  therefore, the termination is performed within an "infinite" loop.
+    for(;;) {
+        bool are_there_running_threads = false;
 
-    // Wait for the threads to terminate
-    for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
-        const int pthread_errno = pthread_join(thread_contexts[i].thread, NULL);
-        if(pthread_errno != 0) {
-            errno = pthread_errno;
-            t64f_log__crash(true, "Failed to join a translator thread!");
+        for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
+            if(thread_contexts[i].joined)
+                continue;
+
+            switch(pthread_tryjoin_np(thread_contexts[i].thread, NULL)) {
+                case 0:
+                    {
+                        thread_contexts[i].joined = true;
+                    }
+                    break;
+
+                case EBUSY:
+                    {
+                        are_there_running_threads = true;
+
+                        // There is a possibility of a race condition occurring (when the thread terminates between
+                        //  pthread_tryjoin_np() and pthread_kill()), but it is ignored, because the chance of it
+                        //  occurring is extremely tiny, and there seems to be no easy (!) and performance-friendly way
+                        //  of implementing the termination process 100% atomically.
+                        if(pthread_kill(thread_contexts[i].thread, T64C_SIGNAL__TRANSLATOR_THREAD_TERMINATION_SIGNAL) != 0)
+                            t64f_log__crash(false, "Failed to inform a translator thread that it should terminate (using a signal)!");
+                    }
+                    break;
+
+                default:
+                    t64f_log__crash(false, "Failed to join a translator thread!");
+            }
         }
+
+        if(are_there_running_threads)
+            usleep(T64C_TUNDRA__TRANSLATOR_THREAD_TERMINATION_INTERVAL);
+        else
+            break;
     }
 }
