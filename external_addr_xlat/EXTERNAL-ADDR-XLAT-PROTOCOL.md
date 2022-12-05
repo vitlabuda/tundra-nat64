@@ -126,7 +126,7 @@ Each translator thread holds and manages its own connection to an external addre
 to `unix` or `tcp`, each thread establishes the connection when it receives its first packet for translation. This
 means that translator threads which are completely "inactive" will not hold unnecessary connections. However, it also
 means that the connections are always established after the program initializes, i.e. after it changes its working 
-directory to `/` and drops its privileges or performs chroot, if it is configured to do so.
+directory to `/` and drops its privileges, if it is configured to do so.
 
 If the `inherited-fds` transport is configured to be used, the file descriptors are extracted from the 
 `addressing-external-inherited-fds` command-line argument and checked whether they are valid during initialization, 

@@ -75,11 +75,6 @@ static void _t64fa_conf_file__parse_program_configuration_entries(t64ts_tundra__
     // --- program.translator_threads ---
     file_configuration->program_translator_threads = (size_t) t64f_conf_file_load__find_uint64(config_file_entries, T64C_CONF_FILE__OPTION_KEY_PROGRAM_TRANSLATOR_THREADS, 1, T64C_TUNDRA__MAX_TRANSLATOR_THREADS, &_t64f_conf_file__get_fallback_translator_thread_count);
 
-    // --- program.chroot_dir ---
-    file_configuration->program_chroot_dir = t64fa_utils__duplicate_string(
-        t64f_conf_file_load__find_string(config_file_entries, T64C_CONF_FILE__OPTION_KEY_PROGRAM_CHROOT_DIR, PATH_MAX - 1, false)
-    );
-
     // --- program.privilege_drop_user ---
     {
         const char *username = t64f_conf_file_load__find_string(config_file_entries, T64C_CONF_FILE__OPTION_KEY_PROGRAM_PRIVILEGE_DROP_USER, T64C_CONF_FILE_LOAD__FIND_STRING_NO_MAX_CHARACTERS, false);
@@ -370,8 +365,6 @@ static uint64_t _t64f_conf_file__get_fallback_translator_thread_count(void) {
 }
 
 void t64f_conf_file__free_parsed_configuration_file(t64ts_tundra__conf_file *file_configuration) {
-    t64f_utils__free_memory(file_configuration->program_chroot_dir);
-
     if(file_configuration->io_tun_device_path != NULL)
         t64f_utils__free_memory(file_configuration->io_tun_device_path);
     if(file_configuration->io_tun_interface_name != NULL)

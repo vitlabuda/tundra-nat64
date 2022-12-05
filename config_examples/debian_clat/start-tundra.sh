@@ -22,4 +22,4 @@ ${TUNDRA_EXECUTABLE} --config-file="${TUNDRA_CONFIG_FILE}" mktun || exit_with_er
 /bin/ip -4 route add default dev "${TUNDRA_INTERFACE}" || exit_with_error "Failed to set the TUN device as default route!"
 /sbin/ip6tables -t nat -A POSTROUTING -s "${TUNDRA_IPV6_SUBNET}" '!' -d "${TUNDRA_IPV6_SUBNET}" -j MASQUERADE || exit_with_error "Failed to set up IPv6 NAT masquerading!"
 
-${TUNDRA_EXECUTABLE} --config-file="${TUNDRA_CONFIG_FILE}" translate
+exec ${TUNDRA_EXECUTABLE} --config-file="${TUNDRA_CONFIG_FILE}" translate

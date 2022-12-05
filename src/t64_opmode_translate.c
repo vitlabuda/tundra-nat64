@@ -204,10 +204,6 @@ static void _t64f_opmode_translate__free_external_addr_xlat_state_struct(t64ts_t
 }
 
 static void _t64f_opmode_translate__daemonize(const t64ts_tundra__conf_file *file_configuration) {
-    // --- chroot() ---
-    if(!T64M_UTILS__STRING_EMPTY(file_configuration->program_chroot_dir) && chroot(file_configuration->program_chroot_dir) < 0)
-        t64f_log__crash(true, "Failed to change the program's root directory (the chroot() call failed)!");
-
     // --- chdir() ---
     if(chdir(T64C_TUNDRA__WORKING_DIRECTORY) < 0)
         t64f_log__crash(true, "Failed to change the program's working directory (the chdir() call failed)!");

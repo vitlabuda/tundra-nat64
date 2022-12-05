@@ -105,3 +105,6 @@
 - Vastly improved performance in case a single-queue TUN interface is used
 - Removed the ability to use non-blocking file descriptors to receive and send packets
 - Other minor improvements
+
+[4.4.0 @ 2022-12-05]
+- Removed the program's ability to perform chroot(), as it caused problems on certain distributions / in certain configurations, while not providing much extra security

@@ -69,7 +69,6 @@ typedef struct {
     uint8_t addressing_nat64_clat_ipv6[16];
     uint8_t router_ipv6[16];
     struct timeval addressing_external_unix_tcp_timeout;
-    char *program_chroot_dir; // Cannot be NULL, but can be empty (= no chroot should be performed)
     char *io_tun_device_path; // NULL if io_mode != TUN; Cannot be empty - contains either the config-file-provided TUN device path, or T64C_TUNDRA_DEFAULT_TUN_DEVICE_PATH
     char *io_tun_interface_name; // NULL if io_mode != TUN; Cannot be empty
     struct addrinfo *addressing_external_tcp_socket_info; // Not NULL if addressing_mode == EXTERNAL && addressing_external_transport == TCP

@@ -144,7 +144,6 @@ static void _t64f_opmode_print_config__print_file_config(const t64ts_tundra__con
 
 static void _t64f_opmode_print_config__print_file_program_config(const t64ts_tundra__conf_file *file_configuration) {
     printf("* %s = %zu\n", T64C_CONF_FILE__OPTION_KEY_PROGRAM_TRANSLATOR_THREADS, file_configuration->program_translator_threads);
-    printf("* %s = %s\n", T64C_CONF_FILE__OPTION_KEY_PROGRAM_CHROOT_DIR, _t64f_opmode_print_config__get_printable_representation_of_string(file_configuration->program_chroot_dir));
 
     if(file_configuration->program_privilege_drop_user_perform)
         printf("* %s = %s (UID: %"PRIdMAX")\n", T64C_CONF_FILE__OPTION_KEY_PROGRAM_PRIVILEGE_DROP_USER, _T64C_OPMODE_PRINT_CONFIG__TRUE_BOOLEAN_REPRESENTATION, (intmax_t) file_configuration->program_privilege_drop_user_uid);
