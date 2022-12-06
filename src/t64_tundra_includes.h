@@ -65,6 +65,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include<sys/prctl.h>
 #include<sys/sysinfo.h>
 #include<sys/random.h>
+#include<sys/syscall.h>
 
 
 #endif // _T64I_TUNDRA_INCLUDES_H

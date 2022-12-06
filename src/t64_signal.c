@@ -59,14 +59,14 @@ bool t64f_signal__should_this_thread_continue_running(void) {
 }
 
 static void _t64f_signal__termination_signal_handler_function(__attribute__((unused)) int sig, siginfo_t *info, __attribute__((unused)) void *ucontext) {
-    pid_t main_thread_pid = getpid();
-    pid_t this_thread_pid = gettid();
+    pid_t process_pid = getpid();
+    pid_t this_thread_pid = (pid_t) syscall(SYS_gettid);  // The gettid() wrapper function is not available on some platforms, namely on older versions of OpenWRT
 
-    if(main_thread_pid == this_thread_pid) {  // If this function is being run on the main thread
+    if(process_pid == this_thread_pid) {  // If this function is being run on the main thread
         _t64gt_signal__termination_signal_caught = 1;
         write(STDERR_FILENO, _T64C_SIGNAL__MAIN_THREAD_TERMINATION_SIGNAL_MESSAGE, strlen(_T64C_SIGNAL__MAIN_THREAD_TERMINATION_SIGNAL_MESSAGE));
 
-    } else if(info->si_pid == main_thread_pid) {  // If the signal has been sent from within this process
+    } else if(info->si_pid == process_pid) {  // If the signal has been sent from within this process
         _t64gt_signal__termination_signal_caught = 1;
 
     }

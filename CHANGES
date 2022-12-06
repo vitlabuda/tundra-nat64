@@ -108,3 +108,6 @@
 
 [4.4.0 @ 2022-12-05]
 - Removed the program's ability to perform chroot(), as it caused problems on certain distributions / in certain configurations, while not providing much extra security
+
+[4.4.1 @ 2022-12-06]
+- Replaced gettid() with syscall(SYS_gettid), as the wrapper function is not available on some platforms, namely on older versions of OpenWRT

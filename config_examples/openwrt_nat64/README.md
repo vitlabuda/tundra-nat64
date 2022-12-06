@@ -2,7 +2,10 @@
 
 
 A Tundra instance with a very similar configuration to the one in this directory has been successfully deployed
-on a *TP-Link TL-WR841N v13* running **OpenWRT 21.02.3**.
+on a *TP-Link TL-WR841N v13* running **OpenWRT 21.02.5**.
+
+**WARNING:** As of now, this example does not work on OpenWRT 22.03 and later, as these versions do not have `iptables` 
+installed (at least not by default), and the `firewall.user` script is not available there!
 
 **This configuration assumes that your router has a dual-stack (both IPv4 and IPv6) connectivity, and that a NAT 
 masquerade is performed on IPv4 packets going to your WAN interface. You might want to adjust interface names, 
