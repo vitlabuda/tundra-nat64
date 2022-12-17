@@ -77,7 +77,7 @@ bool t64f_utils_xlat_addr__siit__perform_6to4_prefix_translation_for_main_packet
     if(T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(in_ipv6, context->configuration->router_ipv6))
         return false;
 
-    if(!T64M_UTILS__MEMORY_EQUAL(in_ipv6, context->configuration->addressing_nat64_clat_siit_prefix, 12))
+    if(!T64M_UTILS_IP__IPV6_PREFIXES_EQUAL(in_ipv6, context->configuration->addressing_nat64_clat_siit_prefix))
         return false;
 
     if(!_t64f_utils_xlat_addr__nat64_clat_siit__check_embeddability_of_ipv4_into_prefix(context, in_ipv6 + 12))
@@ -102,7 +102,7 @@ bool t64f_utils_xlat_addr__siit__perform_4to6_prefix_translation_for_main_packet
 }
 
 bool t64f_utils_xlat_addr__nat64_clat_siit__perform_6to4_prefix_translation_for_icmp_error_packet(const t64ts_tundra__xlat_thread_context *context, const uint8_t *in_ipv6, uint8_t *out_ipv4) {
-    if(!T64M_UTILS__MEMORY_EQUAL(in_ipv6, context->configuration->addressing_nat64_clat_siit_prefix, 12))
+    if(!T64M_UTILS_IP__IPV6_PREFIXES_EQUAL(in_ipv6, context->configuration->addressing_nat64_clat_siit_prefix))
         return false;
 
     // For debugging purposes, illegal addresses (such as 127.0.0.1) inside ICMP packets are translated normally.

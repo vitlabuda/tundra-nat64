@@ -28,6 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(ipv4_address1, ipv4_address2) (T64M_UTILS__MEMORY_EQUAL((ipv4_address1), (ipv4_address2), 4))
 #define T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(ipv6_address1, ipv6_address2) (T64M_UTILS__MEMORY_EQUAL((ipv6_address1), (ipv6_address2), 16))
+#define T64M_UTILS_IP__IPV6_PREFIXES_EQUAL(ipv6_prefix1, ipv6_prefix2) (T64M_UTILS__MEMORY_EQUAL((ipv6_prefix1), (ipv6_prefix2), 12))
 
 #define T64M_UTILS_IP__IPV4_PACKET_NEEDS_FRAGMENTATION(context, ipv4_packet_ptr) ((ipv4_packet_ptr)->packet_size > (context)->configuration->translator_ipv4_outbound_mtu)
 #define T64M_UTILS_IP__IPV6_PACKET_NEEDS_FRAGMENTATION(context, ipv6_packet_ptr) ((ipv6_packet_ptr)->packet_size > (context)->configuration->translator_ipv6_outbound_mtu)

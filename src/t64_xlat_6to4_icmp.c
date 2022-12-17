@@ -25,12 +25,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
 #include"t64_utils_icmp.h"
-#include"t64_log.h"
 #include"t64_checksum.h"
-#include"t64_xlat_addr_nat64.h"
-#include"t64_xlat_addr_clat.h"
-#include"t64_xlat_addr_siit.h"
-#include"t64_xlat_addr_external.h"
+#include"t64_xlat_addr.h"
 
 
 static bool _t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(t64ts_tundra__xlat_thread_context *context);
@@ -450,32 +446,8 @@ static bool _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t
     out_ipv4_carried_packet.packet_ipv4hdr->ttl = in_ipv6_carried_packet.packet_ipv6hdr->hop_limit;
     out_ipv4_carried_packet.packet_ipv4hdr->protocol = *in_ipv6_carried_packet.ipv6_carried_protocol_field;
 
-    // It would be possible to decide which function to use beforehand and then call it indirectly using a function
-    //  pointer, but indirect function calls are usually slow.
-    switch(context->configuration->addressing_mode) {
-        case T64TE_TUNDRA__ADDRESSING_MODE_NAT64:
-            if(!t64f_xlat_addr_nat64__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
-                return false;
-            break;
-
-        case T64TE_TUNDRA__ADDRESSING_MODE_CLAT:
-            if(!t64f_xlat_addr_clat__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
-                return false;
-            break;
-
-        case T64TE_TUNDRA__ADDRESSING_MODE_SIIT:
-            if(!t64f_xlat_addr_siit__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
-                return false;
-            break;
-
-        case T64TE_TUNDRA__ADDRESSING_MODE_EXTERNAL:
-            if(!t64f_xlat_addr_external__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
-                return false;
-            break;
-
-        default:
-            t64f_log__thread_crash_invalid_internal_state(context->thread_id, "Invalid addressing mode");
-    }
+    if(!t64f_xlat_addr__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
+        return false;
 
     out_ipv4_carried_packet.payload_raw = (out_ipv4_carried_packet.packet_raw + out_ipv4_carried_packet.packet_size);
     out_ipv4_carried_packet.payload_size = 0;

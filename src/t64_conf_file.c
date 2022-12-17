@@ -23,6 +23,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_conf_file.h"
 
 #include"t64_utils.h"
+#include"t64_utils_ip.h"
 #include"t64_log.h"
 #include"t64_conf_file_load.h"
 #include"t64_conf_rfc7050.h"
@@ -192,12 +193,12 @@ static void _t64f_conf_file__parse_addressing_nat64_clat_configuration_entries(t
     if(file_configuration->addressing_mode == T64TE_TUNDRA__ADDRESSING_MODE_NAT64 || file_configuration->addressing_mode == T64TE_TUNDRA__ADDRESSING_MODE_CLAT) {
         // --- addressing.nat64_clat.ipv4 ---
         t64f_conf_file_load__find_ipv4_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_ADDRESSING_NAT64_CLAT_IPV4, file_configuration->addressing_nat64_clat_ipv4, NULL);
-        if(T64M_UTILS__MEMORY_EQUAL(file_configuration->addressing_nat64_clat_ipv4, file_configuration->router_ipv4, 4))
+        if(T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(file_configuration->addressing_nat64_clat_ipv4, file_configuration->router_ipv4))
             t64f_log__crash(false, "'%s' must not be the same as '%s'!", T64C_CONF_FILE__OPTION_KEY_ADDRESSING_NAT64_CLAT_IPV4, T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV4);
 
         // --- addressing.nat64_clat.ipv6 ---
         t64f_conf_file_load__find_ipv6_address(config_file_entries, T64C_CONF_FILE__OPTION_KEY_ADDRESSING_NAT64_CLAT_IPV6, file_configuration->addressing_nat64_clat_ipv6, NULL);
-        if(T64M_UTILS__MEMORY_EQUAL(file_configuration->addressing_nat64_clat_ipv6, file_configuration->router_ipv6, 16))
+        if(T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(file_configuration->addressing_nat64_clat_ipv6, file_configuration->router_ipv6))
             t64f_log__crash(false, "'%s' must not be the same as '%s'!", T64C_CONF_FILE__OPTION_KEY_ADDRESSING_NAT64_CLAT_IPV6, T64C_CONF_FILE__OPTION_KEY_ROUTER_IPV6);
     } else {
         T64M_UTILS__MEMORY_ZERO_OUT(file_configuration->addressing_nat64_clat_ipv4, 4);

@@ -35,7 +35,7 @@ bool t64f_utils_ip__is_ipv4_address_unusable(const uint8_t *ipv4_address) {
         (*ipv4_address == 0) || // 0.0.0.0/8 (Current network)
         (*ipv4_address == 127) || // 127.0.0.0/8 (Loopback)
         (*ipv4_address >= 224 && *ipv4_address <= 239) || // 224.0.0.0/4 (Multicast)
-        (T64M_UTILS__MEMORY_EQUAL(ipv4_address, "\xff\xff\xff\xff", 4)) // 255.255.255.255/32 (Limited broadcast)
+        (T64M_UTILS_IP__IPV4_ADDRESSES_EQUAL(ipv4_address, "\xff\xff\xff\xff")) // 255.255.255.255/32 (Limited broadcast)
     );
 }
 
@@ -46,8 +46,8 @@ bool t64f_utils_ip__is_ipv4_address_unusable(const uint8_t *ipv4_address) {
 bool t64f_utils_ip__is_ipv6_address_unusable(const uint8_t *ipv6_address) {
     return (bool) (
         (*ipv6_address == 255) || // ff00::/8 (Multicast)
-        (T64M_UTILS__MEMORY_EQUAL(ipv6_address, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 16)) || // ::/128 (Unspecified address)
-        (T64M_UTILS__MEMORY_EQUAL(ipv6_address, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01", 16)) // ::1/128 (Loopback)
+        (T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(ipv6_address, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")) || // ::/128 (Unspecified address)
+        (T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(ipv6_address, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01")) // ::1/128 (Loopback)
     );
 }
 

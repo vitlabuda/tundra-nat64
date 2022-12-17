@@ -19,39 +19,16 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _T64I_TUNDRA_H
-#define _T64I_TUNDRA_H
+#ifndef _T64I_XLAT_ADDR_H
+#define _T64I_XLAT_ADDR_H
+
+#include"t64_tundra.h"
 
 
-// Preprocessor macro name flags:
-// C = constant
-// M = macro
-// I = include guard
-
-// Function name flags:
-// a = allocates memory
-
-// Type name flags:
-// ts = struct
-// te = enum
-
-// Macro name flags:
-// M = a macro argument is used more than once (M = multi-use)
-
-// Variable name flags (only used with global variables):
-// g = global variable
-// gc = constant global variable
-// gt = thread-local global variable
+extern bool t64f_xlat_addr__perform_4to6_address_translation_for_main_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, uint8_t *out_src_ipv6, uint8_t *out_dst_ipv6);
+extern bool t64f_xlat_addr__perform_4to6_address_translation_for_icmp_error_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, uint8_t *out_src_ipv6, uint8_t *out_dst_ipv6);
+extern bool t64f_xlat_addr__perform_6to4_address_translation_for_main_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, uint8_t *out_src_ipv4, uint8_t *out_dst_ipv4);
+extern bool t64f_xlat_addr__perform_6to4_address_translation_for_icmp_error_packet(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, uint8_t *out_src_ipv4, uint8_t *out_dst_ipv4);
 
 
-#define _GNU_SOURCE
-
-#include"t64_tundra_includes.h"
-#include"t64_tundra_defs.h"
-#include"t64_tundra_typedefs.h"
-
-#if CHAR_BIT != 8
-#error "Tundra only supports systems where CHAR_BIT is equal to 8!"
-#endif
-
-#endif // _T64I_TUNDRA_H
+#endif // _T64I_XLAT_ADDR_H

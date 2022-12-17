@@ -23,7 +23,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _T64I_TUNDRA_DEFS_H
 
 
-#define T64C_TUNDRA__VERSION "4.4.1"
+#define T64C_TUNDRA__VERSION "4.4.2"
 #define T64C_TUNDRA__PROGRAM_INFO_STRING "Tundra-NAT64 / v"T64C_TUNDRA__VERSION" / Copyright (c) 2022 Vit Labuda"
 
 #define T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH "/etc/tundra-nat64/tundra-nat64.conf"
@@ -32,8 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T64C_TUNDRA__WORKING_DIRECTORY "/" // The program does not access the filesystem after changing the working directory!
 #define T64C_TUNDRA__MAX_TRANSLATOR_THREADS ((size_t) 256) // Multi-queue TUN interfaces can have up to 256 queues (= file descriptors)
 #define T64C_TUNDRA__MAX_ADDRESSING_EXTERNAL_CACHE_SIZE ((size_t) 10000000)
-#define T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL ((useconds_t) 900000) // In microseconds
-#define T64C_TUNDRA__TRANSLATOR_THREAD_TERMINATION_INTERVAL ((useconds_t) 100000) // In microseconds
+#define T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL_MICROSECONDS ((useconds_t) 900000)
+#define T64C_TUNDRA__TRANSLATOR_THREAD_TERMINATION_INTERVAL_MICROSECONDS ((useconds_t) 100000)
 
 #define T64C_TUNDRA__MAX_PACKET_SIZE ((size_t) 65535)
 #define T64C_TUNDRA__MINIMUM_MTU_IPV4 ((size_t) 68)

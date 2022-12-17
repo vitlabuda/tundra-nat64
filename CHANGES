@@ -111,3 +111,6 @@
 
 [4.4.1 @ 2022-12-06]
 - Replaced gettid() with syscall(SYS_gettid), as the wrapper function is not available on some platforms, namely on older versions of OpenWRT
+
+[4.4.2 @ 2022-12-17]
+- Code cleanup

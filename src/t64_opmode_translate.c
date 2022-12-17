@@ -263,7 +263,7 @@ static void _t64f_opmode_translate__monitor_xlat_threads(const t64ts_tundra__con
                 t64f_log__crash(false, "A translator thread has terminated unexpectedly!");
         }
 
-        usleep(T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL);
+        usleep(T64C_TUNDRA__TRANSLATOR_THREAD_MONITOR_INTERVAL_MICROSECONDS);
     }
 }
 
@@ -304,7 +304,7 @@ static void _t64f_opmode_translate__terminate_xlat_threads(const t64ts_tundra__c
         }
 
         if(are_there_running_threads)
-            usleep(T64C_TUNDRA__TRANSLATOR_THREAD_TERMINATION_INTERVAL);
+            usleep(T64C_TUNDRA__TRANSLATOR_THREAD_TERMINATION_INTERVAL_MICROSECONDS);
         else
             break;
     }
