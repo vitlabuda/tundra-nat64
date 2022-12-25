@@ -26,8 +26,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 extern uint16_t t64f_checksum__calculate_ipv4_header_checksum(const struct iphdr *ipv4_header);
-extern uint16_t t64f_checksum__calculate_rfc1071_checksum(const t64ts_tundra__packet *packet, const bool include_pseudo_header);
-extern uint16_t t64f_checksum__incrementally_recalculate_rfc1071_checksum(const uint16_t old_checksum, const t64ts_tundra__packet *old_packet, const t64ts_tundra__packet *new_packet);
+extern uint16_t t64f_checksum__calculate_rfc1071_checksum_for_ipv4(const uint8_t *payload1_ptr, const size_t payload1_size, const uint8_t *nullable_payload2_ptr, const size_t zeroable_payload2_size, const struct iphdr *nullable_ipv4_header);
+extern uint16_t t64f_checksum__calculate_rfc1071_checksum_for_ipv6(const uint8_t *payload1_ptr, const size_t payload1_size, const uint8_t *nullable_payload2_ptr, const size_t zeroable_payload2_size, const struct ipv6hdr *nullable_ipv6_header, const uint8_t carried_protocol);
+extern uint16_t t64f_checksum__incrementally_recalculate_rfc1071_checksum_4to6(const uint16_t old_checksum, const struct iphdr *old_ipv4_header, const struct ipv6hdr *new_ipv6_header);
+extern uint16_t t64f_checksum__incrementally_recalculate_rfc1071_checksum_6to4(const uint16_t old_checksum, const struct ipv6hdr *old_ipv6_header, const struct iphdr *new_ipv4_header);
 
 
 #endif // _T64I_CHECKSUM_H

@@ -24,74 +24,223 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include"t64_utils.h"
 #include"t64_utils_ip.h"
-#include"t64_utils_icmp.h"
 #include"t64_checksum.h"
 #include"t64_xlat_addr.h"
 
 
-static bool _t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(t64ts_tundra__xlat_thread_context *context);
-static bool _t64f_xlat_6to4_icmp__translate_destination_unreachable_message(t64ts_tundra__xlat_thread_context *context);
-static bool _t64f_xlat_6to4_icmp__translate_packet_too_big_message(t64ts_tundra__xlat_thread_context *context);
-static bool _t64f_xlat_6to4_icmp__translate_time_exceeded_message(t64ts_tundra__xlat_thread_context *context);
-static bool _t64f_xlat_6to4_icmp__translate_parameter_problem_message(t64ts_tundra__xlat_thread_context *context);
-static bool _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t64ts_tundra__xlat_thread_context *context, const int dont_fragment);
-static uint8_t _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer_value(const uint8_t in_pointer);
+typedef struct {
+    const uint8_t *payload_ptr; // Points to a part of 'context->in_packet_buffer' --> must not be modified!
+    size_t payload_size;
+    uint8_t carried_protocol;
+    bool is_fragment; // Not necessary, but improves code readability and lowers the chance of a programming mistake happening
+} _t64ts_xlat_6to4_icmp__out_ipv4_packet_in_error_data;
 
 
-bool t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_tundra__xlat_thread_context *context) {
-    /*
-     * REQUIRED-STATE-OF-PACKET-BUFFERS:
-     *
-     * in_packet->packet_raw (content) -- An IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
-     * in_packet->packet_size -- The IPv6 packet's size (at least 40 bytes)
-     * in_packet->payload_raw -- The packet's unvalidated payload (the pointer points to the beginning of the ICMPv6 header)
-     * in_packet->payload_size -- The size of the packet's unvalidated payload (zero if the packet does not carry any payload)
-     * in_packet->ipv6_fragment_header -- A pointer to the fragmentation header if the packet contains it; NULL otherwise
-     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet (58 - ICMPv6)
-     *
-     * out_packet->packet_raw (content) -- An IPv4 header whose protocol field is set to 1 (ICMP) (and whose 'tot_len' and 'check' fields are zero - they are set just before the packet is sent out)
-     * out_packet->packet_size -- The size of the IPv4 header (always 20 bytes)
-     * out_packet->payload_raw -- A pointer to the first byte after the packet's header (the translated payload shall be placed here)
-     * out_packet->payload_size -- Zero
-     * out_packet->ipv6_fragment_header -- Undefined (as the packet is IPv4)
-     * out_packet->ipv6_carried_protocol_field -- Undefined (as the packet is IPv4)
-     */
+static bool _t64f_xlat_6to4_icmp__validate_and_translate_icmp_type_and_code(const uint8_t old_icmpv6_type, const uint8_t old_icmpv6_code, uint8_t *new_icmpv4_type, uint8_t *new_icmpv4_code);
+static bool _t64f_xlat_6to4_icmp__validate_and_translate_rest_of_header(const t64ts_tundra__xlat_thread_context *context, const uint8_t old_icmpv6_type, const uint8_t old_icmpv6_code, const uint8_t *old_icmpv6_rest_of_header, uint8_t *new_icmpv4_rest_of_header);
+static uint16_t _t64f_xlat_6to4_icmp__recalculate_packet_too_big_mtu(const t64ts_tundra__xlat_thread_context *context, uint16_t mtu);
+static bool _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer(const uint8_t old_pointer, uint8_t *new_pointer);
+static bool _t64f_xlat_6to4_icmp__validate_and_translate_ip_header_of_packet_in_error(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_icmpv6_payload_ptr, const size_t in_icmpv6_payload_size, uint8_t *out_packet_in_error_buffer_28b, _t64ts_xlat_6to4_icmp__out_ipv4_packet_in_error_data *out_packet_in_error_data, const bool dont_fragment);
 
-    if(T64M_UTILS_IP__IS_IPV6_PACKET_FRAGMENTED(&context->in_packet) || T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(context->out_packet.packet_ipv4hdr))
+
+bool t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_packet_payload_ptr, const size_t in_packet_payload_size, t64ts_xlat_6to4_icmp__out_icmpv4_message_data *out_message_data) {
+    if(in_packet_payload_size < 8)
         return false;
 
-    if(context->in_packet.payload_size < 8)
-        return false;
+    const struct icmp6hdr *in_icmpv6_header = (const struct icmp6hdr *) in_packet_payload_ptr;
+    struct icmphdr *out_icmpv4_header = (struct icmphdr *) out_message_data->message_start_36b;
+    out_message_data->message_start_size_m8u = 8;
 
-    if(t64f_checksum__calculate_rfc1071_checksum(&context->in_packet, true) != 0)
-        return false;
 
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header = at least 1500 bytes free; 8 bytes needed (for ICMP header)
+    // :: Type & Code
+    if(!_t64f_xlat_6to4_icmp__validate_and_translate_icmp_type_and_code(
+        in_icmpv6_header->icmp6_type,
+        in_icmpv6_header->icmp6_code,
+        &out_icmpv4_header->type,
+        &out_icmpv4_header->code
+    )) return false;
 
-    switch(context->in_packet.payload_icmpv6hdr->icmp6_type) {
-        case 128: case 129: // Echo Request and Echo Reply
-            if(!_t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(context))
+
+    // :: Rest of header
+    if(!_t64f_xlat_6to4_icmp__validate_and_translate_rest_of_header(
+        context,
+        in_icmpv6_header->icmp6_type,
+        in_icmpv6_header->icmp6_code,
+        (in_packet_payload_ptr + 4),
+        (out_message_data->message_start_36b + 4)
+    )) return false;
+
+
+    // :: Payload
+    const uint8_t *in_icmpv6_payload_ptr = (in_packet_payload_ptr + 8);
+    const size_t in_icmpv6_payload_size = (in_packet_payload_size - 8);
+
+    if(in_icmpv6_header->icmp6_type == 128 || in_icmpv6_header->icmp6_type == 129) { // Echo Request, Echo Reply
+        out_message_data->nullable_message_end_ptr = in_icmpv6_payload_ptr;
+        out_message_data->zeroable_message_end_size = in_icmpv6_payload_size;
+    } else { // ICMP Error message
+        _t64ts_xlat_6to4_icmp__out_ipv4_packet_in_error_data out_packet_in_error_data;
+        if(!_t64f_xlat_6to4_icmp__validate_and_translate_ip_header_of_packet_in_error(
+            context,
+            in_icmpv6_payload_ptr,
+            in_icmpv6_payload_size,
+            (out_message_data->message_start_36b + 8),
+            &out_packet_in_error_data,
+            (bool) (in_icmpv6_header->icmp6_type == 2) // "Packet too big" -> "Fragmentation Needed and DF was Set" (it literally says that DF must be set)
+        )) return false;
+        out_message_data->message_start_size_m8u += 20; // Always 28 bytes -> not aligned to 8!
+
+        if(out_packet_in_error_data.carried_protocol == 1) { // ICMPv4
+            // If the packet in error is a fragment or its payload is smaller than 8 bytes, it is not possible to tell
+            //  if it is an ICMP Echo packet, and therefore it is dropped
+            if(out_packet_in_error_data.is_fragment || out_packet_in_error_data.payload_size < 8)
                 return false;
+
+            // WARNING: Only the first 4 bytes (fields type, code, checksum) are set and therefore accessible!!!
+            struct icmphdr *new_icmpv4_packet_in_error_payload_ptr = (struct icmphdr *) (out_message_data->message_start_36b + 28);
+            memcpy(new_icmpv4_packet_in_error_payload_ptr, out_packet_in_error_data.payload_ptr, 4);
+            out_message_data->message_start_size_m8u += 4; // Always 32 bytes -> aligned to 8
+
+            /*
+             * https://datatracker.ietf.org/doc/html/rfc7915#page-14 states:
+             * "The translation of the inner IP header can be done by invoking the
+             *  function that translated the outer IP headers.  This process MUST
+             *  stop at the first embedded header and drop the packet if it contains
+             *  more embedded headers."
+             *
+             *  Echo Reply and Echo Request are the only translatable ICMP types that do not carry a packet "in error".
+             */
+            if(new_icmpv4_packet_in_error_payload_ptr->code != 0)
+                return false;
+
+            if(new_icmpv4_packet_in_error_payload_ptr->type == 128)
+                new_icmpv4_packet_in_error_payload_ptr->type = 8;
+            else if(new_icmpv4_packet_in_error_payload_ptr->type == 129)
+                new_icmpv4_packet_in_error_payload_ptr->type = 0;
+            else
+                return false;
+
+            // The first 4 bytes of the payload are in the message start buffer (due to alignment).
+            out_message_data->nullable_message_end_ptr = (out_packet_in_error_data.payload_ptr + 4);
+            out_message_data->zeroable_message_end_size = (out_packet_in_error_data.payload_size - 4);
+        } else if(out_packet_in_error_data.payload_size >= 4) { // All other transport protocols - payload at least 4 bytes in size
+            memcpy(out_message_data->message_start_36b + 28, out_packet_in_error_data.payload_ptr, 4);
+            out_message_data->message_start_size_m8u += 4; // Always 32 bytes -> aligned to 8
+
+            out_message_data->nullable_message_end_ptr = (out_packet_in_error_data.payload_ptr + 4);
+            out_message_data->zeroable_message_end_size = (out_packet_in_error_data.payload_size - 4);
+        } else { // All other transport protocols - payload less than 4 bytes in size
+            memcpy(out_message_data->message_start_36b + 28, out_packet_in_error_data.payload_ptr, out_packet_in_error_data.payload_size);
+            out_message_data->message_start_size_m8u += out_packet_in_error_data.payload_size; // Not always aligned to 8, but it does not matter since 'nullable_message_end_ptr' is NULL.
+
+            out_message_data->nullable_message_end_ptr = NULL;
+            out_message_data->zeroable_message_end_size = 0;
+        }
+
+        // Limit ICMPv4 error messages to be 576 bytes in size at maximum (if 'out_message_data->zeroable_message_end_size' is 0, it won't be affected)
+        out_message_data->zeroable_message_end_size = T64MM_UTILS__MINIMUM(
+            out_message_data->zeroable_message_end_size,
+            (556 - out_message_data->message_start_size_m8u)
+        );
+    }
+
+
+    // :: Checksum
+    out_icmpv4_header->checksum = 0;
+    out_icmpv4_header->checksum = t64f_checksum__calculate_rfc1071_checksum_for_ipv4(
+        out_message_data->message_start_36b,
+        out_message_data->message_start_size_m8u,
+        out_message_data->nullable_message_end_ptr,
+        out_message_data->zeroable_message_end_size,
+        NULL
+    );
+
+
+    return true;
+}
+
+static bool _t64f_xlat_6to4_icmp__validate_and_translate_icmp_type_and_code(const uint8_t old_icmpv6_type, const uint8_t old_icmpv6_code, uint8_t *new_icmpv4_type, uint8_t *new_icmpv4_code) {
+    switch(old_icmpv6_type) {
+        case 128: // Echo Request
+            {
+                if(old_icmpv6_code != 0)
+                    return false;
+
+                *new_icmpv4_type = 8;
+                *new_icmpv4_code = 0;
+            }
+            break;
+
+        case 129: // Echo Reply
+            {
+                if(old_icmpv6_code != 0)
+                    return false;
+
+                *new_icmpv4_type = 0;
+                *new_icmpv4_code = 0;
+            }
             break;
 
         case 1: // Destination Unreachable
-            if(!_t64f_xlat_6to4_icmp__translate_destination_unreachable_message(context))
-                return false;
+            {
+                *new_icmpv4_type = 3;
+
+                switch(old_icmpv6_code) {
+                    case 0: case 2: case 3: // No route to destination, Beyond scope of source address, Address unreachable
+                        *new_icmpv4_code = 1;
+                        break;
+
+                    case 1: // Communication with destination administratively prohibited
+                        *new_icmpv4_code = 10;
+                        break;
+
+                    case 4: // Port unreachable
+                        *new_icmpv4_code = 3;
+                        break;
+
+                    default:
+                        return false;
+                }
+            }
             break;
 
         case 2: // Packet Too Big
-            if(!_t64f_xlat_6to4_icmp__translate_packet_too_big_message(context))
-                return false;
+            {
+                if(old_icmpv6_code != 0)
+                    return false;
+
+                *new_icmpv4_type = 3;
+                *new_icmpv4_code = 4;
+            }
             break;
 
         case 3: // Time Exceeded
-            if(!_t64f_xlat_6to4_icmp__translate_time_exceeded_message(context))
-                return false;
+            {
+                if(old_icmpv6_code != 0 && old_icmpv6_code != 1)
+                    return false;
+
+                *new_icmpv4_type = 11;
+                *new_icmpv4_code = old_icmpv6_code;
+            }
             break;
 
         case 4: // Parameter Problem
-            if(!_t64f_xlat_6to4_icmp__translate_parameter_problem_message(context))
-                return false;
+            switch(old_icmpv6_code) {
+                case 0: // Erroneous header field encountered
+                    *new_icmpv4_type = 12;
+                    *new_icmpv4_code = 0;
+                    break;
+
+                case 1: // Unrecognized Next Header type encountered
+                    *new_icmpv4_type = 3;
+                    *new_icmpv4_code = 2;
+                    break;
+
+                default:
+                    // All other codes, including:
+                    // - Code 2 (Unrecognized IPv6 option encountered)
+                    return false;
+            }
             break;
 
         default:
@@ -101,319 +250,138 @@ bool t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_tundra__xlat_thread_c
             return false;
     }
 
-    if(context->out_packet.payload_size < 8)
-        return false; // Just to make sure...
-
-    context->out_packet.payload_icmpv4hdr->checksum = 0;
-    context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum(&context->out_packet, false);
-
     return true;
 }
 
-// Types 128 and 129 - Echo Request and Echo Reply
-static bool _t64f_xlat_6to4_icmp__translate_echo_request_or_echo_reply_message(t64ts_tundra__xlat_thread_context *context) {
-    /*
-     * REQUIRED-STATE-OF-PACKET-BUFFERS:
-     *
-     * in_packet->packet_raw (content) -- An unfragmented (!) IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
-     * in_packet->packet_size -- The IPv6 packet's size which contains at least an ICMPv6 header (at least 48 bytes)
-     * in_packet->payload_raw -- The packet's unvalidated ICMPv6 payload (the pointer points to the beginning of the ICMPv6 8-byte header, which is guaranteed to be there)
-     * in_packet->payload_size -- The size of the packet's unvalidated ICMPv6 payload (at least 8 bytes - an 8-byte ICMPv6 header is guaranteed to be there)
-     * in_packet->ipv6_fragment_header -- NULL
-     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet (58 - ICMPv6)
-     *
-     * out_packet->packet_raw (content) -- An IPv4 header whose protocol field is set to 1 (ICMP) (and whose 'tot_len' and 'check' fields are zero - they are set just before the packet is sent out)
-     * out_packet->packet_size -- The size of the IPv4 header (always 20 bytes)
-     * out_packet->payload_raw -- A pointer to the first byte after the packet's header (the translated payload shall be placed here)
-     * out_packet->payload_size -- Zero
-     * out_packet->ipv6_fragment_header -- Undefined (as the packet is IPv4)
-     * out_packet->ipv6_carried_protocol_field -- Undefined (as the packet is IPv4)
-     */
-
-    // Copy the whole packet's payload
-    if(!t64f_utils__secure_memcpy(
-        context->out_packet.payload_raw,
-        context->in_packet.payload_raw,
-        context->in_packet.payload_size,
-        (T64C_TUNDRA__MAX_PACKET_SIZE - context->out_packet.packet_size)
-    )) return false;
-
-    // Adjust type
-    if(context->out_packet.payload_icmpv4hdr->type == 128) // Echo request
-        context->out_packet.payload_icmpv4hdr->type = 8;
-    else if(context->out_packet.payload_icmpv4hdr->type == 129) // Echo reply
-        context->out_packet.payload_icmpv4hdr->type = 0;
-    else
-        return false; // This should never happen!
-
-    // Check code
-    if(context->out_packet.payload_icmpv4hdr->code != 0)
-        return false;
-
-    context->out_packet.packet_size += context->in_packet.payload_size;
-    context->out_packet.payload_size = context->in_packet.payload_size;
-
-    return true;
-}
-
-// Type 1 - Destination Unreachable
-static bool _t64f_xlat_6to4_icmp__translate_destination_unreachable_message(t64ts_tundra__xlat_thread_context *context) {
-    /*
-     * REQUIRED-STATE-OF-PACKET-BUFFERS:
-     *
-     * in_packet->packet_raw (content) -- An unfragmented (!) IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
-     * in_packet->packet_size -- The IPv6 packet's size which contains at least an ICMPv6 header (at least 48 bytes)
-     * in_packet->payload_raw -- The packet's unvalidated ICMPv6 payload (the pointer points to the beginning of the ICMPv6 8-byte header, which is guaranteed to be there)
-     * in_packet->payload_size -- The size of the packet's unvalidated ICMPv6 payload (an 8-byte ICMPv6 header is guaranteed to be there)
-     * in_packet->ipv6_fragment_header -- NULL
-     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet (58 - ICMPv6)
-     *
-     * out_packet->packet_raw (content) -- An IPv4 header whose protocol field is set to 1 (ICMP) (and whose 'tot_len' and 'check' fields are zero - they are set just before the packet is sent out)
-     * out_packet->packet_size -- The size of the IPv4 header (always 20 bytes)
-     * out_packet->payload_raw -- A pointer to the first byte after the packet's header (the translated payload shall be placed here)
-     * out_packet->payload_size -- Zero
-     * out_packet->ipv6_fragment_header -- Undefined (as the packet is IPv4)
-     * out_packet->ipv6_carried_protocol_field -- Undefined (as the packet is IPv4)
-     */
-
-    // Check & evaluate inbound ICMPv6 header
-    uint8_t out_icmp_code;
-    switch(context->in_packet.payload_icmpv6hdr->icmp6_code) {
-        case 0: case 2: case 3: // No route to destination, Beyond scope of source address, Address unreachable
-            out_icmp_code = 1;
-            break;
-
-        case 1: // Communication with destination administratively prohibited
-            out_icmp_code = 10;
-            break;
-
-        case 4: // Port unreachable
-            out_icmp_code = 3;
-            break;
-
-        default:
-            return false;
+static bool _t64f_xlat_6to4_icmp__validate_and_translate_rest_of_header(const t64ts_tundra__xlat_thread_context *context, const uint8_t old_icmpv6_type, const uint8_t old_icmpv6_code, const uint8_t *old_icmpv6_rest_of_header, uint8_t *new_icmpv4_rest_of_header) {
+    // Echo Request, Echo Reply
+    if(old_icmpv6_type == 128 || old_icmpv6_type == 129) {
+        memcpy(new_icmpv4_rest_of_header, old_icmpv6_rest_of_header, 4);
+        return true;
     }
 
-    if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.payload_raw + 4, "\x00\x00\x00\x00", 4))
+    // Packet Too Big
+    if(old_icmpv6_type == 2) {
+        if(!T64M_UTILS__MEMORY_EQUAL(old_icmpv6_rest_of_header, "\x00\x00", 2))
+            return false;
+        T64M_UTILS__MEMORY_ZERO_OUT(new_icmpv4_rest_of_header, 2);
+
+        const uint16_t old_mtu = ntohs(*((const uint16_t *) (old_icmpv6_rest_of_header + 2)));
+        const uint16_t new_mtu = _t64f_xlat_6to4_icmp__recalculate_packet_too_big_mtu(context, old_mtu);
+        *((uint16_t *) (new_icmpv4_rest_of_header + 2)) = htons(new_mtu);
+
+        return true;
+    }
+
+    // Parameter Problem
+    if(old_icmpv6_type == 4) {
+        if(old_icmpv6_code == 0) { // Erroneous header field encountered
+            if(!T64M_UTILS__MEMORY_EQUAL(old_icmpv6_rest_of_header, "\x00\x00\x00", 3))
+                return false;
+            T64M_UTILS__MEMORY_ZERO_OUT(new_icmpv4_rest_of_header + 1, 3);
+
+            return _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer(old_icmpv6_rest_of_header[3], new_icmpv4_rest_of_header);
+        }
+
+        // Unrecognized Next Header type encountered (the old ICMPv6 rest of header, containing a pointer, is not validated intentionally)
+        T64M_UTILS__MEMORY_ZERO_OUT(new_icmpv4_rest_of_header, 4);
+        return true;
+    }
+
+    // All the other message types & codes
+    if(!T64M_UTILS__MEMORY_EQUAL(old_icmpv6_rest_of_header, "\x00\x00\x00\x00", 4))
         return false;
 
-    // Generate outbound ICMPv4 header
-    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, out_icmp_code);
-
-    // Build carried IP header & part of data
-    if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0))
-        return false;
-
+    T64M_UTILS__MEMORY_ZERO_OUT(new_icmpv4_rest_of_header, 4);
     return true;
 }
 
-// Type 2 - Packet Too Big
-static bool _t64f_xlat_6to4_icmp__translate_packet_too_big_message(t64ts_tundra__xlat_thread_context *context) {
-    /*
-     * REQUIRED-STATE-OF-PACKET-BUFFERS:
-     *
-     * in_packet->packet_raw (content) -- An unfragmented (!) IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
-     * in_packet->packet_size -- The IPv6 packet's size which contains at least an ICMPv6 header (at least 48 bytes)
-     * in_packet->payload_raw -- The packet's unvalidated ICMPv6 payload (the pointer points to the beginning of the ICMPv6 8-byte header, which is guaranteed to be there)
-     * in_packet->payload_size -- The size of the packet's unvalidated ICMPv6 payload (an 8-byte ICMPv6 header is guaranteed to be there)
-     * in_packet->ipv6_fragment_header -- NULL
-     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet (58 - ICMPv6)
-     *
-     * out_packet->packet_raw (content) -- An IPv4 header whose protocol field is set to 1 (ICMP) (and whose 'tot_len' and 'check' fields are zero - they are set just before the packet is sent out)
-     * out_packet->packet_size -- The size of the IPv4 header (always 20 bytes)
-     * out_packet->payload_raw -- A pointer to the first byte after the packet's header (the translated payload shall be placed here)
-     * out_packet->payload_size -- Zero
-     * out_packet->ipv6_fragment_header -- Undefined (as the packet is IPv4)
-     * out_packet->ipv6_carried_protocol_field -- Undefined (as the packet is IPv4)
-     */
+// Both the argument-passed and the returned value is in host byte order!
+static uint16_t _t64f_xlat_6to4_icmp__recalculate_packet_too_big_mtu(const t64ts_tundra__xlat_thread_context *context, uint16_t mtu) {
+    // Although the minimum IPv6 MTU is 1280 bytes, some networks may be broken
 
-    // Check inbound ICMPv6 header
-    if(context->in_packet.payload_icmpv6hdr->icmp6_code != 0)
+    // https://datatracker.ietf.org/doc/html/rfc7915#page-21
+    mtu = T64MM_UTILS__MAXIMUM(20, mtu); // Integer overflow prevention
+    mtu = T64MM_UTILS__MINIMUM(mtu - 20, (uint16_t) context->configuration->translator_ipv4_outbound_mtu);
+    mtu = T64MM_UTILS__MINIMUM(mtu, ((uint16_t) context->configuration->translator_ipv6_outbound_mtu) - 20);
+    mtu = T64MM_UTILS__MAXIMUM(68, mtu);
+
+    return mtu;
+}
+
+static bool _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer(const uint8_t old_pointer, uint8_t *new_pointer) {
+    // https://datatracker.ietf.org/doc/html/rfc7915#page-22
+
+    if(old_pointer == 0 || old_pointer == 1) {
+        *new_pointer = old_pointer;
+        return true;
+    }
+
+    if(old_pointer == 4 || old_pointer == 5) {
+        *new_pointer = 2;
+        return true;
+    }
+
+    if(old_pointer == 6) {
+        *new_pointer = 9;
+        return true;
+    }
+
+    if(old_pointer == 7) {
+        *new_pointer = 8;
+        return true;
+    }
+
+    if(old_pointer >= 8 && old_pointer <= 23) {
+        *new_pointer = 12;
+        return true;
+    }
+
+    if(old_pointer >= 24 && old_pointer <= 39) {
+        *new_pointer = 16;
+        return true;
+    }
+
+    // Including, but not limited to the values: 2, 3
+    return false;
+}
+
+static bool _t64f_xlat_6to4_icmp__validate_and_translate_ip_header_of_packet_in_error(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_icmpv6_payload_ptr, const size_t in_icmpv6_payload_size, uint8_t *out_packet_in_error_buffer_28b, _t64ts_xlat_6to4_icmp__out_ipv4_packet_in_error_data *out_packet_in_error_data, const bool dont_fragment) {
+    if(in_icmpv6_payload_size < 40)
         return false;
 
-    if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.payload_raw + 4, "\x00\x00", 2))
-        return false; // = MTUs bigger than 65535 bytes cannot be handled when performing IPv6-to-IPv4 translation
+    const struct ipv6hdr *in_ipv6_header = (const struct ipv6hdr *) in_icmpv6_payload_ptr;
+    struct iphdr *out_ipv4_header = (struct iphdr *) out_packet_in_error_buffer_28b;
 
-    // Generate outbound ICMPv4 header
-    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 4);
+    if(in_ipv6_header->version != 6)
+        return false;
+
+    // Translation
+    out_ipv4_header->version = 4;
+    out_ipv4_header->ihl = 5; // 20 bytes
+    out_ipv4_header->tos = (uint8_t) ((in_ipv6_header->priority << 4) | (in_ipv6_header->flow_lbl[0] >> 4));
+    out_ipv4_header->tot_len = htons(ntohs(in_ipv6_header->payload_len) + 20);
+    out_ipv4_header->ttl = in_ipv6_header->hop_limit;
 
     {
-        uint16_t mtu;
-        memcpy(&mtu, context->in_packet.payload_raw + 6, 2); // This is a hack which overcomes the 2-byte alignment requirement for 16-bit values.
-        mtu = ntohs(mtu);
-        // Although the minimum IPv6 MTU is 1280 bytes, some networks may be broken
-
-        mtu = T64MM_UTILS__MAXIMUM(20, mtu); // Integer overflow prevention
-
-        // https://datatracker.ietf.org/doc/html/rfc7915#page-21
-        mtu = T64MM_UTILS__MINIMUM(mtu - 20, (uint16_t) context->configuration->translator_ipv4_outbound_mtu);
-        mtu = T64MM_UTILS__MINIMUM(mtu, ((uint16_t) context->configuration->translator_ipv6_outbound_mtu) - 20);
-        mtu = T64MM_UTILS__MAXIMUM(68, mtu);
-
-        mtu = htons(mtu);
-        memcpy(context->out_packet.payload_raw + 6, &mtu, 2);
-    }
-
-    // Build carried IP header & part of data
-    //  The Don't fragment flag is set in the translated carried packet, as ICMPv4 Type 3 Code 4 is literally named "Fragmentation needed and DF set"
-    if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 1))
-        return false;
-
-    return true;
-}
-
-// Type 3 - Time Exceeded
-static bool _t64f_xlat_6to4_icmp__translate_time_exceeded_message(t64ts_tundra__xlat_thread_context *context) {
-    /*
-     * REQUIRED-STATE-OF-PACKET-BUFFERS:
-     *
-     * in_packet->packet_raw (content) -- An unfragmented (!) IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
-     * in_packet->packet_size -- The IPv6 packet's size which contains at least an ICMPv6 header (at least 48 bytes)
-     * in_packet->payload_raw -- The packet's unvalidated ICMPv6 payload (the pointer points to the beginning of the ICMPv6 8-byte header, which is guaranteed to be there)
-     * in_packet->payload_size -- The size of the packet's unvalidated ICMPv6 payload (an 8-byte ICMPv6 header is guaranteed to be there)
-     * in_packet->ipv6_fragment_header -- NULL
-     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet (58 - ICMPv6)
-     *
-     * out_packet->packet_raw (content) -- An IPv4 header whose protocol field is set to 1 (ICMP) (and whose 'tot_len' and 'check' fields are zero - they are set just before the packet is sent out)
-     * out_packet->packet_size -- The size of the IPv4 header (always 20 bytes)
-     * out_packet->payload_raw -- A pointer to the first byte after the packet's header (the translated payload shall be placed here)
-     * out_packet->payload_size -- Zero
-     * out_packet->ipv6_fragment_header -- Undefined (as the packet is IPv4)
-     * out_packet->ipv6_carried_protocol_field -- Undefined (as the packet is IPv4)
-     */
-
-    // Check inbound ICMPv6 header
-    if(context->in_packet.payload_icmpv6hdr->icmp6_code != 0 && context->in_packet.payload_icmpv6hdr->icmp6_code != 1)
-        return false;
-
-    if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.payload_raw + 4, "\x00\x00\x00\x00", 4))
-        return false;
-
-    // Generate outbound ICMPv4 header
-    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 11, context->in_packet.payload_icmpv6hdr->icmp6_code);
-
-    // Build carried IP header & part of data
-    if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0))
-        return false;
-
-    return true;
-}
-
-// Type 4 - Parameter Problem
-static bool _t64f_xlat_6to4_icmp__translate_parameter_problem_message(t64ts_tundra__xlat_thread_context *context) {
-    /*
-     * REQUIRED-STATE-OF-PACKET-BUFFERS:
-     *
-     * in_packet->packet_raw (content) -- An unfragmented (!) IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
-     * in_packet->packet_size -- The IPv6 packet's size which contains at least an ICMPv6 header (at least 48 bytes)
-     * in_packet->payload_raw -- The packet's unvalidated ICMPv6 payload (the pointer points to the beginning of the ICMPv6 8-byte header, which is guaranteed to be there)
-     * in_packet->payload_size -- The size of the packet's unvalidated ICMPv6 payload (an 8-byte ICMPv6 header is guaranteed to be there)
-     * in_packet->ipv6_fragment_header -- NULL
-     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet (58 - ICMPv6)
-     *
-     * out_packet->packet_raw (content) -- An IPv4 header whose protocol field is set to 1 (ICMP) (and whose 'tot_len' and 'check' fields are zero - they are set just before the packet is sent out)
-     * out_packet->packet_size -- The size of the IPv4 header (always 20 bytes)
-     * out_packet->payload_raw -- A pointer to the first byte after the packet's header (the translated payload shall be placed here)
-     * out_packet->payload_size -- Zero
-     * out_packet->ipv6_fragment_header -- Undefined (as the packet is IPv4)
-     * out_packet->ipv6_carried_protocol_field -- Undefined (as the packet is IPv4)
-     */
-
-    switch(context->in_packet.payload_icmpv6hdr->icmp6_code) {
-        case 0: // Erroneous header field encountered
-            {
-                // Check inbound ICMPv6 header
-                if(!T64M_UTILS__MEMORY_EQUAL(context->in_packet.payload_raw + 4, "\x00\x00\x00", 3))
-                    return false;
-
-                // Generate outbound ICMPv4 header
-                t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 12, 0);
-
-                const uint8_t out_pointer = _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer_value(context->in_packet.payload_raw[7]);
-                if(out_pointer == 255)
-                    return false;
-
-                context->out_packet.payload_raw[4] = out_pointer;
-            }
-            break;
-
-        case 1: // Unrecognized Next Header type encountered
-            t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, 3, 2);
-            break;
-
-        default:
-            // All other codes, including:
-            // - Code 2 (Unrecognized IPv6 option encountered)
-            return false;
-    }
-
-    // Build carried IP header & part of data
-    if(!_t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(context, 0))
-        return false;
-
-    return true;
-}
-
-static bool _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t64ts_tundra__xlat_thread_context *context, const int dont_fragment) {
-    /*
-     * REQUIRED-STATE-OF-PACKET-BUFFERS:
-     *
-     * in_packet->packet_raw (content) -- An unfragmented IPv6 packet whose headers (base header + all extension headers, if there are any) have been validated
-     * in_packet->packet_size -- The IPv6 packet's size which contains at least an ICMPv6 header (at least 48 bytes)
-     * in_packet->payload_raw -- The packet's ICMPv6 payload (the pointer points to the beginning of the validated (!) 8-byte ICMPv6 header; after the header, there is likely an unvalidated payload)
-     * in_packet->payload_size -- The size of the packet's ICMPv6 payload (a validated 8-byte ICMPv6 header + unvalidated payload -> at least 8 bytes)
-     * in_packet->ipv6_fragment_header -- NULL
-     * in_packet->ipv6_carried_protocol_field -- A pointer to the byte which contains the number of the transport protocol carried by the packet (58 - ICMPv6)
-     *
-     * out_packet->packet_raw (content) -- An IPv4 packet (whose header's 'protocol' field is 1 [ICMP] and 'tot_len' and 'check' fields are zero) containing a translated 8-byte ICMPv4 header
-     * out_packet->packet_size -- The size of the IPv4 and ICMPv4 headers (always 28 bytes - 20-byte IPv4 header + 8-byte ICMPv4 header)
-     * out_packet->payload_raw -- A pointer to the first byte after the packet's header (now pointing to the beginning of the translated 8-byte ICMPv4 header)
-     * out_packet->payload_size -- 8 bytes
-     * out_packet->ipv6_fragment_header -- Undefined (as the packet is IPv4)
-     * out_packet->ipv6_carried_protocol_field -- Undefined (as the packet is IPv4)
-     */
-
-    // Declaration & initialization of variables
-    t64ts_tundra__packet in_ipv6_carried_packet;
-    T64M_UTILS__MEMORY_ZERO_OUT(&in_ipv6_carried_packet, sizeof(t64ts_tundra__packet));
-    in_ipv6_carried_packet.packet_raw = (context->in_packet.payload_raw + 8);
-    in_ipv6_carried_packet.packet_size = (context->in_packet.payload_size - 8);
-
-    t64ts_tundra__packet out_ipv4_carried_packet;
-    T64M_UTILS__MEMORY_ZERO_OUT(&out_ipv4_carried_packet, sizeof(t64ts_tundra__packet));
-    out_ipv4_carried_packet.packet_raw = (context->out_packet.payload_raw + 8);
-    out_ipv4_carried_packet.packet_size = 20;
-
-    // Size checks
-    if(in_ipv6_carried_packet.packet_size < 40)
-        return false;
-
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header - 8 bytes ICMP header = at least 1492 bytes free; up to 40 bytes needed (for 20-byte IPv4 header + up to 20 bytes of payload)
-
-    // IP header - validation, evaluation and initialization
-    if(in_ipv6_carried_packet.packet_ipv6hdr->version != 6)
-        return false;
-
-    {
-        t64ts_tundra__ipv6_fragment_header *fragment_header = NULL;
-        uint8_t *protocol_field = &in_ipv6_carried_packet.packet_ipv6hdr->nexthdr;
-        uint8_t *current_header_ptr = (in_ipv6_carried_packet.packet_raw + 40);
-        ssize_t remaining_packet_size = (((ssize_t) in_ipv6_carried_packet.packet_size) - 40);
+        const uint8_t *current_header_ptr = (in_icmpv6_payload_ptr + 40);
+        ssize_t remaining_packet_size = ((ssize_t) in_icmpv6_payload_size) - 40;
+        uint8_t current_header_number = in_ipv6_header->nexthdr;
+        const t64ts_tundra__ipv6_fragment_header *ipv6_fragment_header_ptr = NULL;
 
         while(
-            (fragment_header == NULL) &&
-            (*protocol_field == 0 || *protocol_field == 43 || *protocol_field == 44 || *protocol_field == 60)
+            (ipv6_fragment_header_ptr == NULL) &&
+            (current_header_number == 0 || current_header_number == 43 || current_header_number == 44 || current_header_number == 60)
         ) {
             if(remaining_packet_size < 8)
                 return false;
 
-            if(*protocol_field == 44)
-                fragment_header = (t64ts_tundra__ipv6_fragment_header *) current_header_ptr;
+            if(current_header_number == 44)
+                ipv6_fragment_header_ptr = (const t64ts_tundra__ipv6_fragment_header *) current_header_ptr;
 
-            const ssize_t current_header_size = (8 + (((ssize_t) (current_header_ptr[1])) * 8));
+            current_header_number = current_header_ptr[0];
 
-            protocol_field = current_header_ptr;
+            const ssize_t current_header_size = 8 + (((ssize_t) current_header_ptr[1]) * 8);
             current_header_ptr += current_header_size;
             remaining_packet_size -= current_header_size;
         }
@@ -421,111 +389,38 @@ static bool _t64f_xlat_6to4_icmp__translate_carried_ip_header_and_part_of_data(t
         if(remaining_packet_size < 0)
             return false;
 
-        in_ipv6_carried_packet.payload_raw = current_header_ptr;
-        in_ipv6_carried_packet.payload_size = (size_t) remaining_packet_size;
-        in_ipv6_carried_packet.ipv6_fragment_header = fragment_header;
-        in_ipv6_carried_packet.ipv6_carried_protocol_field = protocol_field;
-    }
+        out_packet_in_error_data->payload_ptr = current_header_ptr;
+        out_packet_in_error_data->payload_size = (size_t) remaining_packet_size;
 
-    // IP header - translation
-    out_ipv4_carried_packet.packet_ipv4hdr->version = 4;
-    out_ipv4_carried_packet.packet_ipv4hdr->ihl = 5;
-    out_ipv4_carried_packet.packet_ipv4hdr->tos = (uint8_t) ((in_ipv6_carried_packet.packet_ipv6hdr->priority << 4) | (in_ipv6_carried_packet.packet_ipv6hdr->flow_lbl[0] >> 4));
-    out_ipv4_carried_packet.packet_ipv4hdr->tot_len = htons(ntohs(in_ipv6_carried_packet.packet_ipv6hdr->payload_len) + 20);
-    if(T64M_UTILS_IP__IS_IPV6_PACKET_FRAGMENTED(&in_ipv6_carried_packet)) {
-        out_ipv4_carried_packet.packet_ipv4hdr->id = in_ipv6_carried_packet.ipv6_fragment_header->identification[1];
-        out_ipv4_carried_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(
-            dont_fragment,
-            T64M_UTILS_IP__GET_IPV6_FRAGMENT_MORE_FRAGMENTS_BIT(in_ipv6_carried_packet.ipv6_fragment_header),
-            T64M_UTILS_IP__GET_IPV6_FRAGMENT_OFFSET(in_ipv6_carried_packet.ipv6_fragment_header)
-        );
-    } else {
-        t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->id);
-        out_ipv4_carried_packet.packet_ipv4hdr->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(dont_fragment, 0, 0);
-    }
-    out_ipv4_carried_packet.packet_ipv4hdr->ttl = in_ipv6_carried_packet.packet_ipv6hdr->hop_limit;
-    out_ipv4_carried_packet.packet_ipv4hdr->protocol = *in_ipv6_carried_packet.ipv6_carried_protocol_field;
-
-    if(!t64f_xlat_addr__perform_6to4_address_translation_for_icmp_error_packet(context, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->saddr.s6_addr, (const uint8_t *) in_ipv6_carried_packet.packet_ipv6hdr->daddr.s6_addr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->saddr, (uint8_t *) &out_ipv4_carried_packet.packet_ipv4hdr->daddr))
-        return false;
-
-    out_ipv4_carried_packet.payload_raw = (out_ipv4_carried_packet.packet_raw + out_ipv4_carried_packet.packet_size);
-    out_ipv4_carried_packet.payload_size = 0;
-
-    context->out_packet.packet_size += out_ipv4_carried_packet.packet_size;
-    context->out_packet.payload_size += out_ipv4_carried_packet.packet_size;
-
-    // Part of data - copy
-    {
-        const size_t copied_bytes = t64f_utils__secure_memcpy_with_size_clamping(
-            out_ipv4_carried_packet.payload_raw,
-            in_ipv6_carried_packet.payload_raw,
-            in_ipv6_carried_packet.payload_size,
-            (68 - context->out_packet.packet_size) // 68 bytes - 20 bytes IPv4 header - 8 bytes ICMPv4 header - 20 bytes IPv4 header "in error" = 20 bytes
-        );
-        out_ipv4_carried_packet.packet_size += copied_bytes;
-        out_ipv4_carried_packet.payload_size = copied_bytes;
-        context->out_packet.packet_size += copied_bytes;
-        context->out_packet.payload_size += copied_bytes;
-    }
-
-    // Part of data - ICMP
-    if(out_ipv4_carried_packet.packet_ipv4hdr->protocol == 58) { // ICMPv6
-        // https://www.rfc-editor.org/rfc/rfc7915.html#page-4 -> "Fragmented ICMP/ICMPv6 packets will not be translated by IP/ICMP translators."
-        /*
-         * https://datatracker.ietf.org/doc/html/rfc7915#page-14 states:
-         * "The translation of the inner IP header can be done by invoking the
-         *  function that translated the outer IP headers.  This process MUST
-         *  stop at the first embedded header and drop the packet if it contains
-         *  more embedded headers."
-         */
-        // Echo Request and Echo Reply are the only translatable ICMP types that do not carry a packet "in error".
-        if(
-            (!T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(out_ipv4_carried_packet.packet_ipv4hdr)) &&
-            (out_ipv4_carried_packet.payload_size >= 8) &&
-            (out_ipv4_carried_packet.payload_icmpv6hdr->icmp6_type == 128 || out_ipv4_carried_packet.payload_icmpv6hdr->icmp6_type == 129) &&
-            (out_ipv4_carried_packet.payload_icmpv6hdr->icmp6_code == 0)
-        ) {
-            out_ipv4_carried_packet.packet_ipv4hdr->protocol = 1; // ICMPv4
-
-            if(out_ipv4_carried_packet.payload_icmpv4hdr->type == 128) // Echo Request
-                out_ipv4_carried_packet.payload_icmpv4hdr->type = 8;
-            else if(out_ipv4_carried_packet.payload_icmpv4hdr->type == 129) // Echo Reply
-                out_ipv4_carried_packet.payload_icmpv4hdr->type = 0;
-
+        if(ipv6_fragment_header_ptr != NULL) {
+            out_ipv4_header->id = ipv6_fragment_header_ptr->identification[1];
+            out_ipv4_header->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(
+                (uint16_t) dont_fragment,
+                T64M_UTILS_IP__GET_IPV6_FRAGMENT_MORE_FRAGMENTS_BIT(ipv6_fragment_header_ptr),
+                T64M_UTILS_IP__GET_IPV6_FRAGMENT_OFFSET(ipv6_fragment_header_ptr)
+            );
         } else {
-            return false;
+            t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &out_ipv4_header->id);
+            out_ipv4_header->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD((uint16_t) dont_fragment, 0, 0);
         }
+
+        const uint8_t ipv4_protocol = (current_header_number == 58) ? 1 : current_header_number;
+        out_packet_in_error_data->carried_protocol = ipv4_protocol;
+        out_ipv4_header->protocol = ipv4_protocol;
     }
 
-    // IP header - checksum
-    out_ipv4_carried_packet.packet_ipv4hdr->check = 0; // The IPv4 header is now finished, so the checksum can be calculated...
-    out_ipv4_carried_packet.packet_ipv4hdr->check = t64f_checksum__calculate_ipv4_header_checksum(out_ipv4_carried_packet.packet_ipv4hdr);
+    if(!t64f_xlat_addr__perform_6to4_address_translation_for_icmp_error_packet(
+        context,
+        (const uint8_t *) in_ipv6_header->saddr.s6_addr,
+        (const uint8_t *) in_ipv6_header->daddr.s6_addr,
+        (uint8_t *) &out_ipv4_header->saddr,
+        (uint8_t *) &out_ipv4_header->daddr
+    )) return false;
+
+    out_ipv4_header->check = 0;
+    out_ipv4_header->check = t64f_checksum__calculate_ipv4_header_checksum(out_ipv4_header);
+
+    out_packet_in_error_data->is_fragment = (bool) T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(out_ipv4_header);
 
     return true;
-}
-
-// Returns 255 if 'in_pointer' is invalid and the translation process shall be stopped!
-static uint8_t _t64f_xlat_6to4_icmp__translate_parameter_problem_pointer_value(const uint8_t in_pointer) {
-    // https://datatracker.ietf.org/doc/html/rfc7915#page-22
-
-    if(in_pointer == 0 || in_pointer == 1)
-        return in_pointer;
-
-    if(in_pointer == 4 || in_pointer == 5)
-        return 2;
-
-    if(in_pointer == 6)
-        return 9;
-
-    if(in_pointer == 7)
-        return 8;
-
-    if(in_pointer >= 8 && in_pointer <= 23)
-        return 12;
-
-    if(in_pointer >= 24 && in_pointer <= 39)
-        return 16;
-
-    return 255; // Includes the values 2, 3
 }

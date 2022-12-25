@@ -23,100 +23,76 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_router_ipv4.h"
 
 #include"t64_utils_ip.h"
-#include"t64_utils_icmp.h"
 #include"t64_checksum.h"
 #include"t64_xlat_io.h"
 
 
-static void _t64f_router_ipv4__generate_and_send_icmpv4_message_back_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context, const uint8_t icmp_type, const uint8_t icmp_code, const uint16_t additional_2bytes);
-static void _t64f_router_ipv4__generate_header_of_icmp_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context);
-static void _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in_out_packet(t64ts_tundra__xlat_thread_context *context);
+static void _t64f_router_ipv4__send_icmpv4_message_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context, const uint8_t icmpv4_type, const uint8_t icmpv4_code, const uint16_t rest_of_header2);
+static bool _t64f_router_ipv4__construct_ipv4_header_for_icmpv4_message(t64ts_tundra__xlat_thread_context *context, struct iphdr *out_ipv4_header);
+static void _t64f_router_ipv4__construct_icmpv4_header(const uint8_t icmpv4_type, const uint8_t icmpv4_code, const uint16_t rest_of_header2, struct icmphdr *out_icmpv4_header);
 
 
-/*
- * When this function is called, in_packet's IPv4 header must be fully validated and all the packet's properties (i.e.
- *  'packet_size', 'payload_raw' and 'payload_size') must be set correctly. The packet's payload does not have to be
- *  validated. In other words, this function can be called at any point after the '_t64f_xlat_4to6__evaluate_in_packet()'
- *  function succeeds.
- * This function overwrites all the contents of out_packet - it generates the ICMPv4 packet there and sends it out.
- *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
- *  immediately!
- */
-void t64f_router_ipv4__generate_and_send_icmpv4_destination_host_unreachable_message_back_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
-    _t64f_router_ipv4__generate_and_send_icmpv4_message_back_to_in_ipv4_packet_source_host(context, 3, 1, 0);
+void t64f_router_ipv4__send_icmpv4_destination_host_unreachable_message_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
+    _t64f_router_ipv4__send_icmpv4_message_to_in_ipv4_packet_source_host(context, 3, 1, 0);
 }
 
-/*
- * When this function is called, in_packet's IPv4 header must be fully validated and all the packet's properties (i.e.
- *  'packet_size', 'payload_raw' and 'payload_size') must be set correctly. The packet's payload does not have to be
- *  validated. In other words, this function can be called at any point after the '_t64f_xlat_4to6__evaluate_in_packet()'
- *  function succeeds.
- * This function overwrites all the contents of out_packet - it generates the ICMPv4 packet there and sends it out.
- *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
- *  immediately!
- */
-void t64f_router_ipv4__generate_and_send_icmpv4_time_exceeded_message_back_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
-    _t64f_router_ipv4__generate_and_send_icmpv4_message_back_to_in_ipv4_packet_source_host(context, 11, 0, 0);
+void t64f_router_ipv4__send_icmpv4_time_exceeded_message_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
+    _t64f_router_ipv4__send_icmpv4_message_to_in_ipv4_packet_source_host(context, 11, 0, 0);
 }
 
-/*
- * When this function is called, in_packet's IPv4 header must be fully validated and all the packet's properties (i.e.
- *  'packet_size', 'payload_raw' and 'payload_size') must be set correctly. The packet's payload does not have to be
- *  validated. In other words, this function can be called at any point after the '_t64f_xlat_4to6__evaluate_in_packet()'
- *  function succeeds.
- * This function overwrites all the contents of out_packet - it generates the ICMPv4 packet there and sends it out.
- *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
- *  immediately!
- */
-void t64f_router_ipv4__generate_and_send_icmpv4_fragmentation_needed_message_back_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context, uint16_t mtu) {
-    _t64f_router_ipv4__generate_and_send_icmpv4_message_back_to_in_ipv4_packet_source_host(context, 3, 4, htons(mtu));
+void t64f_router_ipv4__send_icmpv4_fragmentation_needed_message_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context, const uint16_t mtu) {
+    _t64f_router_ipv4__send_icmpv4_message_to_in_ipv4_packet_source_host(context, 3, 4, mtu);
 }
 
-static void _t64f_router_ipv4__generate_and_send_icmpv4_message_back_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context, const uint8_t icmp_type, const uint8_t icmp_code, const uint16_t additional_2bytes) {
-    _t64f_router_ipv4__generate_header_of_icmp_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(context);
+static void _t64f_router_ipv4__send_icmpv4_message_to_in_ipv4_packet_source_host(t64ts_tundra__xlat_thread_context *context, const uint8_t icmpv4_type, const uint8_t icmpv4_code, const uint16_t rest_of_header2) {
+    struct iphdr ipv4_header; // 20 bytes
+    if(!_t64f_router_ipv4__construct_ipv4_header_for_icmpv4_message(context, &ipv4_header))
+        return;
 
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header = at least 1500 bytes free; 8 bytes needed (for ICMPv4 header)
+    struct icmphdr icmpv4_header; // 8 bytes
+    _t64f_router_ipv4__construct_icmpv4_header(icmpv4_type, icmpv4_code, rest_of_header2, &icmpv4_header);
 
-    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, icmp_type, icmp_code);
-    memcpy(context->out_packet.payload_raw + 6, &additional_2bytes, 2);
+    const uint8_t *icmpv4_payload_ptr = context->in_packet_buffer;
+    // Clamping the packet in error's size to 68 bytes means that at least 8 bytes of its payload will always be sent in
+    //  the ICMP message (i.e. even if it has the largest possible header - 60 bytes), and that the resulting ICMP error
+    //  message will fit in the minimum IPv4 MTU accepted by this program - 96 bytes (i.e. the program will never have
+    //  to fragment the ICMP message).
+    const size_t icmpv4_payload_size = T64MM_UTILS__MINIMUM(context->in_packet_size, 68);
 
-    _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in_out_packet(context);
+    icmpv4_header.checksum = 0;
+    icmpv4_header.checksum = t64f_checksum__calculate_rfc1071_checksum_for_ipv4((const uint8_t *) &icmpv4_header, 8, icmpv4_payload_ptr, icmpv4_payload_size, NULL);
 
-    context->out_packet.payload_icmpv4hdr->checksum = 0;
-    context->out_packet.payload_icmpv4hdr->checksum = t64f_checksum__calculate_rfc1071_checksum(&context->out_packet, false);
-
-    t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(context);
+    t64f_xlat_io__send_ipv4_packet(context, &ipv4_header, (const uint8_t *) &icmpv4_header, 8, icmpv4_payload_ptr, icmpv4_payload_size);
 }
 
-static void _t64f_router_ipv4__generate_header_of_icmp_ipv4_packet_sent_back_to_in_ipv4_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context) {
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes free; 20 bytes needed (for IPv4 header)
+static bool _t64f_router_ipv4__construct_ipv4_header_for_icmpv4_message(t64ts_tundra__xlat_thread_context *context, struct iphdr *out_ipv4_header) {
+    if(context->in_packet_size < 20)
+        return false;
 
-    context->out_packet.packet_ipv4hdr->version = 4;
-    context->out_packet.packet_ipv4hdr->ihl = 5; // = 20 bytes
-    context->out_packet.packet_ipv4hdr->tos = 0;
-    context->out_packet.packet_ipv4hdr->tot_len = 0; // This is set to a correct value when the packet is sent (at this moment, it is not known what the final size of the packet will be)
-    t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &context->out_packet.packet_ipv4hdr->id);
-    context->out_packet.packet_ipv4hdr->frag_off = 0;
-    context->out_packet.packet_ipv4hdr->ttl = context->configuration->router_generated_packet_ttl;
-    context->out_packet.packet_ipv4hdr->protocol = 1; // ICMPv4
-    context->out_packet.packet_ipv4hdr->check = 0; // This is set to a correct value when the packet is sent (at this moment, it is not known what the final state of the packet's header will be)
-    memcpy(&context->out_packet.packet_ipv4hdr->saddr, context->configuration->router_ipv4, 4);
-    memcpy(&context->out_packet.packet_ipv4hdr->daddr, &context->in_packet.packet_ipv4hdr->saddr, 4);
+    const struct iphdr *in_ipv4_header = (const struct iphdr *) context->in_packet_buffer;
+    if(in_ipv4_header->version != 4)
+        return false;
 
-    context->out_packet.packet_size = 20;
-    context->out_packet.payload_raw = (context->out_packet.packet_raw + 20);
-    context->out_packet.payload_size = 0;
+    out_ipv4_header->version = 4;
+    out_ipv4_header->ihl = 5; // 20 bytes
+    out_ipv4_header->tos = 0;
+    out_ipv4_header->tot_len = 0; // Set to a correct value later
+    t64f_utils_ip__generate_ipv4_fragment_identifier(context, (uint8_t *) &out_ipv4_header->id);
+    out_ipv4_header->frag_off = 0;
+    out_ipv4_header->ttl = context->configuration->router_generated_packet_ttl;
+    out_ipv4_header->protocol = 1; // ICMPv4
+    out_ipv4_header->check = 0; // Computed later
+    memcpy(&out_ipv4_header->saddr, context->configuration->router_ipv4, 4);
+    memcpy(&out_ipv4_header->daddr, &in_ipv4_header->saddr, 4);
+
+    return true;
 }
 
-static void _t64f_router_ipv4__append_part_of_in_ipv4_packet_to_icmpv4_header_in_out_packet(t64ts_tundra__xlat_thread_context *context) {
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 20 bytes IPv4 header - 8 bytes ICMPv4 header = at least 1492 bytes free; up to 68 bytes needed (up to 60 bytes IPv4 header + up to 8 bytes payload)
+static void _t64f_router_ipv4__construct_icmpv4_header(const uint8_t icmpv4_type, const uint8_t icmpv4_code, const uint16_t rest_of_header2, struct icmphdr *out_icmpv4_header) {
+    out_icmpv4_header->type = icmpv4_type;
+    out_icmpv4_header->code = icmpv4_code;
 
-    size_t copy_size = context->in_packet.payload_size;
-    if(copy_size > 8)
-        copy_size = 8;
-    copy_size += (context->in_packet.packet_ipv4hdr->ihl * 4); // t64f_utils__secure_memcpy_with_size_clamping() cannot be used due to this
-
-    memcpy(context->out_packet.payload_raw + 8, context->in_packet.packet_raw, copy_size);
-    context->out_packet.packet_size += copy_size;
-    context->out_packet.payload_size += copy_size;
+    uint16_t *out_icmpv4_header_raw = (uint16_t *) out_icmpv4_header;
+    out_icmpv4_header_raw[2] = 0; // rest_of_header1 - always 0
+    out_icmpv4_header_raw[3] = htons(rest_of_header2);
 }

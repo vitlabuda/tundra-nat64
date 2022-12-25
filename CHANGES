@@ -114,3 +114,7 @@
 
 [4.4.2 @ 2022-12-17]
 - Code cleanup
+
+[5.0.0 @ 2022-12-25]
+- The entire translation engine has been rewritten from the ground up - it is now faster (zero-copy), more memory-efficient and more secure, and its code is overall more readable and understandable
+- Other minor improvements

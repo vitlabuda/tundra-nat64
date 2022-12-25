@@ -25,11 +25,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_tundra.h"
 
 
-extern void t64f_xlat_io__receive_packet_into_in_packet(t64ts_tundra__xlat_thread_context *context);
-extern void t64f_xlat_io__possibly_fragment_and_send_ipv4_out_packet(t64ts_tundra__xlat_thread_context *context);
-extern void t64f_xlat_io__send_specified_ipv4_packet(t64ts_tundra__xlat_thread_context *context, t64ts_tundra__packet *ipv4_packet);
-extern void t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(t64ts_tundra__xlat_thread_context *context);
-extern void t64f_xlat_io__send_specified_ipv6_packet(t64ts_tundra__xlat_thread_context *context, t64ts_tundra__packet *ipv6_packet);
+extern void t64f_xlat_io__receive_packet_into_in_packet_buffer(t64ts_tundra__xlat_thread_context *context);
+extern void t64f_xlat_io__send_ipv4_packet(const t64ts_tundra__xlat_thread_context *context, struct iphdr *ipv4_header, const uint8_t *nullable_payload1_ptr, const size_t zeroable_payload1_size, const uint8_t *nullable_payload2_ptr, const size_t zeroable_payload2_size);
+extern void t64f_xlat_io__send_ipv6_packet(const t64ts_tundra__xlat_thread_context *context, struct ipv6hdr *ipv6_header, const t64ts_tundra__ipv6_fragment_header *nullable_ipv6_fragment_header, const uint8_t *nullable_payload1_ptr, const size_t zeroable_payload1_size, const uint8_t *nullable_payload2_ptr, const size_t zeroable_payload2_size);
 
 
 #endif // _T64I_XLAT_IO_H

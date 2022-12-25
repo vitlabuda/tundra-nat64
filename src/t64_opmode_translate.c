@@ -32,10 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xlat_thread_contexts(const t64ts_tundra__conf_cmdline *cmdline_configuration, const t64ts_tundra__conf_file *file_configuration);
-static void _t64fa_opmode_translate__initialize_packet_struct(t64ts_tundra__packet *packet);
 static t64ts_tundra__external_addr_xlat_state *_t64fa_opmode_translate__initialize_external_addr_xlat_state_struct(const t64ts_tundra__conf_file *file_configuration, char **addressing_external_next_fds_string_ptr);
 static void _t64f_opmode_translate__free_xlat_thread_contexts(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts);
-static void _t64f_opmode_translate__free_packet_struct(t64ts_tundra__packet *packet_struct);
 static void _t64f_opmode_translate__free_external_addr_xlat_state_struct(t64ts_tundra__external_addr_xlat_state *external_addr_xlat_state);
 static void _t64f_opmode_translate__daemonize(const t64ts_tundra__conf_file *file_configuration);
 static void _t64f_opmode_translate__start_xlat_threads(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts);
@@ -78,12 +76,10 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
     for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
         // context[i].thread stays uninitialized (it is initialized in _t64f_opmode_translate_start_xlat_threads())
         thread_contexts[i].thread_id = (i + 1); // Thread ID 0 is reserved for the main thread
+        thread_contexts[i].in_packet_buffer = t64fa_utils__allocate_zeroed_out_memory(T64C_TUNDRA__MAX_PACKET_SIZE + 1, sizeof(uint8_t));
+        thread_contexts[i].in_packet_size = 0;
         thread_contexts[i].configuration = file_configuration;
         thread_contexts[i].joined = false;
-
-        _t64fa_opmode_translate__initialize_packet_struct(&thread_contexts[i].in_packet);
-        _t64fa_opmode_translate__initialize_packet_struct(&thread_contexts[i].out_packet);
-        _t64fa_opmode_translate__initialize_packet_struct(&thread_contexts[i].tmp_packet);
 
         if(getrandom(&thread_contexts[i].fragment_identifier_ipv6, 4, 0) != 4 || getrandom(&thread_contexts[i].fragment_identifier_ipv4, 2, 0) != 2)
             t64f_log__crash(false, "Failed to generate fragment identifiers using the getrandom() system call!");
@@ -118,18 +114,6 @@ static t64ts_tundra__xlat_thread_context *_t64fa_opmode_translate__initialize_xl
     }
 
     return thread_contexts;
-}
-
-static void _t64fa_opmode_translate__initialize_packet_struct(t64ts_tundra__packet *packet_struct) {
-    packet_struct->packet_raw = t64fa_utils__allocate_zeroed_out_memory(T64C_TUNDRA__MAX_PACKET_SIZE + 1, sizeof(uint8_t));
-    packet_struct->packet_raw[T64C_TUNDRA__MAX_PACKET_SIZE] = '\0';
-    packet_struct->packet_size = 0;
-
-    packet_struct->payload_raw = NULL;
-    packet_struct->payload_size = 0;
-
-    packet_struct->ipv6_fragment_header = NULL;
-    packet_struct->ipv6_carried_protocol_field = NULL;
 }
 
 static t64ts_tundra__external_addr_xlat_state *_t64fa_opmode_translate__initialize_external_addr_xlat_state_struct(const t64ts_tundra__conf_file *file_configuration, char **addressing_external_next_fds_string_ptr) {
@@ -168,9 +152,7 @@ static t64ts_tundra__external_addr_xlat_state *_t64fa_opmode_translate__initiali
 // Closes 'packet_read_fd' and 'packet_write_fd', but not 'termination_pipe_read_fd'!
 static void _t64f_opmode_translate__free_xlat_thread_contexts(const t64ts_tundra__conf_file *file_configuration, t64ts_tundra__xlat_thread_context *thread_contexts) {
     for(size_t i = 0; i < file_configuration->program_translator_threads; i++) {
-        _t64f_opmode_translate__free_packet_struct(&thread_contexts[i].in_packet);
-        _t64f_opmode_translate__free_packet_struct(&thread_contexts[i].out_packet);
-        _t64f_opmode_translate__free_packet_struct(&thread_contexts[i].tmp_packet);
+        t64f_utils__free_memory(thread_contexts[i].in_packet_buffer);
 
         if(thread_contexts[i].external_addr_xlat_state != NULL)
             _t64f_opmode_translate__free_external_addr_xlat_state_struct(thread_contexts[i].external_addr_xlat_state);
@@ -180,11 +162,6 @@ static void _t64f_opmode_translate__free_xlat_thread_contexts(const t64ts_tundra
     }
 
     t64f_utils__free_memory(thread_contexts);
-}
-
-static void _t64f_opmode_translate__free_packet_struct(t64ts_tundra__packet *packet_struct) {
-    // For future extension.
-    t64f_utils__free_memory(packet_struct->packet_raw);
 }
 
 static void _t64f_opmode_translate__free_external_addr_xlat_state_struct(t64ts_tundra__external_addr_xlat_state *external_addr_xlat_state) {

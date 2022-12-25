@@ -56,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include<linux/icmpv6.h>
 #include<linux/tcp.h>
 #include<linux/udp.h>
+#include<sys/uio.h>
 #include<sys/types.h>
 #include<sys/file.h>
 #include<sys/time.h>

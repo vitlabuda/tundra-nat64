@@ -141,34 +141,12 @@ typedef struct __attribute__((__packed__)) {
 } t64ts_tundra__ipv6_fragment_header;  // SIZE: 8 bytes
 
 typedef struct {
-    union __attribute__((__packed__)) {
-        // This pointer (it is a union) does not change after it is allocated, and it must be freed!
-        uint8_t *packet_raw;
-        struct iphdr *packet_ipv4hdr;
-        struct ipv6hdr *packet_ipv6hdr;
-    };
-    union __attribute__((__packed__)) {
-        // This pointer (it is a union) changes for every individual packet, and it points to the same dynamically-allocated memory block as 'packet_raw'!
-        uint8_t *payload_raw;
-        struct icmphdr *payload_icmpv4hdr;
-        struct icmp6hdr *payload_icmpv6hdr;
-        struct tcphdr *payload_tcphdr;
-        struct udphdr *payload_udphdr;
-    };
-    t64ts_tundra__ipv6_fragment_header *ipv6_fragment_header; // NULL if the packet is an unfragmented IPv6 packet (not used with IPv4 packets - the contents are undefined).
-    uint8_t *ipv6_carried_protocol_field; // Not used with IPv4 packets - the contents are undefined.
-    size_t packet_size;
-    size_t payload_size;
-} t64ts_tundra__packet;
-
-typedef struct {
-    t64ts_tundra__packet in_packet;
-    t64ts_tundra__packet out_packet;
-    t64ts_tundra__packet tmp_packet;
-    pthread_t thread;
+    uint8_t *in_packet_buffer; // Not modified during the translation process.
     const t64ts_tundra__conf_file *configuration;
     t64ts_tundra__external_addr_xlat_state *external_addr_xlat_state;
+    size_t in_packet_size; // Not modified during the translation process.
     size_t thread_id;
+    pthread_t thread;
     int packet_read_fd;
     int packet_write_fd;
     uint32_t fragment_identifier_ipv6;

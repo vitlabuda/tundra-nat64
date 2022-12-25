@@ -27,6 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 extern ssize_t t64f_xlat_interrupt__read(const int fd, void *buf, const size_t count);
 extern ssize_t t64f_xlat_interrupt__write(const int fd, const void *buf, const size_t count);
+extern ssize_t t64f_xlat_interrupt__writev(const int fd, const struct iovec *iov, const int iovcnt);
 extern int t64f_xlat_interrupt__connect(const int sockfd, const struct sockaddr *addr, const socklen_t addrlen, const bool close_sockfd_before_exiting);
 extern int t64f_xlat_interrupt__close(const int fd);
 

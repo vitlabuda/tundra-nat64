@@ -23,99 +23,72 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_router_ipv6.h"
 
 #include"t64_utils.h"
-#include"t64_utils_icmp.h"
 #include"t64_checksum.h"
 #include"t64_xlat_io.h"
 
 
-static void _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context, const uint8_t icmp_type, const uint8_t icmp_code, const uint16_t additional_2bytes);
-static void _t64f_router_ipv6__generate_header_of_icmp_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context);
-static void _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(t64ts_tundra__xlat_thread_context *context);
+static void _t64f_router_ipv6__send_icmpv6_message_to_in_ipv6_packet_source_host(const t64ts_tundra__xlat_thread_context *context, const uint8_t icmpv6_type, const uint8_t icmpv6_code, const uint16_t rest_of_header2);
+static bool _t64f_router_ipv6__construct_ipv6_header_for_icmpv6_message(const t64ts_tundra__xlat_thread_context *context, struct ipv6hdr *out_ipv6_header);
+static void _t64f_router_ipv6__construct_icmpv6_header(const uint8_t icmpv6_type, const uint8_t icmpv6_code, const uint16_t rest_of_header2, struct icmp6hdr *out_icmpv6_header);
 
 
-/*
- * When this function is called, in_packet's IPv6 header(s) must be fully validated and all the packet's properties
- *  (i.e. 'packet_size', 'payload_raw', 'payload_size', 'ipv6_fragment_header' and 'ipv6_carried_protocol_field') must
- *  be set correctly. The packet's payload does not have to be validated. In other words, this function can be called
- *  at any point after the '_t64f_xlat_6to4__evaluate_in_packet()' function succeeds.
- * This function overwrites all the contents of out_packet - it generates the ICMPv6 packet there and sends it out.
- *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
- *  immediately!
- */
-void t64f_router_ipv6__generate_and_send_icmpv6_address_unreachable_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
-    _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(context, 1, 3, 0);
+void t64f_router_ipv6__send_icmpv6_address_unreachable_message_to_in_ipv6_packet_source_host(const t64ts_tundra__xlat_thread_context *context) {
+    _t64f_router_ipv6__send_icmpv6_message_to_in_ipv6_packet_source_host(context, 1, 3, 0);
 }
 
-/*
- * When this function is called, in_packet's IPv6 header(s) must be fully validated and all the packet's properties
- *  (i.e. 'packet_size', 'payload_raw', 'payload_size', 'ipv6_fragment_header' and 'ipv6_carried_protocol_field') must
- *  be set correctly. The packet's payload does not have to be validated. In other words, this function can be called
- *  at any point after the '_t64f_xlat_6to4__evaluate_in_packet()' function succeeds.
- * This function overwrites all the contents of out_packet - it generates the ICMPv6 packet there and sends it out.
- *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
- *  immediately!
- */
-void t64f_router_ipv6__generate_and_send_icmpv6_time_exceeded_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context) {
-    _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(context, 3, 0, 0);
+void t64f_router_ipv6__send_icmpv6_time_exceeded_message_to_in_ipv6_packet_source_host(const t64ts_tundra__xlat_thread_context *context) {
+    _t64f_router_ipv6__send_icmpv6_message_to_in_ipv6_packet_source_host(context, 3, 0, 0);
 }
 
-/*
- * When this function is called, in_packet's IPv6 header(s) must be fully validated and all the packet's properties
- *  (i.e. 'packet_size', 'payload_raw', 'payload_size', 'ipv6_fragment_header' and 'ipv6_carried_protocol_field') must
- *  be set correctly. The packet's payload does not have to be validated. In other words, this function can be called
- *  at any point after the '_t64f_xlat_6to4__evaluate_in_packet()' function succeeds.
- * This function overwrites all the contents of out_packet - it generates the ICMPv6 packet there and sends it out.
- *  Therefore, after a call of this function returns, the translator MUST stop translating the current in_packet
- *  immediately!
- */
-void t64f_router_ipv6__generate_and_send_icmpv6_packet_too_big_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context, uint16_t mtu) {
-    _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(context, 2, 0, htons(mtu));
+void t64f_router_ipv6__send_icmpv6_packet_too_big_message_to_in_ipv6_packet_source_host(const t64ts_tundra__xlat_thread_context *context, const uint16_t mtu) {
+    _t64f_router_ipv6__send_icmpv6_message_to_in_ipv6_packet_source_host(context, 2, 0, mtu);
 }
 
-static void _t64f_router_ipv6__generate_and_send_icmpv6_message_back_to_in_ipv6_packet_source_host(t64ts_tundra__xlat_thread_context *context, const uint8_t icmp_type, const uint8_t icmp_code, const uint16_t additional_2bytes) {
-    _t64f_router_ipv6__generate_header_of_icmp_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(context);
+static void _t64f_router_ipv6__send_icmpv6_message_to_in_ipv6_packet_source_host(const t64ts_tundra__xlat_thread_context *context, const uint8_t icmpv6_type, const uint8_t icmpv6_code, const uint16_t rest_of_header2) {
+    struct ipv6hdr ipv6_header; // 40 bytes
+    if(!_t64f_router_ipv6__construct_ipv6_header_for_icmpv6_message(context, &ipv6_header))
+        return;
 
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 40 bytes IPv6 header = at least 1480 bytes free; 8 bytes needed (for ICMPv6 header)
+    struct icmp6hdr icmpv6_header; // 8 bytes
+    _t64f_router_ipv6__construct_icmpv6_header(icmpv6_type, icmpv6_code, rest_of_header2, &icmpv6_header);
 
-    t64f_utils_icmp__generate_basic_icmpv4v6_header_to_empty_packet_payload(&context->out_packet, icmp_type, icmp_code);
-    memcpy(context->out_packet.payload_raw + 6, &additional_2bytes, 2);
+    const uint8_t *icmpv6_payload_ptr = context->in_packet_buffer;
+    // Clamping the packet in error's size to 1232 bytes means that the resulting ICMPv6 error message packet will
+    //  always fit into 1280 bytes, which is the minimum IPv6 MTU, and therefore the packet will never have to be
+    //  fragmented.
+    const size_t icmpv6_payload_size = T64MM_UTILS__MINIMUM(context->in_packet_size, 1232);
 
-    _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(context);
+    icmpv6_header.icmp6_cksum = 0;
+    icmpv6_header.icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum_for_ipv6((const uint8_t *) &icmpv6_header, 8, icmpv6_payload_ptr, icmpv6_payload_size, &ipv6_header, 58);
 
-    context->out_packet.payload_icmpv6hdr->icmp6_cksum = 0;
-    context->out_packet.payload_icmpv6hdr->icmp6_cksum = t64f_checksum__calculate_rfc1071_checksum(&context->out_packet, true);
-
-    t64f_xlat_io__possibly_fragment_and_send_ipv6_out_packet(context);
+    t64f_xlat_io__send_ipv6_packet(context, &ipv6_header, NULL, (const uint8_t *) &icmpv6_header, 8, icmpv6_payload_ptr, icmpv6_payload_size);
 }
 
-static void _t64f_router_ipv6__generate_header_of_icmp_ipv6_packet_sent_back_to_in_ipv6_packet_source_host_into_out_packet(t64ts_tundra__xlat_thread_context *context) {
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes free; 40 bytes needed (for IPv6 header)
+static bool _t64f_router_ipv6__construct_ipv6_header_for_icmpv6_message(const t64ts_tundra__xlat_thread_context *context, struct ipv6hdr *out_ipv6_header) {
+    if(context->in_packet_size < 40)
+        return false;
 
-    context->out_packet.packet_ipv6hdr->version = 6;
-    context->out_packet.packet_ipv6hdr->priority = 0;
-    T64M_UTILS__MEMORY_ZERO_OUT(context->out_packet.packet_ipv6hdr->flow_lbl, 3);
-    context->out_packet.packet_ipv6hdr->payload_len = 0; // This is set to a correct value when the packet is sent (at this moment, it is not known what the final size of the packet's payload will be)
-    context->out_packet.packet_ipv6hdr->nexthdr = 58; // ICMPv6
-    context->out_packet.packet_ipv6hdr->hop_limit = context->configuration->router_generated_packet_ttl;
-    memcpy(context->out_packet.packet_ipv6hdr->saddr.s6_addr, context->configuration->router_ipv6, 16);
-    memcpy(context->out_packet.packet_ipv6hdr->daddr.s6_addr, context->in_packet.packet_ipv6hdr->saddr.s6_addr, 16);
+    const struct ipv6hdr *in_ipv6_header = (const struct ipv6hdr *) context->in_packet_buffer;
+    if(in_ipv6_header->version != 6)
+        return false;
 
-    context->out_packet.packet_size = 40;
-    context->out_packet.payload_raw = (context->out_packet.packet_raw + 40);
-    context->out_packet.payload_size = 0;
-    context->out_packet.ipv6_fragment_header = NULL;
-    context->out_packet.ipv6_carried_protocol_field = &context->out_packet.packet_ipv6hdr->nexthdr;
+    out_ipv6_header->version = 6;
+    out_ipv6_header->priority = 0;
+    T64M_UTILS__MEMORY_ZERO_OUT(out_ipv6_header->flow_lbl, 3);
+    out_ipv6_header->payload_len = 0; // Set to a correct value later
+    out_ipv6_header->nexthdr = 58; // ICMPv6
+    out_ipv6_header->hop_limit = context->configuration->router_generated_packet_ttl;
+    memcpy(out_ipv6_header->saddr.s6_addr, context->configuration->router_ipv6, 16);
+    memcpy(out_ipv6_header->daddr.s6_addr, in_ipv6_header->saddr.s6_addr, 16);
+
+    return true;
 }
 
-static void _t64f_router_ipv6__append_part_of_in_ipv6_packet_to_icmpv6_header_in_out_packet(t64ts_tundra__xlat_thread_context *context) {
-    // OUT-PACKET-REMAINING-BUFFER-SIZE: at least 1520 bytes - 40 bytes IPv6 header - 8 bytes ICMPv6 header = at least 1472 bytes free; up to 1232 bytes needed
+static void _t64f_router_ipv6__construct_icmpv6_header(const uint8_t icmpv6_type, const uint8_t icmpv6_code, const uint16_t rest_of_header2, struct icmp6hdr *out_icmpv6_header) {
+    out_icmpv6_header->icmp6_type = icmpv6_type;
+    out_icmpv6_header->icmp6_code = icmpv6_code;
 
-    const size_t copied_bytes = t64f_utils__secure_memcpy_with_size_clamping(
-        context->out_packet.payload_raw + 8,
-        context->in_packet.packet_raw,
-        context->in_packet.packet_size,
-        (1280 - context->out_packet.packet_size) // 1280 bytes - 40 bytes IPv6 header - 8 bytes ICMPv6 header = 1232 bytes
-    );
-    context->out_packet.packet_size += copied_bytes;
-    context->out_packet.payload_size += copied_bytes;
+    uint16_t *out_icmpv6_header_raw = (uint16_t *) out_icmpv6_header;
+    out_icmpv6_header_raw[2] = 0; // rest_of_header1 - always 0
+    out_icmpv6_header_raw[3] = htons(rest_of_header2);
 }

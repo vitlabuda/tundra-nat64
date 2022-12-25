@@ -89,11 +89,15 @@ bool t64f_utils_ip__is_ip_protocol_number_forbidden(const uint8_t ip_protocol_nu
 }
 
 void t64f_utils_ip__generate_ipv6_fragment_identifier(t64ts_tundra__xlat_thread_context *context, uint8_t *destination) {
-    const uint32_t fragment_id = htonl(context->fragment_identifier_ipv6++); // This prevents the program from leaking the information about its endianness
+    const uint32_t fragment_id = htonl(context->fragment_identifier_ipv6); // This prevents the program from leaking the information about its endianness
+    context->fragment_identifier_ipv6++; // htonl() may be a macro
+
     memcpy(destination, &fragment_id, 4);
 }
 
 void t64f_utils_ip__generate_ipv4_fragment_identifier(t64ts_tundra__xlat_thread_context *context, uint8_t *destination) {
-    const uint16_t fragment_id = htons(context->fragment_identifier_ipv4++); // This prevents the program from leaking the information about its endianness
+    const uint16_t fragment_id = htons(context->fragment_identifier_ipv4); // This prevents the program from leaking the information about its endianness
+    context->fragment_identifier_ipv4++; // htons() may be a macro
+
     memcpy(destination, &fragment_id, 2);
 }

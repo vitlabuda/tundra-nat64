@@ -25,7 +25,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_tundra.h"
 
 
-extern bool t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_tundra__xlat_thread_context *context);
+typedef struct {
+    uint8_t message_start_36b[36]; // 32 bytes ought to be enough, but since the code accessing the array is quite complicated and bug-prone, 36 bytes are there to prevent accidental overflows...
+    const uint8_t *nullable_message_end_ptr; // Points to a part of 'context->in_packet_buffer' --> must not be modified!
+    size_t message_start_size_m8u; // Must be a multiple of 8 unless 'message_end_ptr' is NULL!
+    size_t zeroable_message_end_size;
+} t64ts_xlat_6to4_icmp__out_icmpv4_message_data;
+
+
+extern bool t64f_xlat_6to4_icmp__translate_icmpv6_to_icmpv4(t64ts_tundra__xlat_thread_context *context, const uint8_t *in_packet_payload_ptr, const size_t in_packet_payload_size, t64ts_xlat_6to4_icmp__out_icmpv4_message_data *out_message_data);
 
 
 #endif // _T64I_XLAT_6TO4_ICMP_H

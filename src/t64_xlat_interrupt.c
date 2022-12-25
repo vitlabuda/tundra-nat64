@@ -53,6 +53,20 @@ ssize_t t64f_xlat_interrupt__write(const int fd, const void *buf, const size_t c
     }
 }
 
+ssize_t t64f_xlat_interrupt__writev(const int fd, const struct iovec *iov, const int iovcnt) {
+    for(;;) {
+        if(!t64f_signal__should_this_thread_continue_running())
+            pthread_exit(NULL);
+
+        const ssize_t ret_value = writev(fd, iov, iovcnt);
+
+        if(ret_value < 0 && errno == EINTR)
+            continue;
+
+        return ret_value;
+    }
+}
+
 int t64f_xlat_interrupt__connect(const int sockfd, const struct sockaddr *addr, const socklen_t addrlen, const bool close_sockfd_before_exiting) {
     for(;;) {
         if(!t64f_signal__should_this_thread_continue_running()) {

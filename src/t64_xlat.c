@@ -28,7 +28,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_xlat_6to4.h"
 
 
-static void _t64f_xlat__prepare_packet_struct_for_new_packet(t64ts_tundra__packet *packet_struct);
 static void _t64f_xlat__translate_packet(t64ts_tundra__xlat_thread_context *context);
 
 
@@ -36,11 +35,7 @@ void *t64f_xlat__thread_run(void *arg) {
     t64ts_tundra__xlat_thread_context *context = (t64ts_tundra__xlat_thread_context *) arg;
 
     while(t64f_signal__should_this_thread_continue_running()) {
-        _t64f_xlat__prepare_packet_struct_for_new_packet(&context->in_packet);
-        _t64f_xlat__prepare_packet_struct_for_new_packet(&context->out_packet);
-        _t64f_xlat__prepare_packet_struct_for_new_packet(&context->tmp_packet);
-
-        t64f_xlat_io__receive_packet_into_in_packet(context);
+        t64f_xlat_io__receive_packet_into_in_packet_buffer(context);
 
         _t64f_xlat__translate_packet(context);
     }
@@ -48,21 +43,13 @@ void *t64f_xlat__thread_run(void *arg) {
     return NULL;
 }
 
-// This function is not really necessary - it just tries to prevent some kinds of undefined behaviour in case the packet translation algorithms are programmed incorrectly.
-static void _t64f_xlat__prepare_packet_struct_for_new_packet(t64ts_tundra__packet *packet_struct) {
-    packet_struct->packet_size = 0;
-    packet_struct->payload_raw = NULL;
-    packet_struct->payload_size = 0;
-    packet_struct->ipv6_fragment_header = NULL;
-    packet_struct->ipv6_carried_protocol_field = NULL;
-}
-
 static void _t64f_xlat__translate_packet(t64ts_tundra__xlat_thread_context *context) {
-    if(context->in_packet.packet_size < 20)
+    if(context->in_packet_size < 20)
         return;
 
-    if(context->in_packet.packet_ipv4hdr->version == 4)
+    const uint8_t ip_version = (*context->in_packet_buffer) >> 4;
+    if(ip_version == 4)
         t64f_xlat_4to6__handle_packet(context);
-    else if(context->in_packet.packet_ipv4hdr->version == 6)
+    else if(ip_version == 6)
         t64f_xlat_6to4__handle_packet(context);
 }

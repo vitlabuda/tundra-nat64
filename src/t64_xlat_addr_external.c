@@ -148,7 +148,9 @@ static bool _t64f_xlat_addr_external__perform_external_address_translation(t64ts
     if(!_t64f_xlat_addr_external__ensure_external_translation_fds_are_open(context))
         return false;
 
-    const uint32_t message_identifier = htonl(context->external_addr_xlat_state->message_identifier++);
+    const uint32_t message_identifier = htonl(context->external_addr_xlat_state->message_identifier);
+    context->external_addr_xlat_state->message_identifier++; // htonl() may be a macro
+
     t64ts_tundra__external_addr_xlat_message message;
 
     if(!_t64f_xlat_addr_external__construct_and_send_request_message_to_external_translation_fd(context, &message, message_type, message_identifier, in_src_ip, in_dst_ip))
@@ -217,11 +219,11 @@ static bool _t64f_xlat_addr_external__receive_and_parse_response_message_from_ex
     if(message_buf->message_type == (message_type + 224)) {  // Bits set: response, error, ICMP
         switch(message_type) {
             case _T64C_XLAT_ADDR_EXTERNAL__MESSAGE_TYPE_4TO6_MAIN_PACKET:
-                t64f_router_ipv4__generate_and_send_icmpv4_destination_host_unreachable_message_back_to_in_ipv4_packet_source_host(context);
+                t64f_router_ipv4__send_icmpv4_destination_host_unreachable_message_to_in_ipv4_packet_source_host(context);
                 return false;
 
             case _T64C_XLAT_ADDR_EXTERNAL__MESSAGE_TYPE_6TO4_MAIN_PACKET:
-                t64f_router_ipv6__generate_and_send_icmpv6_address_unreachable_message_back_to_in_ipv6_packet_source_host(context);
+                t64f_router_ipv6__send_icmpv6_address_unreachable_message_to_in_ipv6_packet_source_host(context);
                 return false;
 
             case _T64C_XLAT_ADDR_EXTERNAL__MESSAGE_TYPE_4TO6_ICMP_ERROR_PACKET:

@@ -30,9 +30,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T64M_UTILS_IP__IPV6_ADDRESSES_EQUAL(ipv6_address1, ipv6_address2) (T64M_UTILS__MEMORY_EQUAL((ipv6_address1), (ipv6_address2), 16))
 #define T64M_UTILS_IP__IPV6_PREFIXES_EQUAL(ipv6_prefix1, ipv6_prefix2) (T64M_UTILS__MEMORY_EQUAL((ipv6_prefix1), (ipv6_prefix2), 12))
 
-#define T64M_UTILS_IP__IPV4_PACKET_NEEDS_FRAGMENTATION(context, ipv4_packet_ptr) ((ipv4_packet_ptr)->packet_size > (context)->configuration->translator_ipv4_outbound_mtu)
-#define T64M_UTILS_IP__IPV6_PACKET_NEEDS_FRAGMENTATION(context, ipv6_packet_ptr) ((ipv6_packet_ptr)->packet_size > (context)->configuration->translator_ipv6_outbound_mtu)
-
 #define T64M_UTILS_IP__GET_IPV4_FRAGMENT_RESERVED_BIT(ipv4_header_ptr) (!!(ntohs((ipv4_header_ptr)->frag_off) & 0x8000))
 #define T64M_UTILS_IP__GET_IPV4_DONT_FRAGMENT_BIT(ipv4_header_ptr) (!!(ntohs((ipv4_header_ptr)->frag_off) & 0x4000))
 #define T64M_UTILS_IP__GET_IPV4_MORE_FRAGMENTS_BIT(ipv4_header_ptr) (!!(ntohs((ipv4_header_ptr)->frag_off) & 0x2000))
@@ -44,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T64M_UTILS_IP__GET_IPV6_FRAGMENT_RESERVED_BITS(ipv6_fragment_header_ptr) ((ntohs((ipv6_fragment_header_ptr)->offset_and_flags) >> 1) & 0x3)
 #define T64M_UTILS_IP__GET_IPV6_FRAGMENT_MORE_FRAGMENTS_BIT(ipv6_fragment_header_ptr) (ntohs((ipv6_fragment_header_ptr)->offset_and_flags) & 0x1)
 #define T64M_UTILS_IP__CONSTRUCT_IPV6_FRAGMENT_OFFSET_AND_FLAGS_FIELD(fragment_offset, more_fragments) (htons((uint16_t) ( (((uint16_t) (fragment_offset)) << 3) | ((uint16_t) (!!(more_fragments))) )))
-#define T64M_UTILS_IP__IS_IPV6_PACKET_FRAGMENTED(packet_struct_ptr) ((packet_struct_ptr)->ipv6_fragment_header != NULL)
 
 
 extern bool t64f_utils_ip__is_ipv4_address_unusable(const uint8_t *ipv4_address);

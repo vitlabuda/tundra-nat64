@@ -63,20 +63,3 @@ void t64f_utils__secure_strncpy(char *destination, const char *source, const siz
     strncpy(destination, source, buffer_size - 1);
     destination[buffer_size - 1] = '\0';
 }
-
-bool t64f_utils__secure_memcpy(void *destination, const void *source, const size_t copied_size, const size_t max_size) {
-    if(copied_size > max_size)
-        return false;
-
-    memcpy(destination, source, copied_size);
-
-    return true;
-}
-
-size_t t64f_utils__secure_memcpy_with_size_clamping(void *destination, const void *source, size_t copied_size, const size_t max_size) {
-    if(copied_size > max_size)
-        copied_size = max_size;
-
-    memcpy(destination, source, copied_size);
-    return copied_size;
-}
