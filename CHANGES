@@ -118,3 +118,6 @@
 [5.0.0 @ 2022-12-25]
 - The entire translation engine has been rewritten from the ground up - it is now faster (zero-copy), more memory-efficient and more secure, and its code is overall more readable and understandable
 - Other minor improvements
+
+[5.0.1 @ 2022-12-25]
+- Inbound packets with the 'more fragments' bit set are now validated to have a payload whose size is a multiple of 8

@@ -181,17 +181,17 @@ static bool _t64f_xlat_4to6__validate_and_translate_ip_header(t64ts_tundra__xlat
     const uint16_t fragment_offset = T64M_UTILS_IP__GET_IPV4_FRAGMENT_OFFSET(in_ipv4_header);
     out_packet_data->is_fragment_offset_zero = (bool) (fragment_offset == 0);
 
-    // :: Identification, fragment offset & MF bit -> Fragmentation header
+    // :: More fragments
+    const uint16_t more_fragments = T64M_UTILS_IP__GET_IPV4_MORE_FRAGMENTS_BIT(in_ipv4_header);
+
+    // :: Identification, fragment offset & more fragments bit -> Fragmentation header
     t64ts_tundra__ipv6_fragment_header *out_ipv6_fragment_header = &out_packet_data->ipv6_fragment_header;
     if(T64MM_UTILS_IP__IS_IPV4_PACKET_FRAGMENTED(in_ipv4_header)) {
         out_ipv6_header->nexthdr = 44;
 
         out_ipv6_fragment_header->next_header = ipv6_carried_protocol;
         out_ipv6_fragment_header->reserved = 0;
-        out_ipv6_fragment_header->offset_and_flags = T64M_UTILS_IP__CONSTRUCT_IPV6_FRAGMENT_OFFSET_AND_FLAGS_FIELD(
-            fragment_offset,
-            T64M_UTILS_IP__GET_IPV4_MORE_FRAGMENTS_BIT(in_ipv4_header)
-        );
+        out_ipv6_fragment_header->offset_and_flags = T64M_UTILS_IP__CONSTRUCT_IPV6_FRAGMENT_OFFSET_AND_FLAGS_FIELD(fragment_offset, more_fragments);
         out_ipv6_fragment_header->identification[0] = 0;
         out_ipv6_fragment_header->identification[1] = in_ipv4_header->id;
 
@@ -218,6 +218,12 @@ static bool _t64f_xlat_4to6__validate_and_translate_ip_header(t64ts_tundra__xlat
 
     out_packet_data->payload_ptr = (const uint8_t *) (context->in_packet_buffer + in_ipv4_header_size);
     out_packet_data->payload_size = (context->in_packet_size - in_ipv4_header_size);
+
+    // If there are more fragments after this one, this fragment's payload size must be a multiple of 8, as fragment
+    //  offsets in IPv4/v6 headers are specified in 8-byte units.
+    if(more_fragments && (out_packet_data->payload_size % 8) != 0)
+        return false;
+
     out_packet_data->carried_protocol = ipv6_carried_protocol;
 
     return true;

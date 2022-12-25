@@ -172,14 +172,16 @@ static bool _t64f_xlat_6to4__validate_and_translate_ip_header(t64ts_tundra__xlat
         out_ipv4_header->protocol = (current_header_number == 58) ? 1 : current_header_number;
 
         if(ipv6_fragment_header_ptr != NULL) {
+            // If there are more fragments after this one, this fragment's payload size must be a multiple of 8, as
+            //  fragment offsets in IPv4/v6 headers are specified in 8-byte units.
+            const uint16_t more_fragments = T64M_UTILS_IP__GET_IPV6_FRAGMENT_MORE_FRAGMENTS_BIT(ipv6_fragment_header_ptr);
+            if(more_fragments && (out_packet_data->payload_size % 8) != 0)
+                return false;
+
             const uint16_t fragment_offset = T64M_UTILS_IP__GET_IPV6_FRAGMENT_OFFSET(ipv6_fragment_header_ptr);
 
             out_ipv4_header->id = ipv6_fragment_header_ptr->identification[1];
-            out_ipv4_header->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(
-                0,
-                T64M_UTILS_IP__GET_IPV6_FRAGMENT_MORE_FRAGMENTS_BIT(ipv6_fragment_header_ptr),
-                fragment_offset
-            );
+            out_ipv4_header->frag_off = T64M_UTILS_IP__CONSTRUCT_IPV4_FRAGMENT_OFFSET_AND_FLAGS_FIELD(0, more_fragments, fragment_offset);
 
             out_packet_data->is_fragment_offset_zero = (bool) (fragment_offset == 0);
         } else {
