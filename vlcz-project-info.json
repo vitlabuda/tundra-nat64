@@ -3,8 +3,8 @@
   "display_name": "Tundra-NAT64",
   "description": null,
   "programming_language": "C",
-  "priority": 1100,
+  "priority": 1500,
   "category_id": "servers-daemons",
   "category_display_name": "Servers & daemons",
-  "category_priority": 1000
+  "category_priority": 1500
 }
