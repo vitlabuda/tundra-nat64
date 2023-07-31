@@ -4,3 +4,5 @@
 /tundra-nat64.conf
 /test_deploy
 /TODO-private.txt
+*.o
+*.d
