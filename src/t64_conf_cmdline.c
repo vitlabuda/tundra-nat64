@@ -32,7 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 \n\
 Usage: %s [OPTION]... [MODE_OF_OPERATION]\n\
 \n\
-Options:\n\
+*OPTIONS*\n\
   -h, --"T64C_CONF_CMDLINE__LONGOPT_HELP"\n\
     Prints help and exits.\n\
   -v, --"T64C_CONF_CMDLINE__LONGOPT_VERSION"\n\
@@ -43,25 +43,29 @@ Options:\n\
     Specifies the file from which the program's configuration will be loaded.\n\
     DEFAULT: "T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH"\n\
     NOTE: To load the configuration from standard input, specify '-' as the config file path.\n\
-  -f, --"T64C_CONF_CMDLINE__LONGOPT_IO_INHERITED_FDS"=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...\n\
-    Specifies the file descriptors to be used in the '"T64C_CONF_FILE__IO_MODE_INHERITED_FDS"' I/O mode. Ignored otherwise.\n\
-  -F, --"T64C_CONF_CMDLINE__LONGOPT_ADDRESSING_EXTERNAL_INHERITED_FDS"=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...\n\
+  -f, --"T64C_CONF_CMDLINE__LONGOPT_IO_INHERITED_FDS"=FD_PAIR...\n\
+    Specifies the file descriptors to be used in the 'inherited-fds'\n\
+    I/O mode. Ignored otherwise. The FD_PAIRs consist of comma separated\n\
+    pairs, like in,out and pairs are separated by semicolon.\n\
+  -F, --"T64C_CONF_CMDLINE__LONGOPT_ADDRESSING_EXTERNAL_INHERITED_FDS"=FD_PAIR...\n\
     Specifies the file descriptors to be used for the '"T64C_CONF_FILE__ADDRESSING_EXTERNAL_TRANSPORT_INHERITED_FDS"' transport of the '"T64C_CONF_FILE__ADDRESSING_MODE_EXTERNAL"' addressing mode. Ignored otherwise.\n\
 \n\
-Modes of operation:\n\
-  "T64C_CONF_CMDLINE__OPMODE_TRANSLATE"\n\
-    The program will act as a stateless NAT64/CLAT translator.\n\
-    This is the default mode of operation.\n\
-  "T64C_CONF_CMDLINE__OPMODE_MKTUN"\n\
-    Creates a persistent TUN device according to the configuration file, then exits.\n\
-    Applicable only in the '"T64C_CONF_FILE__IO_MODE_TUN"' I/O mode.\n\
-  "T64C_CONF_CMDLINE__OPMODE_RMTUN"\n\
-    Destroys a previously created persistent TUN device according to the configuration file, then exits.\n\
-    Applicable only in the '"T64C_CONF_FILE__IO_MODE_TUN"' I/O mode.\n\
-  "T64C_CONF_CMDLINE__OPMODE_VALIDATE_CONFIG"\n\
-    Tries to configure the program and prints an informational message if it succeeds, then exits.\n\
-  "T64C_CONF_CMDLINE__OPMODE_PRINT_CONFIG"\n\
-    Prints the program's configuration in a human-readable format, then exits.\n\
+*MODES OF OPERATION*\n\
+  translate  The program will act as a stateless NAT64/CLAT translator.\n\
+             This is the default mode of operation.\n\
+\n\
+  mktun      Creates a persistent TUN device according to the configuration\n\
+             file, then exits. Applicable only in the 'tun' I/O mode.\n\
+\n\
+  rmtun      Destroys a previously created persistent TUN device according to\n\
+             the configuration file, then exits. Applicable only in the 'tun'\n\
+             I/O mode.\n\
+\n\
+  validate-config  Tries to configure the program and prints an\n\
+                   informational message if it succeeds, then exits.\n\
+\n\
+  print-config     Prints the program's configuration in a human-readable\n\
+                   format, then exits.\n\
 \n\
 "
 
