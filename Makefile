@@ -31,6 +31,7 @@ clean:
 	-rm src/*.o
 	-rm src/*.d
 	-rm *.8
+	-rm tundra-nat64
 
 install: tundra-nat64.8
 	install -D -m755 tundra-nat64 -t $(DESTDIR)$(PREFIX)/sbin/
