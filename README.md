@@ -141,8 +141,6 @@ Modes of operation:
     Applicable only in the 'tun' I/O mode.
   validate-config
     Tries to configure the program and prints an informational message if it succeeds, then exits.
-  print-config
-    Prints the program's configuration in a human-readable format, then exits.
 ```
 
 ### Generic NAT64 configuration example

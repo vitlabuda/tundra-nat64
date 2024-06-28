@@ -124,3 +124,4 @@
 
 [5.5.0 @ TBA]
 - Updated copyright year
+- Removed the 'print-config' mode of operation, as it was practically useless and hard to maintain

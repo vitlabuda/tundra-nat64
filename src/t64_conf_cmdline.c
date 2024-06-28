@@ -60,8 +60,6 @@ Modes of operation:\n\
     Applicable only in the '"T64C_CONF_FILE__IO_MODE_TUN"' I/O mode.\n\
   "T64C_CONF_CMDLINE__OPMODE_VALIDATE_CONFIG"\n\
     Tries to configure the program and prints an informational message if it succeeds, then exits.\n\
-  "T64C_CONF_CMDLINE__OPMODE_PRINT_CONFIG"\n\
-    Prints the program's configuration in a human-readable format, then exits.\n\
 \n\
 "
 
@@ -216,9 +214,6 @@ static t64te_tundra__operation_mode _t64f_conf_cmdline__determine_operation_mode
 
     if(T64M_UTILS__STRINGS_EQUAL(mode_of_operation_string, T64C_CONF_CMDLINE__OPMODE_VALIDATE_CONFIG))
         return T64TE_TUNDRA__OPERATION_MODE_VALIDATE_CONFIG;
-
-    if(T64M_UTILS__STRINGS_EQUAL(mode_of_operation_string, T64C_CONF_CMDLINE__OPMODE_PRINT_CONFIG))
-        return T64TE_TUNDRA__OPERATION_MODE_PRINT_CONFIG;
 
     t64f_log__crash(false, "Invalid mode of operation string: %s", mode_of_operation_string);
 }

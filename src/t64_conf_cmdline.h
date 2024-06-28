@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define T64C_CONF_CMDLINE__OPMODE_MKTUN "mktun"
 #define T64C_CONF_CMDLINE__OPMODE_RMTUN "rmtun"
 #define T64C_CONF_CMDLINE__OPMODE_VALIDATE_CONFIG "validate-config"
-#define T64C_CONF_CMDLINE__OPMODE_PRINT_CONFIG "print-config"
 
 
 extern t64ts_tundra__conf_cmdline *t64fa_conf_cmdline__parse_cmdline_configuration(int argc, char **argv);

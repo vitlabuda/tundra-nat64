@@ -30,7 +30,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"t64_opmode_mktun.h"
 #include"t64_opmode_rmtun.h"
 #include"t64_opmode_validate_config.h"
-#include"t64_opmode_print_config.h"
 
 
 static void _t64f_init__check_compile_time_config(void);
@@ -110,10 +109,6 @@ static void _t64f_init__run_program_according_to_operation_mode(const t64ts_tund
 
         case T64TE_TUNDRA__OPERATION_MODE_VALIDATE_CONFIG:
             t64f_opmode_validate_config__run();
-            break;
-
-        case T64TE_TUNDRA__OPERATION_MODE_PRINT_CONFIG:
-            t64f_opmode_print_config__run(cmdline_configuration, file_configuration);
             break;
 
         default:
