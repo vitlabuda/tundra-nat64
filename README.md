@@ -89,12 +89,14 @@ up.
 
 
 ## Build
-Since Tundra has no dependencies other than Linux's standard C library and `libpthread`, it can be compiled by a single 
-command and without the use of a build system: 
+Tundra only depends on Linux's standard C library and `libpthread` - no other libraries are needed. The project uses 
+**CMake** as its build system and **GCC** as its compiler. To build the program, run the following commands in the
+repository's root directory:
 ```shell
-gcc -Wall -Wextra -pthread -std=c11 -O3 -flto -o tundra-nat64 src/t64_*.c
+CC=gcc cmake -S. -Bbuild
+make -Cbuild
 ```
-Both `gcc` and `clang` may be used to compile the program.
+The resulting binary will be located at `./build/tundra-nat64`.
 
 
 

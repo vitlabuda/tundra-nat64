@@ -26,9 +26,10 @@ file paths before deploying this configuration!**
    to `/etc/sysctl.conf`. If your machine uses some out-of-kernel solution to manage its network configuration, such as
    `NetworkManager`, you may not encounter this problem.
 
-3. Compile Tundra using `gcc` or `clang`:
+3. Compile Tundra:
    ```shell
-   gcc -Wall -Wextra -pthread -std=c11 -O3 -flto -o tundra-nat64 src/t64_*.c
+   CC=gcc cmake -S. -Bbuild
+   make -Cbuild
    ```
 
 4. Copy the compiled Tundra binary to a path from which it will be executed. You might also want to change the 

@@ -17,10 +17,11 @@ IP addresses and file paths before deploying this configuration!**
 
 2. Cross-compile Tundra for your router's target using the OpenWRT SDK. See [this page](https://openwrt.org/docs/guide-developer/toolchain/crosscompile) for more information. For example:
    ```shell
-   mipsel-openwrt-linux-gcc -Wall -Wextra -pthread -std=c11 -O3 -flto -o tundra-nat64 src/t64_*.c
+   CC=mipsel-openwrt-linux-gcc cmake -S. -Bbuild
+   make -Cbuild
    ```
 
-3. Copy the compiled `tundra-nat64` binary to your router (e.g. using `scp`). This configuration uses the following path: `/usr/local/sbin/tundra-nat64`.
+3. Copy the compiled Tundra binary to your router (e.g. using `scp`). This configuration uses the following path: `/usr/local/sbin/tundra-nat64`.
 
 4. Copy the Tundra configuration file, [`tundra-nat64.conf`](tundra-nat64.conf), to your router. This configuration uses the following path: `/etc/tundra-nat64/tundra-nat64.conf`. 
    
