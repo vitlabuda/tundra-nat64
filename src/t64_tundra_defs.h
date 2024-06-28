@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2022 Vít Labuda. All rights reserved.
+Copyright (c) 2024 Vít Labuda. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
 following conditions are met:
@@ -24,7 +24,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #define T64C_TUNDRA__VERSION "5.0.1"
-#define T64C_TUNDRA__PROGRAM_INFO_STRING "Tundra-NAT64 / v"T64C_TUNDRA__VERSION" / Copyright (c) 2022 Vit Labuda"
+#define T64C_TUNDRA__PROGRAM_INFO_STRING "Tundra-NAT64 / v"T64C_TUNDRA__VERSION" / Copyright (c) 2024 Vit Labuda"
 
 #define T64C_TUNDRA__DEFAULT_CONFIG_FILE_PATH "/etc/tundra-nat64/tundra-nat64.conf"
 #define T64C_TUNDRA__DEFAULT_TUN_DEVICE_PATH "/dev/net/tun"

@@ -121,3 +121,6 @@
 
 [5.0.1 @ 2022-12-25]
 - Inbound packets with the 'more fragments' bit set are now validated to have a payload whose size is a multiple of 8
+
+[5.5.0 @ TBA]
+- Updated copyright year

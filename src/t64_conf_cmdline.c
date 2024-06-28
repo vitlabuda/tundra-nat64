@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2022 Vít Labuda. All rights reserved.
+Copyright (c) 2024 Vít Labuda. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
 following conditions are met:
@@ -66,7 +66,7 @@ Modes of operation:\n\
 "
 
 #define _T64C_CONF_CMDLINE__LICENSE_STRING "\
-Copyright (c) 2022 Vít Labuda. All rights reserved.\n\
+Copyright (c) 2024 Vit Labuda. All rights reserved.\n\
 \n\
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the\n\
 following conditions are met:\n\
