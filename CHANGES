@@ -125,3 +125,5 @@
 [5.5.0 @ TBA]
 - Updated copyright year
 - Removed the 'print-config' mode of operation, as it was practically useless and hard to maintain
+- Improved naming throughout the whole program (files, functions, macros, ...) - most importantly, the 't64...' prefix has been stripped from all names, and a lot of names were shortened
+- Other minor changes and improvements
