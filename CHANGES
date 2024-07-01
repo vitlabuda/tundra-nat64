@@ -6,12 +6,15 @@
 
 [1.0.2 @ 2022-04-20]
 - The translator now drops IGMP packets and allows ESP packets to pass through (as per RFC 7915)
-- When translating IP packets "in error" embedded in ICMPv4/v6 messages, illegal IP addresses inside them are now allowed (for debugging purposes)
+- When translating IP packets "in error" embedded in ICMPv4/v6 messages, illegal IP addresses inside them are now
+  allowed (for debugging purposes)
 
 [1.0.3 @ 2022-04-22]
 - Improved the translation algorithms of ICMP "Packet Too Big" messages
-- Added an algorithm to estimate a likely MTU ("plateau MTU"; as per RFC 1191) when translating ICMP "Packet Too Big" messages
-- Added code comments which describe the state the translator's packet buffers need to be in when a function accessing them is called
+- Added an algorithm to estimate a likely MTU ("plateau MTU"; as per RFC 1191) when translating ICMP "Packet Too Big"
+  messages
+- Added code comments which describe the state the translator's packet buffers need to be in when a function accessing
+  them is called
 - Other minor improvements
 
 [1.0.4 @ 2022-04-23]
@@ -22,7 +25,8 @@
 
 [1.0.6 @ 2022-04-25]
 - Slightly optimized the RFC 1071 checksum calculation algorithm
-- TUN interfaces are no longer initialized as multi-queue if Tundra is configured to have only one translator thread, which significantly reduces memory usage
+- TUN interfaces are no longer initialized as multi-queue if Tundra is configured to have only one translator thread,
+  which significantly reduces memory usage
 
 [1.1.0 @ 2022-04-27]
 - Reworked the checksum calculation subsystem
@@ -32,20 +36,25 @@
 - Reorganized some parts of the program's code
 
 [1.1.2 @ 2022-05-02]
-- TCP/UDP checksums within fragmented TCP/UDP packets are now incrementally recalculated, allowing them to pass through the translator without being "damaged" by it
+- TCP/UDP checksums within fragmented TCP/UDP packets are now incrementally recalculated, allowing them to pass through
+  the translator without being "damaged" by it
 
 [1.1.3 @ 2022-05-09]
 - Added a note to Tundra's '--help' that the program's configuration may be loaded from standard input
-- The program does not check if lines in the configuration file are too long anymore, as the check made it impossible to load config files not ending with a new-line character
+- The program does not check if lines in the configuration file are too long anymore, as the check made it impossible
+  to load config files not ending with a new-line character
+
 
 [2.0.0 @ 2022-05-10]
 - Tundra can now act as a CLAT translator
 - Changed size_t to ssize_t in relevant places
 
 [2.1.0 @ 2022-05-16]
-- Redesigned the routines which handle the translation of IPv4/v6 packets "in error" contained within ICMPv4/v6 error messages
+- Redesigned the routines which handle the translation of IPv4/v6 packets "in error" contained within ICMPv4/v6 error
+  messages
 - Fragmented IPv4/v6 packets "in error" contained within ICMPv4/v6 error messages can now be translated
-- IPv4/v6 packets "in error" contained within ICMPv4/v6 error messages whose payload is an (partial) ICMPv4/v6 Echo Request/Echo Reply message can now be translated
+- IPv4/v6 packets "in error" contained within ICMPv4/v6 error messages whose payload is an (partial) ICMPv4/v6 Echo
+  Request/Echo Reply message can now be translated
 - Other minor improvements
 
 [2.1.1 @ 2022-05-16]
@@ -56,6 +65,7 @@
 
 [2.1.3 @ 2022-06-01]
 - IPv4 fragmentation handling improvements
+
 
 [3.0.0 @ 2022-07-19]
 - Completely redesigned the program's IP address translation routines
@@ -69,15 +79,19 @@
 
 [3.1.0 @ 2022-07-21]
 - Added the ability to auto-discover translation prefixes using the well-known DNS name 'ipv4only.arpa.'
-- In order for the program to automatically decide how many translator threads to use, the 'program.translator_threads' configuration option should be left empty (previously, '0' was used for this purpose)
+- In order for the program to automatically decide how many translator threads to use, the 'program.translator_threads'
+  configuration option should be left empty (previously, '0' was used for this purpose)
+
 
 [4.0.0 @ 2022-07-26]
-- Added the 'external' addressing mode, in which Tundra queries an external program for the translation of IP addresses in packets
+- Added the 'external' addressing mode, in which Tundra queries an external program for the translation of IP addresses
+  in packets
 - Redesigned the "router subsystem"
 - Other minor improvements
 
 [4.1.0 @ 2022-07-27]
-- Added the 'router.generated_packet_ttl' configuration option (in former versions, TTL/hop limit of generated packets used to be configurable only at compile-time)
+- Added the 'router.generated_packet_ttl' configuration option (in former versions, TTL/hop limit of generated packets
+  used to be configurable only at compile-time)
 
 [4.1.1 @ 2022-07-27]
 - Split 't64_utils_ip.*' to 't64_utils_ip.*' and 't64_utils_icmp.*'
@@ -98,7 +112,8 @@
 - The translator can now use non-blocking file descriptors to receive and send packets
 
 [4.2.0 @ 2022-12-03]
-- Added the 'io.tun.multi_queue' configuration option, making it possible to configure whether each translator thread will be given its own TUN file descriptor or not
+- Added the 'io.tun.multi_queue' configuration option, making it possible to configure whether each translator thread
+  will be given its own TUN file descriptor or not
 
 [4.3.0 @ 2022-12-04]
 - Completely reworked signal handling, translator thread termination and packet I/O (receiving & sending)
@@ -107,16 +122,20 @@
 - Other minor improvements
 
 [4.4.0 @ 2022-12-05]
-- Removed the program's ability to perform chroot(), as it caused problems on certain distributions / in certain configurations, while not providing much extra security
+- Removed the program's ability to perform chroot(), as it caused problems on certain distributions / in certain
+  configurations, while not providing much extra security
 
 [4.4.1 @ 2022-12-06]
-- Replaced gettid() with syscall(SYS_gettid), as the wrapper function is not available on some platforms, namely on older versions of OpenWRT
+- Replaced gettid() with syscall(SYS_gettid), as the wrapper function is not available on some platforms, namely on
+  older versions of OpenWRT
 
 [4.4.2 @ 2022-12-17]
 - Code cleanup
 
+
 [5.0.0 @ 2022-12-25]
-- The entire translation engine has been rewritten from the ground up - it is now faster (zero-copy), more memory-efficient and more secure, and its code is overall more readable and understandable
+- The entire translation engine has been rewritten from the ground up - it is now faster (zero-copy), more
+  memory-efficient and more secure, and its code is overall more readable and understandable
 - Other minor improvements
 
 [5.0.1 @ 2022-12-25]
@@ -125,5 +144,6 @@
 [5.5.0 @ TBA]
 - Updated copyright year
 - Removed the 'print-config' mode of operation, as it was practically useless and hard to maintain
-- Improved naming throughout the whole program (files, functions, macros, ...) - most importantly, the 't64...' prefix has been stripped from all names, and a lot of names were shortened
+- Improved naming throughout the whole program (files, functions, macros, ...) - most importantly, the 't64...' prefix
+  has been stripped from all names, and a lot of names were shortened
 - Other minor changes and improvements
