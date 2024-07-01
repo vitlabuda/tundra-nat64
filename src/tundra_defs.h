@@ -22,11 +22,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 
-#define TUNDRA__VERSION "5.0.1"
-#define TUNDRA__PROGRAM_INFO_STRING "Tundra-NAT64 / v"TUNDRA__VERSION" / Copyright (c) 2024 Vit Labuda"
 
+// *** The build system is responsible for specifying the version of the program. The macro should be defined at
+//     compile-time by instructing the build system to pass a '-DTUNDRA__VERSION_STRING="..."' argument to the compiler.
+#ifndef TUNDRA__VERSION_STRING
+#error "The macro 'TUNDRA__VERSION_STRING' is not defined - it should have been defined by the build system!"
+#endif
+
+
+
+// *** In some cases, it might be desirable to set the values of the following macros at compile-time. Therefore, the
+//     macros are defined (with a sensible default value) only if they have not been defined before (by the build
+//     system/compiler).
+#ifndef TUNDRA__DEFAULT_CONFIG_FILE_PATH
 #define TUNDRA__DEFAULT_CONFIG_FILE_PATH "/etc/tundra-nat64/tundra-nat64.conf"
+#endif
+
+#ifndef TUNDRA__DEFAULT_TUN_DEVICE_PATH
 #define TUNDRA__DEFAULT_TUN_DEVICE_PATH "/dev/net/tun"
+#endif
+
+
+
+// *** If you are just compiling the program, you probably should not change the following macros. If you are a
+//     developer and looking into changing them, make sure you absolutely know what you are doing - you could very
+//     easily end up with a weirdly-behaving or straight up broken program!
+#define TUNDRA__PROGRAM_INFO_STRING "Tundra-NAT64 / v"TUNDRA__VERSION_STRING" / Copyright (c) 2024 Vit Labuda"
 
 #define TUNDRA__WORK_DIR "/" // The program does not access the filesystem after changing the working directory!
 #define TUNDRA__MAX_XLAT_THREADS ((size_t) 256) // Multi-queue TUN interfaces can have up to 256 queues (= file descriptors)

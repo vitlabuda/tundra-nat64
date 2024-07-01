@@ -22,6 +22,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------------------------------------------------
+
 typedef enum tundra__operation_mode {
     TUNDRA__OPERATION_MODE_TRANSLATE,
     TUNDRA__OPERATION_MODE_MKTUN,
@@ -91,8 +96,10 @@ typedef struct tundra__conf_file {
 } tundra__conf_file;
 
 
-// ---------------------------------------------------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------------------------------------------------
+// External address translation
+// ---------------------------------------------------------------------------------------------------------------------
 
 typedef struct tundra__external_addr_xlat_cache_entry {
     uint8_t src_ipv6[16];
@@ -123,15 +130,10 @@ typedef struct __attribute__((__packed__)) tundra__external_addr_xlat_message {
 } tundra__external_addr_xlat_message;  // SIZE: 40 bytes
 
 
+
 // ---------------------------------------------------------------------------------------------------------------------
-
-
-typedef struct __attribute__((__packed__)) tundra__ipv6_frag_header {
-    uint8_t next_header;
-    uint8_t reserved;
-    uint16_t offset_and_flags;
-    uint16_t identification[2];
-} tundra__ipv6_frag_header;  // SIZE: 8 bytes
+// Thread context
+// ---------------------------------------------------------------------------------------------------------------------
 
 typedef struct tundra__thread_ctx {
     uint8_t *in_packet_buffer; // Not modified during the translation process.
@@ -146,3 +148,19 @@ typedef struct tundra__thread_ctx {
     uint16_t frag_id_ipv4;
     bool joined;
 } tundra__thread_ctx;
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Miscellaneous
+// ---------------------------------------------------------------------------------------------------------------------
+
+// While structs for other network data structures that are processed during translation (struct iphdr, struct ipv6hdr,
+// struct udphdr, struct tcphdr, ...) are available in Linux's standard C library's header files, a struct for the IPv6
+// fragmentation header is missing (at least as of now), so Tundra has to define it itself.
+typedef struct __attribute__((__packed__)) tundra__ipv6_frag_header {
+    uint8_t next_header;
+    uint8_t reserved;
+    uint16_t offset_and_flags;
+    uint16_t identification[2];
+} tundra__ipv6_frag_header;  // SIZE: 8 bytes

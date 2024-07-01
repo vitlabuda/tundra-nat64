@@ -146,4 +146,6 @@
 - Removed the 'print-config' mode of operation, as it was practically useless and hard to maintain
 - Improved naming throughout the whole program (files, functions, macros, ...) - most importantly, the 't64...' prefix
   has been stripped from all names, and a lot of names were shortened
+- Improved versioning - previously, Tundra's version has been specified (using a macro) directly in the 'tundra_defs.h'
+  header file, while now, the macro is defined by the build system, which gets the version from the 'VERSION' file
 - Other minor changes and improvements
