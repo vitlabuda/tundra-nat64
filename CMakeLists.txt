@@ -3,6 +3,7 @@ project(tundra-nat64 LANGUAGES C)
 
 set(EXECUTABLE "tundra-nat64")
 file(GLOB SOURCES "src/*.c")
+set(CONFIG_FILE "tundra-nat64.example.conf")
 
 set(HARDENING_WARN_FLAGS "-Walloca -Wvla -Wshadow -Wimplicit-fallthrough=3 -Wduplicated-cond -Wduplicated-branches \
                           -Wundef -Wstrict-prototypes -Wswitch-default -Wswitch-enum -Wlogical-op -Wtrampolines \
@@ -19,3 +20,7 @@ string(REGEX REPLACE "[ \t\r\n]" "" VERSION "${VERSION}")
 add_compile_definitions("TUNDRA__VERSION_STRING=\"${VERSION}\"")
 
 add_executable(${EXECUTABLE} ${SOURCES})
+
+include(GNUInstallDirs)
+install(TARGETS "${EXECUTABLE}" DESTINATION "${CMAKE_INSTALL_SBINDIR}")
+install(FILES "${CONFIG_FILE}" DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/tundra-nat64")

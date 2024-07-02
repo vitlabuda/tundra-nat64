@@ -98,6 +98,9 @@ make -Cbuild
 ```
 The resulting binary will be located at `./build/tundra-nat64`.
 
+If desired, ```make -Cbuild install``` or ```cmake --install build``` may then be used to install the compiled binary 
+and the example configuration file to your system.
+
 
 
 

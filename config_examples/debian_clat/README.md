@@ -32,8 +32,9 @@ file paths before deploying this configuration!**
    make -Cbuild
    ```
 
-4. Copy the compiled Tundra binary to a path from which it will be executed. You might also want to change the 
-   executable's ownership to `root`. This configuration uses the following path: `/usr/local/sbin/tundra-nat64`.
+4. Copy the compiled Tundra binary to a path from which it will be executed (either manually, or by using the build 
+   system: `make -Cbuild install` / `cmake --install build`). You might also want to change the executable's 
+   ownership to `root`. This configuration uses the following path: `/usr/local/sbin/tundra-nat64`.
 
 5. Copy the Tundra configuration file, [tundra-clat.conf](tundra-clat.conf), to a path from which it will be loaded
    by Tundra. This configuration uses the following path: `/usr/local/etc/tundra-clat/tundra-clat.conf`.
