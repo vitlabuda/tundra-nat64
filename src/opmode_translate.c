@@ -224,11 +224,11 @@ static void _print_info_about_xlat_start(const tundra__conf_file *const file_con
 
     switch(file_config->io_mode) {
         case TUNDRA__IO_MODE_INHERITED_FDS:
-            log__info("%zu threads are now performing %s translation of packets on command-line-provided file descriptors...", file_config->program_translator_threads, addressing_mode_string);
+            log__info("%zu threads are now performing %s translation on command-line-provided file descriptors...", file_config->program_translator_threads, addressing_mode_string);
             break;
 
         case TUNDRA__IO_MODE_TUN:
-            log__info("%zu threads are now performing %s translation of packets on TUN interface '%s'...", file_config->program_translator_threads, addressing_mode_string, file_config->io_tun_interface_name);
+            log__info("%zu threads are now performing %s translation on TUN interface '%s'...", file_config->program_translator_threads, addressing_mode_string, file_config->io_tun_interface_name);
             break;
 
         default:

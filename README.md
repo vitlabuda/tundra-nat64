@@ -126,7 +126,7 @@ Options:
   -c, --config-file=CONFIG_FILE_PATH
     Specifies the file from which the program's configuration will be loaded.
     DEFAULT: /etc/tundra-nat64/tundra-nat64.conf
-    NOTE: To load the configuration from standard input, specify '-' as the config file path.
+    NOTE: To load configuration from the standard input, specify '-' as the path.
   -f, --io-inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...
     Specifies the file descriptors to be used in the 'inherited-fds' I/O mode. Ignored otherwise.
   -F, --addressing-external-inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...
@@ -134,7 +134,7 @@ Options:
 
 Modes of operation:
   translate
-    The program will act as a stateless NAT64/CLAT translator.
+    The program will act as a stateless NAT64/CLAT/SIIT translator.
     This is the default mode of operation.
   mktun
     Creates a persistent TUN device according to the configuration file, then exits.

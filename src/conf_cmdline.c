@@ -41,7 +41,7 @@ Options:\n\
   -c, --config-file=CONFIG_FILE_PATH\n\
     Specifies the file from which the program's configuration will be loaded.\n\
     DEFAULT: "TUNDRA__DEFAULT_CONFIG_FILE_PATH"\n\
-    NOTE: To load the configuration from standard input, specify '-' as the config file path.\n\
+    NOTE: To load configuration from the standard input, specify '-' as the path.\n\
   -f, --io-inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...\n\
     Specifies the file descriptors to be used in the 'inherited-fds' I/O mode. Ignored otherwise.\n\
   -F, --addressing-external-inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]...\n\
@@ -49,7 +49,7 @@ Options:\n\
 \n\
 Modes of operation:\n\
   translate\n\
-    The program will act as a stateless NAT64/CLAT translator.\n\
+    The program will act as a stateless NAT64/CLAT/SIIT translator.\n\
     This is the default mode of operation.\n\
   mktun\n\
     Creates a persistent TUN device according to the configuration file, then exits.\n\

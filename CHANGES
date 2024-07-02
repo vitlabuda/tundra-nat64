@@ -141,12 +141,14 @@
 [5.0.1 @ 2022-12-25]
 - Inbound packets with the 'more fragments' bit set are now validated to have a payload whose size is a multiple of 8
 
-[5.5.0 @ TBA]
-- Updated copyright year
+
+[6.0.0 @ 2024-07-02]
+- Updated the copyright year
 - Removed the 'print-config' mode of operation, as it was practically useless and hard to maintain
 - Improved naming throughout the whole program (files, functions, macros, ...) - most importantly, the 't64...' prefix
   has been stripped from all names, and a lot of names were shortened
 - Improved versioning - previously, Tundra's version has been specified (using a macro) directly in the 'tundra_defs.h'
   header file, while now, the macro is defined by the build system, which gets the version from the 'VERSION' file
 - Introduced a basic set of hardening compiler flags
+- "Official" support for the Clang compiler has been discontinued
 - Other minor changes and improvements
