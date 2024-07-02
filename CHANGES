@@ -148,4 +148,5 @@
   has been stripped from all names, and a lot of names were shortened
 - Improved versioning - previously, Tundra's version has been specified (using a macro) directly in the 'tundra_defs.h'
   header file, while now, the macro is defined by the build system, which gets the version from the 'VERSION' file
+- Introduced a basic set of hardening compiler flags
 - Other minor changes and improvements

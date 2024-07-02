@@ -28,7 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // Creates the interface if it doesn't exist.
 int init_io__open_tun(const tundra__conf_file *const file_config) {
-    int tun_flags = IFF_TUN | IFF_NO_PI;
+    short tun_flags = IFF_TUN | IFF_NO_PI;
     if(file_config->io_tun_multi_queue)
         tun_flags |= IFF_MULTI_QUEUE;
 

@@ -36,7 +36,7 @@ static const char *_get_entry_value_by_key(conf_file_load__conf_entry **entries,
 
 
 conf_file_load__conf_entry **conf_file_load__read_config_file(const char *const filepath) {
-    conf_file_load__conf_entry **entries;
+    conf_file_load__conf_entry **entries = NULL;
 
     if(UTILS__STR_EQ(filepath, "-")) {
         entries = _read_open_config_file(stdin);

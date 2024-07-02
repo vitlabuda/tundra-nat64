@@ -46,6 +46,7 @@ void xlat_io__recv_packet_into_in_packet_buffer(tundra__thread_ctx *const ctx) {
 void xlat_io__send_ipv4_packet(const tundra__thread_ctx *const ctx, struct iphdr *ipv4_header, const uint8_t *nullable_payload1_ptr, const size_t zeroable_payload1_size, const uint8_t *nullable_payload2_ptr, const size_t zeroable_payload2_size) {
     struct iovec iov[3];
     UTILS__MEM_ZERO_OUT(iov, 3 * sizeof(struct iovec));
+
     int iovcnt = 0;
     size_t total_packet_size = 0;
 
@@ -81,6 +82,7 @@ void xlat_io__send_ipv4_packet(const tundra__thread_ctx *const ctx, struct iphdr
 void xlat_io__send_ipv6_packet(const tundra__thread_ctx *const ctx, struct ipv6hdr *ipv6_header, const tundra__ipv6_frag_header *nullable_ipv6_fragment_header, const uint8_t *nullable_payload1_ptr, const size_t zeroable_payload1_size, const uint8_t *nullable_payload2_ptr, const size_t zeroable_payload2_size) {
     struct iovec iov[4];
     UTILS__MEM_ZERO_OUT(iov, 4 * sizeof(struct iovec));
+
     int iovcnt = 0;
     size_t total_packet_size = 0;
 

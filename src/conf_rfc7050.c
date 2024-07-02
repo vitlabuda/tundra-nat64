@@ -57,7 +57,8 @@ void conf_rfc7050__autodiscover_ipv6_prefix(uint8_t *destination) {
             if(current_result->ai_family != AF_INET6 || current_result->ai_addrlen != sizeof(struct sockaddr_in6) || current_result->ai_addr->sa_family != AF_INET6)
                 continue;
 
-            const uint8_t *ipv6_address = (const uint8_t *) (((struct sockaddr_in6 *) current_result->ai_addr)->sin6_addr.s6_addr);
+            const struct sockaddr_in6 *addr_struct = (const struct sockaddr_in6 *) (current_result->ai_addr);
+            const uint8_t *ipv6_address = (const uint8_t *) (addr_struct->sin6_addr.s6_addr);
             if(UTILS_IP__IPV4_ADDR_EQ(ipv6_address + 12, _TARGET_IPV4_1) || UTILS_IP__IPV4_ADDR_EQ(ipv6_address + 12, _TARGET_IPV4_2)) {
                 memcpy(destination, ipv6_address, 12);
                 UTILS__MEM_ZERO_OUT(destination + 12, 4);

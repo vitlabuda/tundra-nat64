@@ -4,9 +4,14 @@ project(tundra-nat64 LANGUAGES C)
 set(EXECUTABLE "tundra-nat64")
 file(GLOB SOURCES "src/*.c")
 
-set(EXTRA_WARNINGS "")
-set(EXTRA_OPTIMIZATIONS "-flto")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -pedantic -Wall -Wextra -Werror ${EXTRA_WARNINGS} -s -O3 ${EXTRA_OPTIMIZATIONS} -pthread")
+set(HARDENING_WARN_FLAGS "-Walloca -Wvla -Wshadow -Wimplicit-fallthrough=3 -Wduplicated-cond -Wduplicated-branches \
+                          -Wundef -Wstrict-prototypes -Wswitch-default -Wswitch-enum -Wlogical-op -Wtrampolines \
+                          -Wstack-protector -Wstack-usage=524288 -Wformat=2 -Wformat-overflow=2 -Wformat-truncation=2 \
+                          -Wformat-signedness -Wformat-security -Wformat-nonliteral")
+set(WARN_FLAGS "-Wall -Wextra -Wpedantic -Werror ${HARDENING_WARN_FLAGS}")
+set(OPT_FLAGS "-O3 -flto")
+set(MISC_FLAGS "-std=c11 -pthread -s")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MISC_FLAGS} ${WARN_FLAGS} ${OPT_FLAGS}")
 
 set(VERSION_FILE "${CMAKE_SOURCE_DIR}/VERSION")
 file(READ "${VERSION_FILE}" VERSION)

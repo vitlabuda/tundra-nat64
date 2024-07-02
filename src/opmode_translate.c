@@ -213,7 +213,7 @@ static void _start_threads(const tundra__conf_file *const file_config, tundra__t
 }
 
 static void _print_info_about_xlat_start(const tundra__conf_file *const file_config) {
-    const char *addressing_mode_string;
+    const char *addressing_mode_string = NULL;
     switch(file_config->addressing_mode) {
         case TUNDRA__ADDRESSING_MODE_NAT64: addressing_mode_string = "NAT64"; break;
         case TUNDRA__ADDRESSING_MODE_CLAT: addressing_mode_string = "CLAT"; break;

@@ -81,7 +81,6 @@ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PRO
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,\n\
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\n\
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n\
-\n\
 "
 
 
@@ -187,14 +186,14 @@ static noreturn void _print_help_and_exit(const char *const argv_0) {
 }
 
 static noreturn void _print_version_and_exit(void) {
-    printf("%s\n", TUNDRA__PROGRAM_INFO_STRING);
+    puts(TUNDRA__PROGRAM_INFO_STRING);
     fflush(stdout);
 
     exit(TUNDRA__EXIT_SUCCESS);
 }
 
 static noreturn void _print_license_and_exit(void) {
-    printf("%s", _LICENSE_STRING);
+    puts(_LICENSE_STRING);
     fflush(stdout);
 
     exit(TUNDRA__EXIT_SUCCESS);

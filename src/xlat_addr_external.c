@@ -319,6 +319,7 @@ static bool _ensure_fds_are_open(tundra__thread_ctx *const ctx) {
             }
             break;
 
+        case TUNDRA__ADDRESSING_EXTERNAL_TRANSPORT_NONE:
         default:
             log__thread_crash_invalid_internal_state(ctx->thread_id, "Invalid addressing external transport");
     }
