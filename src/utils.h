@@ -33,13 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UTILS__STR_EMPTY(str) (*(str) == '\0')
 
 #define UTILS__MEM_EQ(ptr1, ptr2, n) (memcmp((ptr1), (ptr2), (n)) == 0)
-#define UTILS__MEM_ZERO_OUT(memory, n) (memset((memory), 0, (n)))
+#define UTILS__MEM_ZERO_OUT(memory, n) ((void) memset((memory), 0, (n)))
 
 #define UTILS__MINIMUM_UNSAFE(num1, num2) (((num1) > (num2)) ? (num2) : (num1))
 #define UTILS__MAXIMUM_UNSAFE(num1, num2) (((num1) > (num2)) ? (num1) : (num2))
 
 
 extern void *utils__alloc_zeroed_out_memory(const size_t n, const size_t item_size);
+extern void *utils__alloc_aligned_zeroed_out_memory(const size_t n, const size_t item_size, const size_t alignment);
 extern void *utils__realloc_memory(void *old_memory, const size_t n, const size_t item_size);
 extern char *utils__duplicate_string(const char *const string);
 extern void utils__free_memory(void *memory);

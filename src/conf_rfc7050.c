@@ -57,7 +57,16 @@ void conf_rfc7050__autodiscover_ipv6_prefix(uint8_t *destination) {
             if(current_result->ai_family != AF_INET6 || current_result->ai_addrlen != sizeof(struct sockaddr_in6) || current_result->ai_addr->sa_family != AF_INET6)
                 continue;
 
+            // FALSE-POSITIVE: At this point, it has already been validated that the address family of the result is
+            //  'AF_INET6' (among other things), and therefore, 'ai_addr' must be a 'struct sockaddr_in6', even if the
+            //  "universal" 'struct addrinfo' has it typed as the generic 'struct sockaddr'. The compiler warning is
+            //  ignored here, as the standard library knows that it allocates a 'struct sockaddr_in6' and is
+            //  responsible for ensuring the correct memory alignment thereof.
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wcast-align"
             const struct sockaddr_in6 *addr_struct = (const struct sockaddr_in6 *) (current_result->ai_addr);
+            #pragma GCC diagnostic pop
+
             const uint8_t *ipv6_address = (const uint8_t *) (addr_struct->sin6_addr.s6_addr);
             if(UTILS_IP__IPV4_ADDR_EQ(ipv6_address + 12, _TARGET_IPV4_1) || UTILS_IP__IPV4_ADDR_EQ(ipv6_address + 12, _TARGET_IPV4_2)) {
                 memcpy(destination, ipv6_address, 12);

@@ -54,8 +54,8 @@ static bool _try_doing_6to4_addr_translation_using_cache(const tundra__external_
 static void _save_4to6_addr_mapping_to_cache(tundra__external_addr_xlat_cache_entry *cache, const size_t cache_size, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, const uint8_t *out_src_ipv6, const uint8_t *out_dst_ipv6, const time_t cache_lifetime);
 static void _save_6to4_addr_mapping_to_cache(tundra__external_addr_xlat_cache_entry *cache, const size_t cache_size, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, const uint8_t *out_src_ipv4, const uint8_t *out_dst_ipv4, const time_t cache_lifetime);
 static void _save_addr_mapping_to_target_cache_entry(tundra__external_addr_xlat_cache_entry *target_entry, const uint8_t *src_ipv4, const uint8_t *dst_ipv4, const uint8_t *src_ipv6, const uint8_t *dst_ipv6, const time_t cache_lifetime);
-static inline size_t _get_hash_from_in_ipv4_addr_pair(const uint32_t *in_src_ipv4, const uint32_t *in_dst_ipv4, const size_t cache_size);
-static inline size_t _get_hash_from_in_ipv6_addr_pair(const uint64_t *in_src_ipv6, const uint64_t *in_dst_ipv6, const size_t cache_size);
+static inline size_t _get_hash_from_in_ipv4_addr_pair(const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, const size_t cache_size);
+static inline size_t _get_hash_from_in_ipv6_addr_pair(const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, const size_t cache_size);
 static inline time_t _get_current_timestamp(void);
 
 
@@ -396,8 +396,9 @@ static bool _try_doing_4to6_addr_translation_using_cache(const tundra__external_
     if(cache_size <= 0)
         return false;
 
-    // The cache is a simple hash map
-    const tundra__external_addr_xlat_cache_entry *target_entry = (cache + _get_hash_from_in_ipv4_addr_pair((const uint32_t *) in_src_ipv4, (const uint32_t *) in_dst_ipv4, cache_size));
+    // The cache is a simple hash table...
+    const size_t cache_hash = _get_hash_from_in_ipv4_addr_pair(in_src_ipv4, in_dst_ipv4, cache_size);
+    const tundra__external_addr_xlat_cache_entry *target_entry = cache + cache_hash;
 
     if(
         !UTILS_IP__IPV4_ADDR_EQ(in_src_ipv4, target_entry->src_ipv4) ||
@@ -419,8 +420,9 @@ static bool _try_doing_6to4_addr_translation_using_cache(const tundra__external_
     if(cache_size <= 0)
         return false;
 
-    // The cache is a simple hash map
-    const tundra__external_addr_xlat_cache_entry *target_entry = (cache + _get_hash_from_in_ipv6_addr_pair((const uint64_t *) in_src_ipv6, (const uint64_t *) in_dst_ipv6, cache_size));
+    // The cache is a simple hash table...
+    const size_t cache_hash = _get_hash_from_in_ipv6_addr_pair(in_src_ipv6, in_dst_ipv6, cache_size);
+    const tundra__external_addr_xlat_cache_entry *target_entry = cache + cache_hash;
 
     if(
         !UTILS_IP__IPV6_ADDR_EQ(in_src_ipv6, target_entry->src_ipv6) ||
@@ -442,8 +444,9 @@ static void _save_4to6_addr_mapping_to_cache(tundra__external_addr_xlat_cache_en
     if(cache_size <= 0)
         return;
 
-    // The cache is a simple hash map
-    tundra__external_addr_xlat_cache_entry *target_entry = (cache + _get_hash_from_in_ipv4_addr_pair((const uint32_t *) in_src_ipv4, (const uint32_t *) in_dst_ipv4, cache_size));
+    // The cache is a simple hash table...
+    const size_t cache_hash = _get_hash_from_in_ipv4_addr_pair(in_src_ipv4, in_dst_ipv4, cache_size);
+    tundra__external_addr_xlat_cache_entry *target_entry = cache + cache_hash;
 
     _save_addr_mapping_to_target_cache_entry(target_entry, in_src_ipv4, in_dst_ipv4, out_src_ipv6, out_dst_ipv6, cache_lifetime);
 }
@@ -452,8 +455,9 @@ static void _save_6to4_addr_mapping_to_cache(tundra__external_addr_xlat_cache_en
     if(cache_size <= 0)
         return;
 
-    // The cache is a simple hash map
-    tundra__external_addr_xlat_cache_entry *target_entry = (cache + _get_hash_from_in_ipv6_addr_pair((const uint64_t *) in_src_ipv6, (const uint64_t *) in_dst_ipv6, cache_size));
+    // The cache is a simple hash table...
+    const size_t cache_hash = _get_hash_from_in_ipv6_addr_pair(in_src_ipv6, in_dst_ipv6, cache_size);
+    tundra__external_addr_xlat_cache_entry *target_entry = cache + cache_hash;
 
     _save_addr_mapping_to_target_cache_entry(target_entry, out_src_ipv4, out_dst_ipv4, in_src_ipv6, in_dst_ipv6, cache_lifetime);
 }
@@ -474,12 +478,32 @@ static void _save_addr_mapping_to_target_cache_entry(tundra__external_addr_xlat_
     memcpy(target_entry->dst_ipv6, dst_ipv6, 16);
 }
 
-static inline size_t _get_hash_from_in_ipv4_addr_pair(const uint32_t *in_src_ipv4, const uint32_t *in_dst_ipv4, const size_t cache_size) {
-    return (((size_t) ((*in_src_ipv4) + (*in_dst_ipv4))) % cache_size);
+// WARNING: 'cache_size' must not be zero!
+static inline size_t _get_hash_from_in_ipv4_addr_pair(const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, const size_t cache_size) {
+    // Memory alignment
+    uint32_t in_src_ipv4_32bit, in_dst_ipv4_32bit;
+    memcpy(&in_src_ipv4_32bit, in_src_ipv4, 4);
+    memcpy(&in_dst_ipv4_32bit, in_dst_ipv4, 4);
+
+    // 3 and 5 have been chosen because they are small prime numbers...
+    const size_t hash = (size_t) (in_src_ipv4_32bit * 3 + in_dst_ipv4_32bit * 5);
+    return hash % cache_size;
 }
 
-static inline size_t _get_hash_from_in_ipv6_addr_pair(const uint64_t *in_src_ipv6, const uint64_t *in_dst_ipv6, const size_t cache_size) {
-    return (((size_t) (in_src_ipv6[0] + in_src_ipv6[1] + in_dst_ipv6[0] + in_dst_ipv6[1])) % cache_size);
+// WARNING: 'cache_size' must not be zero!
+static inline size_t _get_hash_from_in_ipv6_addr_pair(const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, const size_t cache_size) {
+    // Memory alignment
+    uint32_t in_ipv6_addrs_32bit[8];
+    memcpy(in_ipv6_addrs_32bit, in_src_ipv6, 16);
+    memcpy(in_ipv6_addrs_32bit + 4, in_dst_ipv6, 16);
+
+    static const uint32_t small_primes[8] = {2, 3, 5, 7, 7, 5, 3, 2};
+
+    size_t hash = 0;
+    for(size_t i = 0; i < 8; i++) {
+        hash += (size_t) (in_ipv6_addrs_32bit[i] * small_primes[i]);
+    }
+    return hash % cache_size;
 }
 
 static inline time_t _get_current_timestamp(void) {

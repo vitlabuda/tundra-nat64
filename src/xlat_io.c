@@ -55,6 +55,13 @@ void xlat_io__send_ipv4_packet(const tundra__thread_ctx *const ctx, struct iphdr
     iov[iovcnt++].iov_len = 20;
     total_packet_size += 20;
 
+    // FALSE-POSITIVE: Since the program is only sending the data in the buffers pointed to by 'iov_base' (using the
+    //  writev() system call), their contents will never be modified, so the appropriate type for them could normally
+    //  be 'const void *'. However, due to the fact that 'struct iovec' is "universal" (it can also be used with the
+    //  readv() system call, for example), it requires the type to be 'void *', and therefore, we have no other option
+    //  than to discard the 'const' qualifier here, and tell the compiler to ignore the warning caused by this.
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-qual"
     if(nullable_payload1_ptr != NULL && zeroable_payload1_size > 0) {
         iov[iovcnt].iov_base = (void *) nullable_payload1_ptr;
         iov[iovcnt++].iov_len = zeroable_payload1_size;
@@ -66,6 +73,7 @@ void xlat_io__send_ipv4_packet(const tundra__thread_ctx *const ctx, struct iphdr
         iov[iovcnt++].iov_len = zeroable_payload2_size;
         total_packet_size += zeroable_payload2_size;
     }
+    #pragma GCC diagnostic pop
 
     if(total_packet_size > ctx->config->translator_ipv4_outbound_mtu)
         return;
@@ -91,6 +99,13 @@ void xlat_io__send_ipv6_packet(const tundra__thread_ctx *const ctx, struct ipv6h
     iov[iovcnt++].iov_len = 40;
     total_packet_size += 40;
 
+    // FALSE-POSITIVE: Since the program is only sending the data in the buffers pointed to by 'iov_base' (using the
+    //  writev() system call), their contents will never be modified, so the appropriate type for them could normally
+    //  be 'const void *'. However, due to the fact that 'struct iovec' is "universal" (it can also be used with the
+    //  readv() system call, for example), it requires the type to be 'void *', and therefore, we have no other option
+    //  than to discard the 'const' qualifier here, and tell the compiler to ignore the warning caused by this.
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-qual"
     if(nullable_ipv6_fragment_header != NULL) {
         iov[iovcnt].iov_base = (void *) nullable_ipv6_fragment_header;
         iov[iovcnt++].iov_len = 8;
@@ -108,6 +123,7 @@ void xlat_io__send_ipv6_packet(const tundra__thread_ctx *const ctx, struct ipv6h
         iov[iovcnt++].iov_len = zeroable_payload2_size;
         total_packet_size += zeroable_payload2_size;
     }
+    #pragma GCC diagnostic pop
 
     if(total_packet_size > ctx->config->translator_ipv6_outbound_mtu)
         return;

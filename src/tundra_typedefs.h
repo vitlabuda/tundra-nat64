@@ -136,7 +136,7 @@ typedef struct __attribute__((__packed__)) tundra__external_addr_xlat_message {
 // ---------------------------------------------------------------------------------------------------------------------
 
 typedef struct tundra__thread_ctx {
-    uint8_t *in_packet_buffer; // Not modified during the translation process.
+    uint8_t *in_packet_buffer; // Always 64-byte aligned; not modified during the translation process.
     const tundra__conf_file *config;
     tundra__external_addr_xlat_state *external_addr_xlat_state;
     size_t in_packet_size; // Not modified during the translation process.

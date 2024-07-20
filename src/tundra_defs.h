@@ -49,13 +49,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //     easily end up with a weirdly-behaving or straight up broken program!
 #define TUNDRA__PROGRAM_INFO_STRING "Tundra-NAT64 / v"TUNDRA__VERSION_STRING" / Copyright (c) 2024 Vit Labuda"
 
-#define TUNDRA__WORK_DIR "/" // The program does not access the filesystem after changing the working directory!
-#define TUNDRA__MAX_XLAT_THREADS ((size_t) 256) // Multi-queue TUN interfaces can have up to 256 queues (= file descriptors)
+#define TUNDRA__WORK_DIR "/"  // The program does not access the filesystem after changing the working directory!
+#define TUNDRA__MAX_XLAT_THREADS ((size_t) 256)  // Multi-queue TUN interfaces can have up to 256 queues (= file descriptors)
 #define TUNDRA__MAX_ADDRESSING_EXTERNAL_CACHE_SIZE ((size_t) 10000000)
 #define TUNDRA__XLAT_THREAD_MONITOR_INTERVAL_MICROSECONDS ((useconds_t) 900000)
 #define TUNDRA__XLAT_THREAD_TERM_INTERVAL_MICROSECONDS ((useconds_t) 100000)
 
-#define TUNDRA__MAX_PACKET_SIZE ((size_t) 65535)
+#define TUNDRA__MAX_PACKET_SIZE ((size_t) 65535)  // (TUNDRA__MAX_PACKET_SIZE + 1) must be divisible by 64!
 #define TUNDRA__MIN_MTU_IPV4 ((size_t) 96)
 #define TUNDRA__MIN_MTU_IPV6 ((size_t) 1280)
 #define TUNDRA__MAX_MTU_IPV4 ((size_t) 65515)

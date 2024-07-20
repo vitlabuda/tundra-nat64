@@ -88,7 +88,7 @@ static bool _validate_and_translate_ip_header(tundra__thread_ctx *const ctx, _ou
     if(ctx->in_packet_size < 20)
         return false;
 
-    const struct iphdr *in_ipv4_header = (const struct iphdr *) ctx->in_packet_buffer;
+    const struct iphdr *in_ipv4_header = (const struct iphdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64);
     struct ipv6hdr *out_ipv6_header = &out_packet_data->ipv6_header;
 
     // :: IP version ('in_ipv4_header->version' is guaranteed to be 4)
@@ -101,7 +101,14 @@ static bool _validate_and_translate_ip_header(tundra__thread_ctx *const ctx, _ou
 
     // :: DSCP & ECN -> Traffic class; Flow label (no validation needs to be done)
     if(ctx->config->translator_4to6_copy_dscp_and_ecn) {
+        // FALSE-POSITIVE: The value assigned to 'out_ipv6_header->priority' cannot be such that it would not fit into
+        //  4 bits; however, since C does not support bit-field type casts, e.g. '(uint8_t : 4)', there seems to be
+        //  no other way to let the compiler know that this is OK other than to ignore this warning.
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wconversion"
         out_ipv6_header->priority = (uint8_t) (in_ipv4_header->tos >> 4);
+        #pragma GCC diagnostic pop
+
         out_ipv6_header->flow_lbl[0] = (uint8_t) (in_ipv4_header->tos << 4);
     } else {
         out_ipv6_header->priority = 0;
@@ -122,7 +129,7 @@ static bool _validate_and_translate_ip_header(tundra__thread_ctx *const ctx, _ou
     // :: TTL -> Hop limit (decremented, possible time exceeded ICMP packet sent later)
     if(in_ipv4_header->ttl < 1)
         return false; // The packet should have already been dropped!
-    out_ipv6_header->hop_limit = (in_ipv4_header->ttl - 1);
+    out_ipv6_header->hop_limit = (uint8_t) (in_ipv4_header->ttl - 1);
 
     // :: Header checksum (validated, discarded during translation)
     if(checksum__calculate_ipv4_header_checksum(in_ipv4_header) != 0)
@@ -237,7 +244,7 @@ static void _translate_icmpv4_payload_to_icmpv6_and_send(tundra__thread_ctx *con
     if(checksum__calculate_checksum_ipv4(out_packet_data->payload_ptr, out_packet_data->payload_size, NULL, 0, NULL) != 0)
         return;
 
-    xlat_4to6_icmp__out_icmpv6_message_data out_message_data;
+    xlat_4to6_icmp__out_icmpv6_message_data out_message_data __attribute__((aligned(64)));
     if(!xlat_4to6_icmp__translate_icmpv4_to_icmpv6(
         ctx,
         out_packet_data->payload_ptr,
@@ -256,13 +263,17 @@ static void _translate_icmpv4_payload_to_icmpv6_and_send(tundra__thread_ctx *con
 
 static void _translate_tcp_payload_and_send(tundra__thread_ctx *const ctx, _out_ipv6_packet_data *const out_packet_data) {
     if(out_packet_data->is_fragment_offset_zero && out_packet_data->payload_size >= 20) { // 20 or more bytes
-        uint8_t new_tcp_payload_start_buffer[24];
-        struct tcphdr *new_tcp_header = (struct tcphdr *) new_tcp_payload_start_buffer;
+        uint8_t new_tcp_payload_start_buffer[24] __attribute__((aligned(64)));
+        struct tcphdr *new_tcp_header = (struct tcphdr *) __builtin_assume_aligned(new_tcp_payload_start_buffer, 64);
 
         if(out_packet_data->payload_size >= 24) { // 24 or more bytes
             memcpy(new_tcp_payload_start_buffer, out_packet_data->payload_ptr, 24);
 
-            new_tcp_header->check = checksum__recalculate_checksum_4to6(new_tcp_header->check, (const struct iphdr *) ctx->in_packet_buffer, &out_packet_data->ipv6_header);
+            new_tcp_header->check = checksum__recalculate_checksum_4to6(
+                new_tcp_header->check,
+                (const struct iphdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64),
+                &out_packet_data->ipv6_header
+            );
 
             _appropriately_send_ipv6_packet(
                 ctx, &out_packet_data->ipv6_header, (out_packet_data->is_fragment ? &out_packet_data->ipv6_fragment_header : NULL),
@@ -273,7 +284,11 @@ static void _translate_tcp_payload_and_send(tundra__thread_ctx *const ctx, _out_
         } else { // 20, 21, 22 or 23 bytes
             memcpy(new_tcp_payload_start_buffer, out_packet_data->payload_ptr, out_packet_data->payload_size);
 
-            new_tcp_header->check = checksum__recalculate_checksum_4to6(new_tcp_header->check, (const struct iphdr *) ctx->in_packet_buffer, &out_packet_data->ipv6_header);
+            new_tcp_header->check = checksum__recalculate_checksum_4to6(
+                new_tcp_header->check,
+                (const struct iphdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64),
+                &out_packet_data->ipv6_header
+            );
 
             _appropriately_send_ipv6_packet(
                 ctx, &out_packet_data->ipv6_header, (out_packet_data->is_fragment ? &out_packet_data->ipv6_fragment_header : NULL),
@@ -300,7 +315,11 @@ static void _translate_udp_payload_and_send(tundra__thread_ctx *const ctx, _out_
         if(new_udp_header.check == 0)
             return;
 
-        const uint16_t new_checksum = checksum__recalculate_checksum_4to6(new_udp_header.check, (const struct iphdr *) ctx->in_packet_buffer, &out_packet_data->ipv6_header);
+        const uint16_t new_checksum = checksum__recalculate_checksum_4to6(
+            new_udp_header.check,
+            (const struct iphdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64),
+            &out_packet_data->ipv6_header
+        );
         new_udp_header.check = (new_checksum == 0 ? 0xffff : new_checksum);
 
         _appropriately_send_ipv6_packet(
@@ -338,7 +357,7 @@ static void _appropriately_send_ipv6_packet(
     const size_t payload2_size,
     const bool dont_fragment
 ) {
-    const size_t total_packet_size = 40 + (nullable_ipv6_fragment_header != NULL ? 8 : 0) + zeroable_payload1_size_m8 + payload2_size;
+    const size_t total_packet_size = 40 + (size_t) (nullable_ipv6_fragment_header != NULL ? 8 : 0) + zeroable_payload1_size_m8 + payload2_size;
 
     if(total_packet_size > ctx->config->translator_ipv6_outbound_mtu) {
         if(dont_fragment) {

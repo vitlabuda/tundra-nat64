@@ -68,7 +68,7 @@ static bool _construct_ipv6_header(const tundra__thread_ctx *const ctx, struct i
     if(ctx->in_packet_size < 40)
         return false;
 
-    const struct ipv6hdr *in_ipv6_header = (const struct ipv6hdr *) ctx->in_packet_buffer;
+    const struct ipv6hdr *in_ipv6_header = (const struct ipv6hdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64);
     if(in_ipv6_header->version != 6)
         return false;
 

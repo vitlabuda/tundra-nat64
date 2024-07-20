@@ -64,7 +64,13 @@ static void _term_signal_handler(__attribute__((unused)) int sig, siginfo_t *inf
 
     if(process_pid == this_thread_pid) {  // If this function is being run on the main thread
         _term_signal_caught_in_thread = 1;
-        write(STDERR_FILENO, _MAIN_THREAD_TERM_SIGNAL_MESSAGE, strlen(_MAIN_THREAD_TERM_SIGNAL_MESSAGE));
+
+        // Here, write() is used instead of fprintf(), which cannot be safely called within signal handlers, and since
+        //  ignoring the return value of fprintf(stderr) is common and absolutely OK, we can ignore it here as well.
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wunused-result"
+        (void) write(STDERR_FILENO, _MAIN_THREAD_TERM_SIGNAL_MESSAGE, strlen(_MAIN_THREAD_TERM_SIGNAL_MESSAGE));
+        #pragma GCC diagnostic pop
 
     } else if(info->si_pid == process_pid) {  // If the signal has been sent from within this process
         _term_signal_caught_in_thread = 1;

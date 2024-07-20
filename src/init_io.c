@@ -37,12 +37,20 @@ int init_io__open_tun(const tundra__conf_file *const file_config) {
     tun_interface_request.ifr_flags = tun_flags;
     utils__secure_strncpy(tun_interface_request.ifr_name, file_config->io_tun_interface_name, IFNAMSIZ);
 
+
     const int tun_fd = open(file_config->io_tun_device_path, O_RDWR);
     if(tun_fd < 0)
         log__crash(true, "Failed to open the TUN device file: %s", file_config->io_tun_device_path);
 
+    // Different standard libraries have different function prototypes of ioctl(); more specifically, the signedness
+    //  of the second argument varies between them, which causes compiler warnings on some platforms.
+    //  See https://man7.org/linux/man-pages/man2/ioctl.2.html
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wsign-conversion"
     if(ioctl(tun_fd, TUNSETIFF, &tun_interface_request) < 0)
         log__crash(true, "Failed to request the TUN interface from the kernel!");
+    #pragma GCC diagnostic pop
+
 
     if(!UTILS__STR_EQ(tun_interface_request.ifr_name, file_config->io_tun_interface_name))
         log__crash(false, "The program requested a TUN interface named '%s', but got '%s' instead!", file_config->io_tun_interface_name, tun_interface_request.ifr_name);
@@ -51,16 +59,28 @@ int init_io__open_tun(const tundra__conf_file *const file_config) {
 }
 
 void init_io__set_tun_persistent(const int tun_fd, const bool tun_persistent) {
+    // Different standard libraries have different function prototypes of ioctl(); more specifically, the signedness
+    //  of the second argument varies between them, which causes compiler warnings on some platforms.
+    //  See https://man7.org/linux/man-pages/man2/ioctl.2.html
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wsign-conversion"
     if(ioctl(tun_fd, TUNSETPERSIST, (tun_persistent ? 1 : 0)) < 0)
         log__crash(true, "Failed to %s the TUN interface's persistence status!", (tun_persistent ? "set" : "unset"));
+    #pragma GCC diagnostic pop
 }
 
 void init_io__set_ownership_of_persistent_tun(const tundra__conf_file *const file_config, const int persistent_tun_fd) {
+    // Different standard libraries have different function prototypes of ioctl(); more specifically, the signedness
+    //  of the second argument varies between them, which causes compiler warnings on some platforms.
+    //  See https://man7.org/linux/man-pages/man2/ioctl.2.html
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wsign-conversion"
     if(file_config->io_tun_owner_user_set && ioctl(persistent_tun_fd, TUNSETOWNER, file_config->io_tun_owner_user_uid) < 0)
         log__crash(true, "Failed to set the TUN interface's owner user to UID %"PRIdMAX"!", (intmax_t) file_config->io_tun_owner_user_uid);
 
     if(file_config->io_tun_owner_group_set && ioctl(persistent_tun_fd, TUNSETGROUP, file_config->io_tun_owner_group_gid) < 0)
         log__crash(true, "Failed to set the TUN interface's owner group to GID %"PRIdMAX"!", (intmax_t) file_config->io_tun_owner_group_gid);
+    #pragma GCC diagnostic pop
 }
 
 char *init_io__get_fd_pair_from_inherited_fds_string(int *read_fd, int *write_fd, char *next_fds_string_ptr, const char short_opt, const char *const long_opt) {

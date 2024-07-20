@@ -69,7 +69,7 @@ static bool _construct_ipv4_header(tundra__thread_ctx *const ctx, struct iphdr *
     if(ctx->in_packet_size < 20)
         return false;
 
-    const struct iphdr *in_ipv4_header = (const struct iphdr *) ctx->in_packet_buffer;
+    const struct iphdr *in_ipv4_header = (const struct iphdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64);
     if(in_ipv4_header->version != 4)
         return false;
 

@@ -27,7 +27,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"log.h"
 
 
-#define _LINE_BUFFER_SIZE 8192
+#define _LINE_BUFFER_SIZE 4096
 
 
 static conf_file_load__conf_entry **_read_open_config_file(FILE *const conf_file_stream);

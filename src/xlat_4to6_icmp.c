@@ -56,8 +56,18 @@ bool xlat_4to6_icmp__translate_icmpv4_to_icmpv6(tundra__thread_ctx *const ctx, c
     if(in_packet_payload_size < 8)
         return false;
 
+
+    // IMPROVE: Due to the fact that the IHL field in IPv4 header specifies the header length in 4-byte units, this
+    //  pointer should always be at least 4-byte aligned. However, this fact is by no means obvious from the source
+    //  code, and a subtle change in a seemingly unrelated part of the program could break this assumption - for this
+    //  reason, this line is marked for future improvement (which would, however, likely require copying stuff around,
+    //  perhaps slowing the program down).
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-align"
     const struct icmphdr *in_icmpv4_header = (const struct icmphdr *) in_packet_payload_ptr;
-    struct icmp6hdr *out_icmpv6_header = (struct icmp6hdr *) out_message_data->message_start_64b;
+    #pragma GCC diagnostic pop
+
+    struct icmp6hdr *out_icmpv6_header = (struct icmp6hdr *) __builtin_assume_aligned(out_message_data->message_start_64b, 64);
     out_message_data->message_start_size_m8 = 8;
 
 
@@ -107,7 +117,9 @@ bool xlat_4to6_icmp__translate_icmpv4_to_icmpv6(tundra__thread_ctx *const ctx, c
             if(out_packet_in_error_data.is_fragment || out_packet_in_error_data.payload_size < 8)
                 return false;
 
-            struct icmp6hdr *new_icmpv6_packet_in_error_payload_ptr = (struct icmp6hdr *) (out_message_data->message_start_64b + 48);
+            // Since 'out_message_data->message_start_64b' is always 64-byte aligned, is can be assumed, that if the
+            //  pointer is moved 48 bytes forward, the resulting pointer will always be 16-byte aligned.
+            struct icmp6hdr *new_icmpv6_packet_in_error_payload_ptr = (struct icmp6hdr *) __builtin_assume_aligned(out_message_data->message_start_64b + 48, 16);
             memcpy(new_icmpv6_packet_in_error_payload_ptr, out_packet_in_error_data.payload_ptr, 8);
             out_message_data->message_start_size_m8 += 8;
 
@@ -275,9 +287,14 @@ static bool _validate_and_translate_rest_of_icmp_header(const tundra__thread_ctx
                 return false;
             UTILS__MEM_ZERO_OUT(new_icmpv6_rest_of_header, 2);
 
-            const uint16_t old_mtu = ntohs(*((const uint16_t *) (old_icmpv4_rest_of_header + 2)));
-            const uint16_t new_mtu = _recalculate_packet_too_big_mtu(ctx, old_icmpv4_payload_ptr, old_icmpv4_payload_size, old_mtu);
-            *((uint16_t *) (new_icmpv6_rest_of_header + 2)) = htons(new_mtu);
+            // Memory alignment
+            uint16_t old_mtu;
+            memcpy(&old_mtu, old_icmpv4_rest_of_header + 2, 2);
+            old_mtu = ntohs(old_mtu);
+
+            uint16_t new_mtu = _recalculate_packet_too_big_mtu(ctx, old_icmpv4_payload_ptr, old_icmpv4_payload_size, old_mtu);
+            new_mtu = htons(new_mtu);
+            memcpy(new_icmpv6_rest_of_header + 2, &new_mtu, 2);
 
             return true;
         }
@@ -308,10 +325,10 @@ static uint16_t _recalculate_packet_too_big_mtu(const tundra__thread_ctx *const 
     // Although the minimum IPv4 MTU is 68 bytes, some networks may be broken
 
     // https://datatracker.ietf.org/doc/html/rfc7915#page-11
-    mtu = UTILS__MINIMUM_UNSAFE(65515, mtu); // Integer overflow prevention
-    mtu = UTILS__MINIMUM_UNSAFE(mtu + 20, (uint16_t) ctx->config->translator_ipv6_outbound_mtu);
-    mtu = UTILS__MINIMUM_UNSAFE(mtu, ((uint16_t) ctx->config->translator_ipv4_outbound_mtu) + 20);
-    mtu = UTILS__MAXIMUM_UNSAFE(1280, mtu);
+    mtu = (uint16_t) UTILS__MINIMUM_UNSAFE(65515, mtu); // Integer overflow prevention
+    mtu = (uint16_t) UTILS__MINIMUM_UNSAFE(mtu + 20, (uint16_t) ctx->config->translator_ipv6_outbound_mtu);
+    mtu = (uint16_t) UTILS__MINIMUM_UNSAFE(mtu, ((uint16_t) ctx->config->translator_ipv4_outbound_mtu) + 20);
+    mtu = (uint16_t) UTILS__MAXIMUM_UNSAFE(1280, mtu);
 
     return mtu;
 }
@@ -321,9 +338,17 @@ static uint16_t _estimate_likely_mtu(const uint8_t *old_icmpv4_payload_ptr, cons
     if(old_icmpv4_payload_size < 20)
         return _default_plateau_mtu;
 
-    const struct iphdr *packet_in_error = (const struct iphdr *) old_icmpv4_payload_ptr;
-    const uint16_t packet_in_error_total_length = ntohs(packet_in_error->tot_len);
 
+    // IMPROVE: As of now, this pointer should always be at least 4-byte aligned; however, this fact is by no means
+    //  obvious from the source code and a change in a seemingly unrelated part of code could break this assumption -
+    //  for this reason, this line is marked for future improvement.
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-align"
+    const struct iphdr *packet_in_error = (const struct iphdr *) old_icmpv4_payload_ptr;
+    #pragma GCC diagnostic pop
+
+
+    const uint16_t packet_in_error_total_length = ntohs(packet_in_error->tot_len);
     for(size_t i = 0; _plateau_mtus[i] != 0; i++) {
         if(_plateau_mtus[i] < packet_in_error_total_length)
             return _plateau_mtus[i];
@@ -371,10 +396,19 @@ static bool _validate_and_translate_ip_header_of_packet_in_error(tundra__thread_
     if(in_icmpv4_payload_size < 20)
         return false;
 
+
+    // IMPROVE: As of now, both pointers should always be at least 4-byte aligned; however, this fact is by no means
+    //  obvious from the source code and a change in a seemingly unrelated part of code could break this assumption -
+    //  for this reason, these lines are marked for future improvement.
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-align"
     const struct iphdr *in_ipv4_header = (const struct iphdr *) in_icmpv4_payload_ptr;
     struct ipv6hdr *out_ipv6_header = (struct ipv6hdr *) out_packet_in_error_buffer_56b;
+    #pragma GCC diagnostic pop
 
-    // Basic validation & evaluation
+
+
+    // :: Basic validation
     if(in_ipv4_header->version != 4)
         return false;
 
@@ -382,14 +416,29 @@ static bool _validate_and_translate_ip_header_of_packet_in_error(tundra__thread_
     if(in_ipv4_header_size < 20 || in_ipv4_header_size > in_icmpv4_payload_size)
         return false;
 
-    // Translation
+
+
+    // :: Translation
     out_ipv6_header->version = 6;
+
+    // FALSE-POSITIVE: The value assigned to 'out_ipv6_header->priority' cannot be such that it would not fit into
+    //  4 bits; however, since C does not support bit-field type casts, e.g. '(uint8_t : 4)', there seems to be
+    //  no other way to let the compiler know that this is OK other than to ignore this warning.
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wconversion"
     out_ipv6_header->priority = (uint8_t) (in_ipv4_header->tos >> 4);
+    #pragma GCC diagnostic pop
+
     out_ipv6_header->flow_lbl[0] = (uint8_t) (in_ipv4_header->tos << 4);
     out_ipv6_header->flow_lbl[1] = 0;
     out_ipv6_header->flow_lbl[2] = 0;
-    out_ipv6_header->payload_len = htons(ntohs(in_ipv4_header->tot_len) - ((uint16_t) in_ipv4_header_size));
+    out_ipv6_header->payload_len = htons(
+        // An integer overflow might occur here, but it does not really matter in this case, as we are translating a
+        //  packet in error, which is expected to be "broken" in some way...
+        (uint16_t) (ntohs(in_ipv4_header->tot_len) - (uint16_t) in_ipv4_header_size)
+    );
     out_ipv6_header->hop_limit = in_ipv4_header->ttl;
+
 
     const uint8_t ipv6_carried_protocol = (in_ipv4_header->protocol == 1) ? 58 : in_ipv4_header->protocol;
 
@@ -413,6 +462,7 @@ static bool _validate_and_translate_ip_header_of_packet_in_error(tundra__thread_
         out_packet_in_error_data->is_fragment = false;
     }
 
+
     if(!xlat_addr__translate_4to6_addr_for_icmp_error_packet(
         ctx,
         (const uint8_t *) &in_ipv4_header->saddr,
@@ -420,6 +470,7 @@ static bool _validate_and_translate_ip_header_of_packet_in_error(tundra__thread_
         (uint8_t *) out_ipv6_header->saddr.s6_addr,
         (uint8_t *) out_ipv6_header->daddr.s6_addr
     )) return false;
+
 
     out_packet_in_error_data->payload_ptr = (in_icmpv4_payload_ptr + in_ipv4_header_size);
     out_packet_in_error_data->payload_size = (in_icmpv4_payload_size - in_ipv4_header_size);

@@ -25,10 +25,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"log.h"
 
 
+#define _OOM_MESSAGE "Out of memory!"
+
+
 void *utils__alloc_zeroed_out_memory(const size_t n, const size_t item_size) {
     void *memory = calloc(n, item_size);
     if(memory == NULL)
-        log__crash(false, "Out of memory!");
+        log__crash(false, "%s", _OOM_MESSAGE);
+
+    return memory;
+}
+
+void *utils__alloc_aligned_zeroed_out_memory(const size_t n, const size_t item_size, const size_t alignment) {
+    const size_t size_in_bytes = n * item_size;
+    if(size_in_bytes % alignment != 0)
+        log__crash(false, "Could not allocate aligned memory - the required alignment is invalid! (%zu is not divisible by %zu)", size_in_bytes, alignment);
+
+    void *memory = aligned_alloc(alignment, size_in_bytes);
+    if(memory == NULL)
+        log__crash(false, "%s", _OOM_MESSAGE);
+
+    UTILS__MEM_ZERO_OUT(memory, size_in_bytes);
 
     return memory;
 }
@@ -36,7 +53,7 @@ void *utils__alloc_zeroed_out_memory(const size_t n, const size_t item_size) {
 void *utils__realloc_memory(void *old_memory, const size_t n, const size_t item_size) {
     void *new_memory = realloc(old_memory, n * item_size);
     if(new_memory == NULL)
-        log__crash(false, "Out of memory!");
+        log__crash(false, "%s", _OOM_MESSAGE);
 
     return new_memory;
 }
@@ -44,7 +61,7 @@ void *utils__realloc_memory(void *old_memory, const size_t n, const size_t item_
 char *utils__duplicate_string(const char *const string) {
     char *new_string = strdup(string);
     if(new_string == NULL)
-        log__crash(false, "Out of memory!");
+        log__crash(false, "%s", _OOM_MESSAGE);
 
     return new_string;
 }
@@ -63,3 +80,6 @@ void utils__secure_strncpy(char *destination, const char *const source, const si
     strncpy(destination, source, buffer_size - 1);
     destination[buffer_size - 1] = '\0';
 }
+
+
+#undef _OOM_MESSAGE

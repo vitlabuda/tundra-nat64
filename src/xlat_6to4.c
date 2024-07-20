@@ -85,7 +85,7 @@ static bool _validate_and_translate_ip_header(tundra__thread_ctx *const ctx, _ou
     if(ctx->in_packet_size < 40)
         return false;
 
-    const struct ipv6hdr *in_ipv6_header = (const struct ipv6hdr *) ctx->in_packet_buffer;
+    const struct ipv6hdr *in_ipv6_header = (const struct ipv6hdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64);
     struct iphdr *out_ipv4_header = &out_packet_data->ipv4_header;
 
     // :: IP version ('in_ipv6_header->version' is guaranteed to be 6)
@@ -111,7 +111,7 @@ static bool _validate_and_translate_ip_header(tundra__thread_ctx *const ctx, _ou
     // :: Hop limit -> TTL (decremented, possible time exceeded ICMP packet sent later)
     if(in_ipv6_header->hop_limit < 1)
         return false; // The packet should have already been dropped!
-    out_ipv4_header->ttl = (in_ipv6_header->hop_limit - 1);
+    out_ipv4_header->ttl = (uint8_t) (in_ipv6_header->hop_limit - 1);
 
     // :: Header checksum (computed later, when the packet is finished)
     out_ipv4_header->check = 0; // Set to 0 (necessary for the checksum computation happening later)
@@ -217,10 +217,14 @@ static void _translate_icmpv6_payload_to_icmpv4_and_send(tundra__thread_ctx *con
         return;
 
     // The IPv6 header at the beginning of 'ctx->in_packet_buffer' has already been validated at this point.
-    if(checksum__calculate_checksum_ipv6(out_packet_data->payload_ptr, out_packet_data->payload_size, NULL, 0, (const struct ipv6hdr *) ctx->in_packet_buffer, 58) != 0)
+    if(checksum__calculate_checksum_ipv6(
+        out_packet_data->payload_ptr, out_packet_data->payload_size,
+        NULL, 0,
+        (const struct ipv6hdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64), 58
+    ) != 0)
         return;
 
-    xlat_6to4_icmp__out_icmpv4_message_data out_message_data;
+    xlat_6to4_icmp__out_icmpv4_message_data out_message_data __attribute__((aligned(64)));
     if(!xlat_6to4_icmp__translate_icmpv6_to_icmpv4(
         ctx,
         out_packet_data->payload_ptr,
@@ -244,13 +248,17 @@ static void _translate_icmpv6_payload_to_icmpv4_and_send(tundra__thread_ctx *con
 
 static void _translate_tcp_payload_and_send(const tundra__thread_ctx *const ctx, _out_ipv4_packet_data *const out_packet_data) {
     if(out_packet_data->is_fragment_offset_zero && out_packet_data->payload_size >= 20) { // 20 or more bytes
-        uint8_t new_tcp_payload_start_buffer[24];
-        struct tcphdr *new_tcp_header = (struct tcphdr *) new_tcp_payload_start_buffer;
+        uint8_t new_tcp_payload_start_buffer[24] __attribute__((aligned(64)));
+        struct tcphdr *new_tcp_header = (struct tcphdr *) __builtin_assume_aligned(new_tcp_payload_start_buffer, 64);
 
         if(out_packet_data->payload_size >= 24) { // 24 or more bytes
             memcpy(new_tcp_payload_start_buffer, out_packet_data->payload_ptr, 24);
 
-            new_tcp_header->check = checksum__recalculate_checksum_6to4(new_tcp_header->check, (const struct ipv6hdr *) ctx->in_packet_buffer, &out_packet_data->ipv4_header);
+            new_tcp_header->check = checksum__recalculate_checksum_6to4(
+                new_tcp_header->check,
+                (const struct ipv6hdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64),
+                &out_packet_data->ipv4_header
+            );
 
             _appropriately_send_ipv4_packet(
                 ctx, &out_packet_data->ipv4_header,
@@ -260,7 +268,11 @@ static void _translate_tcp_payload_and_send(const tundra__thread_ctx *const ctx,
         } else { // 20, 21, 22 or 23 bytes
             memcpy(new_tcp_payload_start_buffer, out_packet_data->payload_ptr, out_packet_data->payload_size);
 
-            new_tcp_header->check = checksum__recalculate_checksum_6to4(new_tcp_header->check, (const struct ipv6hdr *) ctx->in_packet_buffer, &out_packet_data->ipv4_header);
+            new_tcp_header->check = checksum__recalculate_checksum_6to4(
+                new_tcp_header->check,
+                (const struct ipv6hdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64),
+                &out_packet_data->ipv4_header
+            );
 
             _appropriately_send_ipv4_packet(
                 ctx, &out_packet_data->ipv4_header,
@@ -285,7 +297,11 @@ static void _translate_udp_payload_and_send(const tundra__thread_ctx *const ctx,
         if(new_udp_header.check == 0)
             return;
 
-        const uint16_t new_checksum = checksum__recalculate_checksum_6to4(new_udp_header.check, (const struct ipv6hdr *) ctx->in_packet_buffer, &out_packet_data->ipv4_header);
+        const uint16_t new_checksum = checksum__recalculate_checksum_6to4(
+            new_udp_header.check,
+            (const struct ipv6hdr *) __builtin_assume_aligned(ctx->in_packet_buffer, 64),
+            &out_packet_data->ipv4_header
+        );
         new_udp_header.check = (new_checksum == 0 ? 0xffff : new_checksum);
 
         _appropriately_send_ipv4_packet(

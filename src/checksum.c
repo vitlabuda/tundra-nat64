@@ -35,7 +35,9 @@ static uint16_t _pack_into_16bits(uint32_t packed_32bit_number);
 
 
 uint16_t checksum__calculate_ipv4_header_checksum(const struct iphdr *ipv4_header) {
-    return ~_pack_into_16bits(_sum_16bit_words((const uint8_t *) ipv4_header, ((size_t) ipv4_header->ihl) * 4));
+    const uint32_t sum = _sum_16bit_words((const uint8_t *) ipv4_header, ((size_t) ipv4_header->ihl) * 4);
+
+    return (uint16_t) ~_pack_into_16bits(sum);
 }
 
 // The "zeroable" prefix in 'zeroable_payload2_size' just means that if 'nullable_payload2_ptr' is NULL, the size
@@ -49,7 +51,7 @@ uint16_t checksum__calculate_checksum_ipv4(const uint8_t *payload1_ptr, const si
     if(nullable_ipv4_header != NULL)
         sum += _sum_ipv4_pseudo_header(nullable_ipv4_header, payload1_size + zeroable_payload2_size); // If 'zeroable_payload2_size' is zero, the sum won't be affected.
 
-    return ~_pack_into_16bits(sum);
+    return (uint16_t) ~_pack_into_16bits(sum);
 }
 
 // The "zeroable" prefix in 'zeroable_payload2_size' just means that if 'nullable_payload2_ptr' is NULL, the size
@@ -63,7 +65,7 @@ uint16_t checksum__calculate_checksum_ipv6(const uint8_t *payload1_ptr, const si
     if(nullable_ipv6_header != NULL)
         sum += _sum_ipv6_pseudo_header(nullable_ipv6_header, carried_protocol, payload1_size + zeroable_payload2_size); // If 'zeroable_payload2_size' is zero, the sum won't be affected.
 
-    return ~_pack_into_16bits(sum);
+    return (uint16_t) ~_pack_into_16bits(sum);
 }
 
 // For TCP & UDP packets whose payloads do not change when translated
@@ -82,7 +84,9 @@ uint16_t checksum__recalculate_checksum_4to6(const uint16_t old_checksum, const 
     );
 
     // new_checksum = ~(~old_checksum - old_ips_sum + new_ips_sum)
-    return ~_pack_into_16bits(_pack_into_16bits(~old_checksum - _pack_into_16bits(old_ips_sum)) + _pack_into_16bits(new_ips_sum));
+    const uint32_t intermed_sum_1 = (uint32_t) (~old_checksum - _pack_into_16bits(old_ips_sum));
+    const uint32_t intermed_sum_2 = (uint32_t) (_pack_into_16bits(intermed_sum_1) + _pack_into_16bits(new_ips_sum));
+    return (uint16_t) ~_pack_into_16bits(intermed_sum_2);
 }
 
 uint16_t checksum__recalculate_checksum_6to4(const uint16_t old_checksum, const struct ipv6hdr *old_ipv6_header, const struct iphdr *new_ipv4_header) {
@@ -96,54 +100,48 @@ uint16_t checksum__recalculate_checksum_6to4(const uint16_t old_checksum, const 
     );
 
     // new_checksum = ~(~old_checksum - old_ips_sum + new_ips_sum)
-    return ~_pack_into_16bits(_pack_into_16bits(~old_checksum - _pack_into_16bits(old_ips_sum)) + _pack_into_16bits(new_ips_sum));
+    const uint32_t intermed_sum_1 = (uint32_t) (~old_checksum - _pack_into_16bits(old_ips_sum));
+    const uint32_t intermed_sum_2 = (uint32_t) (_pack_into_16bits(intermed_sum_1) + _pack_into_16bits(new_ips_sum));
+    return (uint16_t) ~_pack_into_16bits(intermed_sum_2);
 }
 
 static uint32_t _sum_ipv4_pseudo_header(const struct iphdr *ipv4_header, const size_t transport_header_and_data_length) {
-    // If the 'volatile' modifier is not present there and the program is compiled using gcc with optimization turned
-    //  on, the checksum computation does not work!
-    volatile struct __attribute__((__packed__)) {
-        uint32_t source_address;
-        uint32_t destination_address;
-        uint8_t zeroes;
-        uint8_t protocol;
-        uint16_t length;
-    } ipv4_pseudo_header;
+    const uint16_t length_big_endian = htons((uint16_t) transport_header_and_data_length);
+    uint8_t pseudo_header[12];
 
-    ipv4_pseudo_header.source_address = ipv4_header->saddr;
-    ipv4_pseudo_header.destination_address = ipv4_header->daddr;
-    ipv4_pseudo_header.zeroes = 0;
-    ipv4_pseudo_header.protocol = ipv4_header->protocol;
-    ipv4_pseudo_header.length = htons((uint16_t) transport_header_and_data_length);
+    // https://datatracker.ietf.org/doc/html/rfc9293#v4pseudo
+    memcpy(pseudo_header, &ipv4_header->saddr, 4);  // Source address
+    memcpy(pseudo_header + 4, &ipv4_header->daddr, 4);  // Destination address
+    pseudo_header[8] = 0;  // Zeroes
+    pseudo_header[9] = ipv4_header->protocol;  // Protocol
+    memcpy(pseudo_header + 10, &length_big_endian, 2);  // Length
 
-    return _sum_16bit_words((const uint8_t *) &ipv4_pseudo_header, sizeof(ipv4_pseudo_header));
+    return _sum_16bit_words(pseudo_header, 12);
 }
 
 static uint32_t _sum_ipv6_pseudo_header(const struct ipv6hdr *ipv6_header, const uint8_t carried_protocol, const size_t transport_header_and_data_length) {
-    // If the 'volatile' modifier is not present there and the program is compiled using gcc with optimization turned
-    //  on, the checksum computation does not work!
-    volatile struct __attribute__((__packed__)) {
-        uint8_t source_address[16];
-        uint8_t destination_address[16];
-        uint32_t length;
-        uint8_t zeroes[3];
-        uint8_t protocol;
-    } ipv6_pseudo_header;
+    const uint32_t length_big_endian = htonl((uint32_t) transport_header_and_data_length);
+    uint8_t pseudo_header[40];
 
-    memcpy((void *) ipv6_pseudo_header.source_address, ipv6_header->saddr.s6_addr, 16);
-    memcpy((void *) ipv6_pseudo_header.destination_address, ipv6_header->daddr.s6_addr, 16);
-    ipv6_pseudo_header.length = htonl((uint32_t) transport_header_and_data_length);
-    UTILS__MEM_ZERO_OUT((void *) ipv6_pseudo_header.zeroes, 3);
-    ipv6_pseudo_header.protocol = carried_protocol;
+    // https://datatracker.ietf.org/doc/html/rfc8200#section-8.1
+    memcpy(pseudo_header, ipv6_header->saddr.s6_addr, 16);  // Source address
+    memcpy(pseudo_header + 16, ipv6_header->daddr.s6_addr, 16);  // Destination address
+    memcpy(pseudo_header + 32, &length_big_endian, 4);  // Length
+    UTILS__MEM_ZERO_OUT(pseudo_header + 36, 3);  // Zeroes
+    pseudo_header[39] = carried_protocol;  // Protocol
 
-    return _sum_16bit_words((const uint8_t *) &ipv6_pseudo_header, sizeof(ipv6_pseudo_header));
+    return _sum_16bit_words(pseudo_header, 40);
 }
 
 static uint32_t _sum_16bit_words(const uint8_t *bytes, size_t length_in_bytes) {
     uint32_t sum = 0;
 
     while(length_in_bytes > 1) { // At least 2 bytes are left
-        sum += *((const uint16_t *) bytes);
+        // Memory alignment
+        uint16_t temp;
+        memcpy(&temp, bytes, 2);
+        sum += temp;
+
         bytes += 2;
         length_in_bytes -= 2;
     }
@@ -160,5 +158,5 @@ static uint16_t _pack_into_16bits(uint32_t packed_32bit_number) {
     while(packed_32bit_number > 0xffff)
         packed_32bit_number = ((packed_32bit_number & 0xffff) + (packed_32bit_number >> 16));
 
-    return ((uint16_t) packed_32bit_number);
+    return (uint16_t) packed_32bit_number;
 }

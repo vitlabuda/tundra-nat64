@@ -23,8 +23,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include"tundra.h"
 
 
-typedef struct xlat_6to4_icmp__out_icmpv4_message_data {
-    uint8_t message_start_36b[36]; // 32 bytes ought to be enough, but since the code accessing the array is quite complicated and bug-prone, 36 bytes are there to prevent accidental overflows...
+typedef struct __attribute__((aligned(64))) xlat_6to4_icmp__out_icmpv4_message_data {
+    uint8_t message_start_36b[36] __attribute__((aligned(64))); // 32 bytes ought to be enough, but since the code accessing the array is quite complicated and bug-prone, 36 bytes are there to prevent accidental overflows...
     const uint8_t *nullable_message_end_ptr; // Points to a part of 'ctx->in_packet_buffer' --> must not be modified!
     size_t message_start_size_m8u; // Must be a multiple of 8 unless 'message_end_ptr' is NULL!
     size_t zeroable_message_end_size;

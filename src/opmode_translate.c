@@ -76,7 +76,7 @@ static tundra__thread_ctx *_initialize_thread_contexts(const tundra__conf_cmdlin
     for(size_t i = 0; i < file_config->program_translator_threads; i++) {
         // thread_contexts[i].thread stays uninitialized (it is initialized in _start_threads())
         thread_contexts[i].thread_id = (i + 1); // Thread ID 0 is reserved for the main thread
-        thread_contexts[i].in_packet_buffer = utils__alloc_zeroed_out_memory(TUNDRA__MAX_PACKET_SIZE + 1, sizeof(uint8_t));
+        thread_contexts[i].in_packet_buffer = utils__alloc_aligned_zeroed_out_memory(TUNDRA__MAX_PACKET_SIZE + 1, sizeof(uint8_t), 64);
         thread_contexts[i].in_packet_size = 0;
         thread_contexts[i].config = file_config;
         thread_contexts[i].joined = false;

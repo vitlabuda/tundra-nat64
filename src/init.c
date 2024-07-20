@@ -62,6 +62,7 @@ static void _check_compile_time_config(void) {
 
     if(
         (TUNDRA__MAX_PACKET_SIZE < 1520) || (TUNDRA__MAX_PACKET_SIZE > 65535) ||
+        ((TUNDRA__MAX_PACKET_SIZE + 1) % 64 != 0) ||
         (TUNDRA__MIN_MTU_IPV4 < 96) || (TUNDRA__MIN_MTU_IPV4 > (TUNDRA__MAX_PACKET_SIZE - 20)) ||
         (TUNDRA__MIN_MTU_IPV6 < 1280) || (TUNDRA__MIN_MTU_IPV6 > (TUNDRA__MAX_PACKET_SIZE - 20)) ||
         (TUNDRA__MAX_MTU_IPV4 < 96) || (TUNDRA__MAX_MTU_IPV4 > (TUNDRA__MAX_PACKET_SIZE - 20)) ||
@@ -73,7 +74,8 @@ static void _check_compile_time_config(void) {
         (TUNDRA__MIN_GENERATED_PACKET_TTL > TUNDRA__MAX_GENERATED_PACKET_TTL) ||
         (TUNDRA__MIN_TIMEOUT_MILLISECONDS > TUNDRA__MAX_TIMEOUT_MILLISECONDS) ||
         (sizeof(struct iphdr) != 20) || (sizeof(struct ipv6hdr) != 40) ||
-        (sizeof(tundra__ipv6_frag_header) != 8) || (sizeof(tundra__external_addr_xlat_message) != 40)
+        (sizeof(tundra__ipv6_frag_header) != 8) || (sizeof(tundra__external_addr_xlat_message) != 40) ||
+        (sizeof(size_t) < 4) || (sizeof(int) < 4) || (sizeof(unsigned int) < 4)
     ) exit(TUNDRA__EXIT_INVALID_COMPILE_TIME_CONFIG);
 }
 
