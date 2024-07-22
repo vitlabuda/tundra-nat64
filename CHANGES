@@ -158,5 +158,5 @@
 - Replaced the hash algorithm used by the IP address mapping cache of external addressing mode
 - Other minor improvements
 
-[6.0.2 @ TBA]
+[6.0.2 @ 2024-07-22]
 - Declared more functions as 'inline'
