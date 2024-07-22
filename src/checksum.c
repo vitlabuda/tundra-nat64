@@ -28,10 +28,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // See RFC 1071 - https://datatracker.ietf.org/doc/html/rfc1071
 
 
-static uint32_t _sum_ipv4_pseudo_header(const struct iphdr *ipv4_header, const size_t transport_header_and_data_length);
-static uint32_t _sum_ipv6_pseudo_header(const struct ipv6hdr *ipv6_header, const uint8_t carried_protocol, const size_t transport_header_and_data_length);
-static uint32_t _sum_16bit_words(const uint8_t *bytes, size_t length);
-static uint16_t _pack_into_16bits(uint32_t packed_32bit_number);
+static inline uint32_t _sum_ipv4_pseudo_header(const struct iphdr *ipv4_header, const size_t transport_header_and_data_length);
+static inline uint32_t _sum_ipv6_pseudo_header(const struct ipv6hdr *ipv6_header, const uint8_t carried_protocol, const size_t transport_header_and_data_length);
+static inline uint32_t _sum_16bit_words(const uint8_t *bytes, size_t length);
+static inline uint16_t _pack_into_16bits(uint32_t packed_32bit_number);
 
 
 uint16_t checksum__calculate_ipv4_header_checksum(const struct iphdr *ipv4_header) {
@@ -105,7 +105,7 @@ uint16_t checksum__recalculate_checksum_6to4(const uint16_t old_checksum, const 
     return (uint16_t) ~_pack_into_16bits(intermed_sum_2);
 }
 
-static uint32_t _sum_ipv4_pseudo_header(const struct iphdr *ipv4_header, const size_t transport_header_and_data_length) {
+static inline uint32_t _sum_ipv4_pseudo_header(const struct iphdr *ipv4_header, const size_t transport_header_and_data_length) {
     const uint16_t length_big_endian = htons((uint16_t) transport_header_and_data_length);
     uint8_t pseudo_header[12];
 
@@ -119,7 +119,7 @@ static uint32_t _sum_ipv4_pseudo_header(const struct iphdr *ipv4_header, const s
     return _sum_16bit_words(pseudo_header, 12);
 }
 
-static uint32_t _sum_ipv6_pseudo_header(const struct ipv6hdr *ipv6_header, const uint8_t carried_protocol, const size_t transport_header_and_data_length) {
+static inline uint32_t _sum_ipv6_pseudo_header(const struct ipv6hdr *ipv6_header, const uint8_t carried_protocol, const size_t transport_header_and_data_length) {
     const uint32_t length_big_endian = htonl((uint32_t) transport_header_and_data_length);
     uint8_t pseudo_header[40];
 
@@ -133,7 +133,7 @@ static uint32_t _sum_ipv6_pseudo_header(const struct ipv6hdr *ipv6_header, const
     return _sum_16bit_words(pseudo_header, 40);
 }
 
-static uint32_t _sum_16bit_words(const uint8_t *bytes, size_t length_in_bytes) {
+static inline uint32_t _sum_16bit_words(const uint8_t *bytes, size_t length_in_bytes) {
     uint32_t sum = 0;
 
     while(length_in_bytes > 1) { // At least 2 bytes are left
@@ -154,7 +154,7 @@ static uint32_t _sum_16bit_words(const uint8_t *bytes, size_t length_in_bytes) {
     return sum;
 }
 
-static uint16_t _pack_into_16bits(uint32_t packed_32bit_number) {
+static inline uint16_t _pack_into_16bits(uint32_t packed_32bit_number) {
     while(packed_32bit_number > 0xffff)
         packed_32bit_number = ((packed_32bit_number & 0xffff) + (packed_32bit_number >> 16));
 

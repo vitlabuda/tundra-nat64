@@ -157,3 +157,6 @@
 - Significantly extended the set of hardening compiler flags & performed related code changes
 - Replaced the hash algorithm used by the IP address mapping cache of external addressing mode
 - Other minor improvements
+
+[6.0.2 @ TBA]
+- Declared more functions as 'inline'

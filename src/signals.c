@@ -35,7 +35,7 @@ static __thread volatile sig_atomic_t _term_signal_caught_in_thread = 0;
 static void _term_signal_handler(__attribute__((unused)) int sig, siginfo_t *info, __attribute__((unused)) void *ucontext);
 static void _ignore_signal(const int signal_number);
 static void _set_signal_handler(const int signal_number, void (*signal_handler)(int, siginfo_t *, void *));
-static sigset_t _generate_empty_signal_mask(void);
+static inline sigset_t _generate_empty_signal_mask(void);
 
 
 void signals__initialize(void) {
@@ -101,7 +101,7 @@ static void _set_signal_handler(const int signal_number, void (*signal_handler)(
         log__crash(true, "Failed to set a handler for the signal with number %d!", signal_number);
 }
 
-static sigset_t _generate_empty_signal_mask(void) {
+static inline sigset_t _generate_empty_signal_mask(void) {
     sigset_t signal_mask;
     UTILS__MEM_ZERO_OUT(&signal_mask, sizeof(sigset_t));
     sigemptyset(&signal_mask);

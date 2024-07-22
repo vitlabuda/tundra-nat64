@@ -53,7 +53,7 @@ static bool _try_doing_4to6_addr_translation_using_cache(const tundra__external_
 static bool _try_doing_6to4_addr_translation_using_cache(const tundra__external_addr_xlat_cache_entry *cache, const size_t cache_size, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, uint8_t *out_src_ipv4, uint8_t *out_dst_ipv4);
 static void _save_4to6_addr_mapping_to_cache(tundra__external_addr_xlat_cache_entry *cache, const size_t cache_size, const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, const uint8_t *out_src_ipv6, const uint8_t *out_dst_ipv6, const time_t cache_lifetime);
 static void _save_6to4_addr_mapping_to_cache(tundra__external_addr_xlat_cache_entry *cache, const size_t cache_size, const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, const uint8_t *out_src_ipv4, const uint8_t *out_dst_ipv4, const time_t cache_lifetime);
-static void _save_addr_mapping_to_target_cache_entry(tundra__external_addr_xlat_cache_entry *target_entry, const uint8_t *src_ipv4, const uint8_t *dst_ipv4, const uint8_t *src_ipv6, const uint8_t *dst_ipv6, const time_t cache_lifetime);
+static inline void _save_addr_mapping_to_target_cache_entry(tundra__external_addr_xlat_cache_entry *target_entry, const uint8_t *src_ipv4, const uint8_t *dst_ipv4, const uint8_t *src_ipv6, const uint8_t *dst_ipv6, const time_t cache_lifetime);
 static inline size_t _get_hash_from_in_ipv4_addr_pair(const uint8_t *in_src_ipv4, const uint8_t *in_dst_ipv4, const size_t cache_size);
 static inline size_t _get_hash_from_in_ipv6_addr_pair(const uint8_t *in_src_ipv6, const uint8_t *in_dst_ipv6, const size_t cache_size);
 static inline time_t _get_current_timestamp(void);
@@ -462,7 +462,7 @@ static void _save_6to4_addr_mapping_to_cache(tundra__external_addr_xlat_cache_en
     _save_addr_mapping_to_target_cache_entry(target_entry, out_src_ipv4, out_dst_ipv4, in_src_ipv6, in_dst_ipv6, cache_lifetime);
 }
 
-static void _save_addr_mapping_to_target_cache_entry(tundra__external_addr_xlat_cache_entry *target_entry, const uint8_t *src_ipv4, const uint8_t *dst_ipv4, const uint8_t *src_ipv6, const uint8_t *dst_ipv6, const time_t cache_lifetime) {
+static inline void _save_addr_mapping_to_target_cache_entry(tundra__external_addr_xlat_cache_entry *target_entry, const uint8_t *src_ipv4, const uint8_t *dst_ipv4, const uint8_t *src_ipv6, const uint8_t *dst_ipv6, const time_t cache_lifetime) {
     if(cache_lifetime == 0)  // '0' means "do not cache"
         return;
 

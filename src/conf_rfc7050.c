@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _LOG_MESSAGE_BANNER "RFC 7050"
 
 
-static void _print_start_info_message(void);
-static void _print_finish_info_message(const uint8_t *found_ipv6_prefix);
+static inline void _print_start_info_message(void);
+static inline void _print_finish_info_message(const uint8_t *found_ipv6_prefix);
 
 
 void conf_rfc7050__autodiscover_ipv6_prefix(uint8_t *destination) {
@@ -84,12 +84,12 @@ void conf_rfc7050__autodiscover_ipv6_prefix(uint8_t *destination) {
     }
 }
 
-static void _print_start_info_message(void) {
+static inline void _print_start_info_message(void) {
     // For future extension and code consistency.
     log__info("["_LOG_MESSAGE_BANNER"] Trying to auto-discover a translation prefix - waiting until a DNS query for '"_IPV4ONLY_DNS_NAME"' returns a sensible result...");
 }
 
-static void _print_finish_info_message(const uint8_t *found_ipv6_prefix) {
+static inline void _print_finish_info_message(const uint8_t *found_ipv6_prefix) {
     struct in6_addr address_struct;
     UTILS__MEM_ZERO_OUT(&address_struct, sizeof(struct in6_addr));
     memcpy(address_struct.s6_addr, found_ipv6_prefix, 16);
