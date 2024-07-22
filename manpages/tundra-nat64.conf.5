@@ -1,0 +1,389 @@
+.\" Copyright (c) 2024 Vít Labuda. All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+.\" following conditions are met:
+.\"  1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+.\"     disclaimer.
+.\"  2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+.\"     following disclaimer in the documentation and/or other materials provided with the distribution.
+.\"  3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+.\"     products derived from this software without specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+.\" INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+.\" DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+.\" SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+.\" SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+.\" WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+.\" OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+.TH tundra-nat64.conf 5 2024-07-22 tundra-nat64
+
+.SH NAME
+tundra-nat64.conf \- configuration file for
+.BR tundra-nat64 (8)
+
+
+
+.SH DESCRIPTION
+The file \fItundra-nat64.conf\fP contains the configuration for
+.BR tundra-nat64 (8) .
+This manual page describes both the file's format and the available configuration options.
+.PP
+
+Each line of the configuration file shall be in the form \fIoption.key = option_value\fP. Whitespace at the beginning
+and at the end of lines is ignored, just as whitespace around the '=' sign. In addition, empty lines and lines
+beginning with either '#' or ';' are ignored. For boolean options, it is recommended to use \fIyes\fP and \fIno\fP as
+values.
+.PP
+
+The available configuration options can be divided into the following categories, each of which is described in the
+corresponding section below: \fBprogram options\fP, \fBI/O options\fP, \fBrouter options\fP, \fBaddressing options\fP,
+and \fBtranslator options\fP.
+.PP
+
+An example configuration file, \fItundra-nat64.example.conf\fP, is available in the project's Git repository, and if
+you installed this program from your distribution's repositories, you should also have it available somewhere locally.
+
+
+
+.SH "PROGRAM OPTIONS"
+
+.TP
+.B program.translator_threads
+The number of threads used to translate packets.
+If left empty, the number of CPUs (cores, SMT threads, ...) your device has is used.
+
+.TP
+.B program.privilege_drop_user
+.TQ
+.B program.privilege_drop_group
+The name of a user/group to which the program will drop its privileges after it initializes.
+If the value is left empty, no privilege drop is performed.
+
+
+
+.SH "I/O OPTIONS"
+
+.TP
+.B io.mode
+Specifies the means by which the translator will receive and send packets. There are two I/O modes available:
+\fIinherited-fds\fP and \fItun\fP. Both I/O modes are described in detail in the subsections below, along with the
+required configuration options corresponding to them.
+
+
+.SS "The 'inherited-fds' I/O mode"
+In the \fIinherited-fds\fP I/O mode, Tundra inherits file descriptors from the program that executed it - their numbers
+are passed to Tundra using the '-f' or '--io-inherited-fds' command-line option - see
+.BR tundra-nat64 (8) .
+.PP
+Each translator thread is assigned a pair of file descriptors that it will then use to receive (\fITHREAD*_IN\fP) and
+send (\fITHREAD*_OUT\fP) packets (therefore, you must pass as many file descriptor pairs to the program as there are
+translator threads). Keep in mind that the program is primarily designed to work with TUN interface's file descriptors;
+therefore, the inherited ones must behave similarly, namely:
+.br
+ - each read() call on \fITHREAD*_IN\fP file descriptor must return a single whole packet
+.br
+ - each write() call on \fITHREAD*_OUT\fP file descriptor must accept a single whole packet up to MTU bytes in size
+.PP
+This means that only file descriptors which preserve message boundaries and have sufficient read/write buffers may be
+used. Specifically, datagram sockets created using \fIsocketpair(AF_UNIX, SOCK_DGRAM)\fP whose buffers' sizes have been
+properly adjusted using \fIsetsockopt(SO_RCVBUF)\fP and \fIsetsockopt(SO_SNDBUF)\fP meet these requirements (whereas,
+for example, pipes do not, since they do not preserve message boundaries). Only blocking file descriptors may be used.
+.PP
+This I/O mode does not have any corresponding configuration file options.
+
+
+.SS "The 'tun' I/O mode"
+In the \fItun\fP I/O mode, Tundra initializes a TUN network interface according to the options documented below, and
+uses it to receive and send packets.
+
+.TP
+.B io.tun.device_path
+The path of the character device through which is the TUN/TAP driver exposed.
+If the value is left empty, the well-known path \fI/dev/net/tun\fP is used.
+
+.TP
+.B io.tun.interface_name
+The name of the TUN network interface Tundra will use to receive and send packets.
+The value must not be left empty.
+
+.TP
+.B io.tun.owner_user
+.TQ
+.B io.tun.owner_group
+The name of a user/group who will own persistent TUN interfaces created by Tundra.
+If the value is left empty, TUN interfaces created by Tundra will not have their ownership set.
+
+.TP
+.B io.tun.multi_queue
+Specifies whether the TUN interface created by Tundra will have multiple packet queues.
+.IP
+In single-queue mode, Tundra acquires a single file descriptor to the TUN interface, which is then shared by all
+translator threads. Since this naturally causes a load-balancing behaviour, this mode is much faster in the vast
+majority of environments; therefore, this option is set to \fIno\fP by default.
+.IP
+In multi-queue mode, each translator thread is given its own file descriptor to the TUN interface (which is created
+with the \fIIFF_MULTI_QUEUE\fP flag set). As mentioned before, this mode is usually much slower, as the kernel puts
+packets belonging to a single flow/connection to the same queue and therefore does not do load-balancing. In addition,
+multi-queue TUN interfaces tend to have a far larger memory footprint - beware of this when deploying this program on
+very-low-memory devices, such as cheap SOHO routers.
+
+
+
+.SH "ROUTER OPTIONS"
+
+.TP
+.B router.ipv4
+.TQ
+.B router.ipv6
+.TQ
+.B router.generated_packet_ttl
+In certain cases, the translator needs to behave as a router and therefore needs to be able to send ICMP messages. The
+\fIrouter.ipv4\fP and \fIrouter.ipv6\fP options specify the source IP addresses, and the
+\fIrouter.generated_packet_ttl\fP option specifies the TTL/hop limit of ICMP packets originating from the translator.
+
+
+
+.SH "ADDRESSING OPTIONS"
+
+.TP
+.B addressing.mode
+Specifies how the program will translate IPv6 addresses into IPv4 ones and vice versa. The following addressing
+modes are supported: \fInat64\fP, \fIclat\fP, \fIsiit\fP and \fIexternal\fP. All the addressing modes are described in
+detail in the subsections below, along with the required configuration options corresponding to them.
+
+
+.SS "The 'nat64' addressing mode"
+
+.TP
+.B addressing.nat64_clat.ipv4
+.TQ
+.B addressing.nat64_clat.ipv6
+.TQ
+.B addressing.nat64_clat_siit.prefix
+.TQ
+.B addressing.nat64_clat_siit.allow_translation_of_private_ips
+In the \fInat64\fP addressing mode, IP addresses in packets are (statelessly) translated the following way:
+.br
+.ad l
+.hy 0
+ * IPv6-Packet(src=\fIaddressing.nat64_clat.ipv6\fP, dst=\fIaddressing.nat64_clat_siit.prefix\fP + any-valid-IPv4-address) --> IPv4-Packet(src=\fIaddressing.nat64_clat.ipv4\fP, dst=the-valid-IPv4-address)
+.hy 1
+.ad n
+.br
+.ad l
+.hy 0
+ * IPv4-Packet(src=any-valid-IPv4-address, dst=\fIaddressing.nat64_clat.ipv4\fP) --> IPv6-Packet(src=\fIaddressing.nat64_clat_siit.prefix\fP + the-valid-IPv4-address, dst=\fIaddressing.nat64_clat.ipv6\fP)
+.hy 1
+.ad n
+.IP
+
+The length of \fIaddressing.nat64_clat_siit.prefix\fP is fixed to be 96 bits (/96), which is probably the only prefix
+length used in production deployments. The length shall not be specified in the option's value. Tundra does not
+support other prefix lengths. If you leave the value of this option empty, the program will try to auto-discover it
+using the DNS name "ipv4only.arpa." (see RFC 7050).
+.IP
+
+RFC 6052 states that the well-known prefix (64:ff9b::/96) must not be used to represent non-global IPv4 addresses.
+For this reason, Tundra offers the \fIaddressing.nat64_clat_siit.allow_translation_of_private_ips\fP option which
+should be set to \fIno\fP if you are using the well-known prefix (which will cause all packets containing problematic
+addresses to be silently dropped). Keep in mind that the option only affects IPv4 addresses embedded into the prefix -
+\fIaddressing.nat64_clat.ipv4\fP and \fIrouter.ipv4\fP can be private even if the option is set to \fIno\fP.
+.IP
+
+Tundra itself cannot act as a NAT64 translator for more than one host, as it lacks an internal dynamic address
+pool from which it would assign addresses to hosts needing its service - it only uses the single configurable IPv4 and
+IPv6 address. However, you can use Tundra in cooperation with Linux's in-kernel NAT66, which can masquerade a whole
+network requesting NAT64 service behind \fIaddressing.nat64_clat.ipv6\fP.
+
+
+.SS "The 'clat' addressing mode"
+
+.TP
+.B addressing.nat64_clat.ipv4
+.TQ
+.B addressing.nat64_clat.ipv6
+.TQ
+.B addressing.nat64_clat_siit.prefix
+.TQ
+.B addressing.nat64_clat_siit.allow_translation_of_private_ips
+In the \fIclat\fP addressing mode, IP addresses in packets are (statelessly) translated the following way:
+.br
+.ad l
+.hy 0
+ * IPv4-Packet(src=\fIaddressing.nat64_clat.ipv4\fP, dst=any-valid-IPv4-address) --> IPv6-Packet(src=\fIaddressing.nat64_clat.ipv6\fP, dst=\fIaddressing.nat64_clat_siit.prefix\fP + the-valid-IPv4-address)
+.hy 1
+.ad n
+.br
+.ad l
+.hy 0
+ * IPv6-Packet(src=\fIaddressing.nat64_clat_siit.prefix\fP + any-valid-IPv4-address, dst=\fIaddressing.nat64_clat.ipv6\fP) --> IPv4-Packet(src=the-valid-IPv4-address, dst=\fIaddressing.nat64_clat.ipv4\fP)
+.hy 1
+.ad n
+.IP
+
+The length of \fIaddressing.nat64_clat_siit.prefix\fP is fixed to be 96 bits (/96), which is probably the only prefix
+length used in production deployments. The length shall not be specified in the option's value. Tundra does not
+support other prefix lengths. If you leave the value of this option empty, the program will try to auto-discover it
+using the DNS name "ipv4only.arpa." (see RFC 7050).
+.IP
+
+RFC 6052 states that the well-known prefix (64:ff9b::/96) must not be used to represent non-global IPv4 addresses.
+For this reason, Tundra offers the \fIaddressing.nat64_clat_siit.allow_translation_of_private_ips\fP option which
+should be set to \fIno\fP if you are using the well-known prefix (which will cause all packets containing problematic
+addresses to be silently dropped). Keep in mind that the option only affects IPv4 addresses embedded into the prefix -
+\fIaddressing.nat64_clat.ipv4\fP and \fIrouter.ipv4\fP can be private even if the option is set to \fIno\fP.
+.IP
+
+Tundra itself cannot act as a CLAT translator for more than one host, as it lacks an internal dynamic address
+pool from which it would assign addresses to hosts needing its service - it only uses the single configurable IPv4 and
+IPv6 address. However, you can use Tundra in cooperation with Linux's in-kernel NAT44, which can masquerade a whole
+network requesting CLAT service behind \fIaddressing.nat64_clat.ipv4\fP.
+
+
+.SS "The 'siit' addressing mode"
+
+.TP
+.B addressing.nat64_clat_siit.prefix
+.TQ
+.B addressing.nat64_clat_siit.allow_translation_of_private_ips
+In the \fIsiit\fP addressing mode, IP addresses in packets are (statelessly) translated the following way:
+.br
+.ad l
+.hy 0
+ * IPv4-Packet(src=any-valid-IPv4-address, dst=any-valid-IPv4-address) --> IPv6-Packet(src=\fIaddressing.nat64_clat_siit.prefix\fP + the-valid-IPv4-address, dst=\fIaddressing.nat64_clat_siit.prefix\fP + the-valid-IPv4-address)
+.hy 1
+.ad n
+.br
+.ad l
+.hy 0
+ * IPv6-Packet(src=\fIaddressing.nat64_clat_siit.prefix\fP + any-valid-IPv4-address, dst=\fIaddressing.nat64_clat_siit.prefix\fP + any-valid-IPv4-address) --> IPv4-Packet(src=the-valid-IPv4-address, dst=the-valid-IPv4-address)
+.hy 1
+.ad n
+.IP
+
+The length of \fIaddressing.nat64_clat_siit.prefix\fP is fixed to be 96 bits (/96), which is probably the only prefix
+length used in production deployments. The length shall not be specified in the option's value. Tundra does not
+support other prefix lengths. If you leave the value of this option empty, the program will try to auto-discover it
+using the DNS name "ipv4only.arpa." (see RFC 7050).
+.IP
+
+RFC 6052 states that the well-known prefix (64:ff9b::/96) must not be used to represent non-global IPv4 addresses.
+For this reason, Tundra offers the \fIaddressing.nat64_clat_siit.allow_translation_of_private_ips\fP option which
+should be set to \fIno\fP if you are using the well-known prefix (which will cause all packets containing problematic
+addresses to be silently dropped). Keep in mind that the option only affects IPv4 addresses embedded into the prefix -
+\fIrouter.ipv4\fP can be private even if the option is set to \fIno\fP.
+
+
+.SS "The 'external' addressing mode"
+In the \fIexternal\fP addressing mode, Tundra delegates address translation to another program-server. In this mode,
+Tundra will translate packets from IPv4 to IPv6 and vice versa as per the rules of SIIT while querying an external
+address translator for IP addresses to be put in the translated packets. The specification of the protocol which Tundra
+uses to communicate with the external translator can be found in the project's Git repository.
+
+.TP
+.B addressing.external.transport
+Specifies the communication channel the program will use to query the external address translator. The following
+transport modes are supported: \fIinherited-fds\fP, \fIunix\fP and \fItcp\fP. All the transport modes are described in
+detail below, along with the required configuration options corresponding to them.
+
+.TP
+.B addressing.external.cache_size.main_addresses
+.TQ
+.B addressing.external.cache_size.icmp_error_addresses
+Since querying an external program, possibly even over a network, is very likely to be far slower than translating
+the addresses internally, Tundra offers the ability to cache received translated addresses for a short time. This has
+the benefit of not only making Tundra significantly faster, but also reducing the load of the "backend".
+.IP
+These two options control the maximum number of cached addresses per translation thread per "direction" (4to6 vs. 6to4).
+If they are set to zero, the caching will be turned off, and the "backend" will be queried for every translated packet.
+\fIaddressing.external.cache_size.main_addresses\fP controls the caching of addresses within "main" packets (i.e. the
+packets which carry data), whereas \fIaddressing.external.cache_size.icmp_error_addresses\fP controls the caching of
+addresses within ICMP error packets, i.e. packets "in error" carried inside ICMP error messages' bodies.
+
+.TP
+.B "The 'inherited-fds' transport mode"
+In the \fIinherited-fds\fP transport mode, Tundra communicates with an external address translator using pairs of file
+descriptors (each translator thread uses a single pair) inherited from a program that executed it - their numbers are
+passed to it using the '-F' or '--addressing-external-inherited-fds' command-line option - see
+.BR tundra-nat64 (8) .
+.IP
+As documented in the protocol specification, the file descriptors should be referring to a "stream" communication
+channel, for example a \fIpipe()\fP or a \fISOCK_STREAM\fP socket. Only blocking file descriptors may be used.
+.IP
+This transport mode does not have any corresponding configuration file options.
+
+.TP
+.B "The 'unix' transport mode"
+.TQ
+.B "  addressing.external.unix.path"
+.TQ
+.B "  addressing.external.unix_tcp.timeout_milliseconds"
+In the \fIunix\fP transport mode, Tundra connects to an external address translator's Unix \fISOCK_STREAM\fP server
+socket, whose path is specified through the \fIaddressing.external.unix.path\fP option. Keep in mind that connections
+to the socket are established after the program initializes, i.e. after it changes its working directory to '/' and
+drops its privileges, if it is configured to do so.
+
+.TP
+.B "The 'tcp' transport mode"
+.TQ
+.B "  addressing.external.tcp.host"
+.TQ
+.B "  addressing.external.tcp.port"
+.TQ
+.B "  addressing.external.unix_tcp.timeout_milliseconds"
+In the \fItcp\fP transport mode, Tundra connects to an external address translator's TCP server socket. Even though
+supplying a hostname instead of an IPv4/IPv6 address through the \fIaddressing.external.tcp.host\fP option is fully
+supported, it is not recommended, as it can lead to crashes during program initialization due to malfunctioning DNS.
+
+
+
+.SH "TRANSLATOR OPTIONS"
+
+.TP
+.B translator.ipv4.outbound_mtu
+.TQ
+.B translator.ipv6.outbound_mtu
+These options specify the maximum size (in bytes) a single IPv4/IPv6 packet can have when it is sent out by the
+translator. For IPv4, the lowest MTU you can specify is 96 bytes; for IPv6, it is 1280 bytes.
+
+.TP
+.B translator.6to4.copy_dscp_and_ecn
+.TQ
+.B translator.4to6.copy_dscp_and_ecn
+IPv4 packets contain the ToS field and IPv6 packets contain the Traffic Class field, both of which nowadays normally
+consist of the DSCP (Differentiated Services Code Point) and ECN (Explicit Congestion Notification) fields. However,
+in some legacy networks, the IPv4 ToS field might be used with old semantics which are not compatible with IPv6. To
+prevent problems in such networks, Tundra can be instructed not to copy the fields over and zero them out instead
+using these options. In the vast majority of cases, however, this is not a problem, and so you can leave these options
+enabled.
+
+
+
+.SH NOTES
+Tundra can be instructed to stop reading the configuration file (before the end of the file) using a line containing
+only the string \fB!STOP\fP (case-sensitive). If such line is encountered, the program stops reading the configuration
+file immediately and the file is closed. This can be useful for example when the program's configuration is read from
+a named pipe, standard input etc.
+
+
+
+.SH "GIT REPOSITORY"
+https://github.com/vitlabuda/tundra-nat64
+
+
+
+.SH COPYRIGHT
+SPDX-License-Identifier: BSD-3-Clause
+.PP
+Copyright (c) 2024 Vít Labuda. All rights reserved.
+.br
+    https://vitlabuda.cz/
+.br
+    vit <_at_> vitlabuda <_dot_> cz
+
+
+
+.SH "SEE ALSO"
+.BR tundra-nat64 (8)

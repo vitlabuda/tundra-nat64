@@ -1,0 +1,142 @@
+.\" Copyright (c) 2024 Vít Labuda. All rights reserved.
+.\"
+.\" Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+.\" following conditions are met:
+.\"  1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+.\"     disclaimer.
+.\"  2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+.\"     following disclaimer in the documentation and/or other materials provided with the distribution.
+.\"  3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+.\"     products derived from this software without specific prior written permission.
+.\"
+.\" THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+.\" INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+.\" DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+.\" SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+.\" SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+.\" WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+.\" OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+.TH tundra-nat64 8 2024-07-22 tundra-nat64
+
+.SH NAME
+tundra-nat64 \- a stateless user-space NAT64/CLAT/SIIT translator for Linux
+
+
+
+.SH SYNOPSIS
+.SY tundra-nat64
+.OP OPTIONS
+.OP "MODE OF OPERATION"
+.YS
+
+
+
+.SH DESCRIPTION
+\fBTundra-NAT64\fP is an open-source IPv6-to-IPv4 & IPv4-to-IPv6 translator for Linux which operates entirely in
+user-space, can run in multiple threads and uses either the TUN driver or inherited file descriptors to receive and
+send packets. It translates packets according to the rules of \fISIIT\fP (RFC 7915), while offering the following
+address translation modes:
+.PP
+
+.IP \[bu] 4
+\fBStateless NAT64\fP - In this mode, Tundra is making it possible for a single host, or, in cooperation with Linux's
+in-kernel NAT66 translator, for any number of hosts on an IPv6-only network to access IPv4-only hosts.
+
+.IP \[bu]
+\fBStateless CLAT\fP - In this mode, Tundra is making it possible for programs using IPv4-only sockets (AF_INET)
+to access IPv4-only hosts when running on a computer connected to an IPv6-only network with a NAT64 service. In
+addition, when running on a router which is connected to the outside world over an IPv6-only network with a NAT64
+service, Tundra may be used to create a dual-stack internal network in cooperation with Linux's in-kernel NAT44
+translator.
+
+.IP \[bu]
+\fBSIIT\fP - In this mode, Tundra is translating IPv6 packets whose addresses are composed of an IPv4 address wrapped
+inside a translation prefix into IPv4 packets with the same IPv4 addresses (extracted from the aforementioned prefix),
+and vice versa.
+
+.IP \[bu]
+\fBExternal\fP - In this mode, Tundra delegates address translation to another program-server, with which it
+communicates via inherited file descriptors, Unix stream sockets or TCP. Tundra will translate packets from IPv4 to
+IPv6 and vice versa as per the rules of SIIT while querying an external address translator for IP addresses to be put
+in the translated packets.
+
+.PP
+More information about the address translation modes, including how to configure them, can be found in
+.BR tundra-nat64.conf (5) .
+
+
+
+.SH OPTIONS
+
+.TP 4
+.B "-h, --help"
+Prints help and exits.
+
+.TP
+.B "-v, --version"
+Prints version information and exits.
+
+.TP
+.B "-l, --license"
+Prints license and exits.
+
+.TP
+.B "-c, --config-file=CONFIG_FILE_PATH"
+Specifies the file from which the program's configuration will be loaded. To load configuration from the standard
+input, specify '-' as the path. See
+.BR tundra-nat64.conf (5)
+for more information.
+
+.TP
+.B "-f, --io-inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]..."
+Specifies the file descriptors to be used in the 'inherited-fds' I/O mode. Ignored otherwise.
+
+.TP
+.B "-F, --addressing-external-inherited-fds=THREAD1_IN,THREAD1_OUT[;THREAD2_IN,THREAD2_OUT]..."
+Specifies the file descriptors to be used for the 'inherited-fds' transport of the 'external' addressing mode. Ignored
+otherwise.
+
+
+
+.SH "MODE OF OPERATION"
+
+.TP 4
+.B translate
+The program will act as a stateless NAT64/CLAT/SIIT translator.
+This is the default mode of operation.
+
+.TP
+.B mktun
+Creates a persistent TUN device according to the configuration file, then exits.
+Applicable only in the 'tun' I/O mode.
+
+.TP
+.B rmtun
+Destroys a previously created persistent TUN device according to the configuration file, then exits.
+Applicable only in the 'tun' I/O mode.
+
+.TP
+.B "validate-config"
+Tries to configure the program and prints an informational message if it succeeds, then exits.
+
+
+
+.SH "GIT REPOSITORY"
+https://github.com/vitlabuda/tundra-nat64
+
+
+
+.SH COPYRIGHT
+SPDX-License-Identifier: BSD-3-Clause
+.PP
+Copyright (c) 2024 Vít Labuda. All rights reserved.
+.br
+    https://vitlabuda.cz/
+.br
+    vit <_at_> vitlabuda <_dot_> cz
+
+
+
+.SH "SEE ALSO"
+.BR tundra-nat64.conf (5)
